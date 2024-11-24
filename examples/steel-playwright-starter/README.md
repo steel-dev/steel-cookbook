@@ -2,7 +2,7 @@
 
 This template shows you how to use Steel with Playwright to run browser automations in the cloud. It includes session management, error handling, and a basic example you can customize.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/stackblitz-starters-bthn8e?file=README.md)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/steel-playwright-starter?file=README.md)
 [![Open Replit Template](https://replit.com/badge/github/@steel-dev/steel-playwright-starter)](https://replit.com/@steel-dev/steel-playwright-starter?v=1)
 
 ## Installation
