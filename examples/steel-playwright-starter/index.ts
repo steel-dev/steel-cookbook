@@ -34,7 +34,7 @@ You can view the session live at ${session.sessionViewerUrl}
     `);
 
     // Connect Playwright to the Steel session
-    browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`);
+    browser = await chromium.connectOverCDP(`wss://connect.steel.dev/?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`);
 
     console.log("Connected to browser via Playwright");
 
