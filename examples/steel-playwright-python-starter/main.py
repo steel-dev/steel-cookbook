@@ -44,8 +44,9 @@ You can view the session live at {session.session_viewer_url}
 
         print("Connected to browser via Playwright")
 
-        # Create a new page
-        page = browser.new_page()
+        # Create page at existing context to ensure session is recorded.
+        currentContext = browser.contexts[0]
+        page = currentContext.new_page()
 
         # ============================================================
         # Your Automations Go Here!
