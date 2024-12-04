@@ -38,8 +38,9 @@ You can view the session live at ${session.sessionViewerUrl}
 
     console.log("Connected to browser via Playwright");
 
-    // Create a new page
-    const page = await browser.newPage();
+    // Create page at existing context to ensure session is recorded.
+    const currentContext = browser.contexts()[0];
+    const page = await currentContext.pages()[0];
 
     // ============================================================
     // Your Automations Go Here!
