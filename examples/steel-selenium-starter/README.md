@@ -11,7 +11,7 @@ Clone this repository, navigate to the `examples/steel-selenium-starter`, and in
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
-cd examples/steel-selenium-starter
+cd steel-cookbook/examples/steel-selenium-starter
 
 # Create and activate virtual environment (recommended)
 python -m venv venv

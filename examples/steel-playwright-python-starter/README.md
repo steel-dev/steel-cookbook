@@ -10,7 +10,7 @@ Clone this repository, navigate to the `examples/steel-playwright-python-starter
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
-cd examples/steel-playwright-python-starter
+cd steel-cookbook/examples/steel-playwright-python-starter
 
 # Create and activate virtual environment (recommended)
 python -m venv venv
