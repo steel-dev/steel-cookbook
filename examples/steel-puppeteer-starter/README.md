@@ -12,7 +12,7 @@ Clone this repository, navigate to the `examples/steel-puppeteer-starter`, and i
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
-cd examples/steel-puppeteer-starter
+cd steel-cookbook/examples/steel-puppeteer-starter
 npm install
 ```
 

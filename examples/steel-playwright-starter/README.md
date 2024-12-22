@@ -11,7 +11,7 @@ Clone this repository, navigate to the `examples/steel-playwright-starter`, and 
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
-cd examples/steel-playwright-starter
+cd steel-cookbook/examples/steel-playwright-starter
 npm install
 ```
 
