@@ -92,4 +92,4 @@ finally:
 
 - [Steel Documentation](https://docs.steel.dev)
 - [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/gPpvhNvc5R)
+- [Discord Community](https://discord.gg/steel-dev)
