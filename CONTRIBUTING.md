@@ -70,7 +70,7 @@ We assess contributions based on:
 ## Need Help?
 
 - Review our [Documentation](https://docs.steel.dev)
-- Join our [Discord](https://discord.gg/gPpvhNvc5R)
+- Join our [Discord](https://discord.gg/steel-dev)
 - Open an issue for questions
 
 Remember: A great example helps others succeed quickly. Focus on the practical steps needed to solve a specific problem, and leave the teaching for tutorials.
