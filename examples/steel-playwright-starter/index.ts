@@ -24,7 +24,7 @@ async function main() {
       // useProxy: true, // Use Steel's proxy network (residential IPs)
       // proxyUrl: 'http://...',         // Use your own proxy (format: protocol://username:password@host:port)
       // solveCaptcha: true,             // Enable automatic CAPTCHA solving
-      // sessionTimeout: 1800000,        // Session timeout in ms (default: 15 mins, max: 60 mins)
+      // sessionTimeout: 1800000,        // Session timeout in ms (default: 5 mins, max: 60 mins)
       // === Browser Configuration ===
       // userAgent: 'custom-ua-string',  // Set a custom User-Agent
     });
