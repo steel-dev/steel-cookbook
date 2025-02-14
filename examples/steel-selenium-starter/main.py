@@ -20,6 +20,8 @@ if not STEEL_API_KEY:
 client = Steel(steel_api_key=STEEL_API_KEY)
 
 # Helper Class: Custom Remote Connection class to include Steel-specific headers
+
+
 class CustomRemoteConnection(RemoteConnection):
     _session_id = None
 
@@ -44,7 +46,7 @@ def main():
         # Create a new Steel session with is_selenium=True
         session = client.sessions.create(
             is_selenium=True,              # Enable Selenium mode (required)
-            # session_timeout=1800000,     # Session timeout in ms (default: 15 mins, max: 60 mins)
+            # session_timeout=1800000,     # Session timeout in ms (default: 5 mins)
         )
 
         print(f"""Session created successfully with Session ID: {session.id}.

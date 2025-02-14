@@ -18,6 +18,7 @@ npm install
 ## Quick start
 
 The example script in `index.ts` shows you how to:
+
 - Create and manage a Steel browser session
 - Connect Playwright to the session
 - Navigate to a website (Hacker News in this example)
@@ -28,6 +29,7 @@ The example script in `index.ts` shows you how to:
 To run it:
 
 1. Create a `.env` file in the `examples/steel-playwright-starter` directory:
+
 ```bash
 STEEL_API_KEY=your_api_key_here
 ```
@@ -35,6 +37,7 @@ STEEL_API_KEY=your_api_key_here
 2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
 
 3. From the same directory, run the command:
+
 ```bash
 npm start
 ```
@@ -49,9 +52,8 @@ Find this section in `index.ts`:
 // ============================================================
 
 // Example automation (you can delete this)
-await page.goto('https://news.ycombinator.com');
+await page.goto("https://news.ycombinator.com");
 // ... rest of example code
-
 ```
 
 You can replace the code here with whatever automation scripts you want to run.
@@ -62,10 +64,10 @@ The template includes common Steel configurations you can enable:
 
 ```typescript
 const session = await client.sessions.create({
-  useProxy: true,               // Use Steel's proxy network
-  solveCaptcha: true,          // Enable CAPTCHA solving
-  sessionTimeout: 1800000,      // 30 minute timeout (default: 15 mins)
-  userAgent: 'custom-ua',      // Custom User-Agent
+  useProxy: true, // Use Steel's proxy network
+  solveCaptcha: true, // Enable CAPTCHA solving
+  sessionTimeout: 1800000, // 30 minute timeout (default: 5 mins)
+  userAgent: "custom-ua", // Custom User-Agent
 });
 ```
 

@@ -23,6 +23,7 @@ pip install -r requirements.txt
 ## Quick start
 
 The example script in `main.py` shows you how to:
+
 - Create and manage a Steel browser session
 - Connect Playwright to the session
 - Navigate to a website (Hacker News in this example)
@@ -33,6 +34,7 @@ The example script in `main.py` shows you how to:
 To run it:
 
 1. Create a `.env` file in the `examples/steel-playwright-python-starter` directory:
+
 ```bash
 STEEL_API_KEY=your_api_key_here
 ```
@@ -40,6 +42,7 @@ STEEL_API_KEY=your_api_key_here
 2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
 
 3. From the same directory, run the command:
+
 ```bash
 python main.py
 ```
@@ -68,7 +71,7 @@ The template includes common Steel configurations you can enable:
 session = client.sessions.create(
     use_proxy=True,              # Use Steel's proxy network
     solve_captcha=True,          # Enable CAPTCHA solving
-    session_timeout=1800000,     # 30 minute timeout (default: 15 mins)
+    session_timeout=1800000,     # 30 minute timeout (default: 5 mins)
     user_agent='custom-ua',      # Custom User-Agent
 )
 ```
