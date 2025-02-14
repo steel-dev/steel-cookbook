@@ -27,7 +27,7 @@ def main():
             # use_proxy=True,              # Use Steel's proxy network (residential IPs)
             # proxy_url='http://...',      # Use your own proxy (format: protocol://username:password@host:port)
             # solve_captcha=True,          # Enable automatic CAPTCHA solving
-            # session_timeout=1800000,     # Session timeout in ms (default: 15 mins, max: 60 mins)
+            # session_timeout=1800000,     # Session timeout in ms (default: 5 mins, max: 60 mins)
             # === Browser Configuration ===
             # user_agent='custom-ua',      # Set a custom User-Agent
         )
