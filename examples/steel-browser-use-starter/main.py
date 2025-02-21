@@ -14,12 +14,9 @@ import asyncio
 from dotenv import load_dotenv
 from steel import Steel  # Steel SDK for managing cloud browser sessions
 from langchain_openai import ChatOpenAI  # Simplified Chat Model integration
-from browser_use import Agent, Controller
+from browser_use import Agent
 from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext
-from playwright.async_api import Browser as PlaywrightBrowser
-from playwright.async_api import BrowserContext as PlaywrightBrowserContext
-from playwright.async_api import ElementHandle, FrameLocator, Page
 
 # Load environment variables from .env
 load_dotenv()
