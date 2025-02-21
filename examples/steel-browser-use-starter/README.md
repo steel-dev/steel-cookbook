@@ -14,7 +14,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 
 - Python 3.11 or higher
 - Python package manager (Recommended `uv`: `pip install uv`)
-- Steel API key
+- Steel API key (Claim 100 free browser hours [here.](https://app.steel.dev/sign-up))
 - OpenAI API key
 
 ## Installation
