@@ -72,6 +72,8 @@ async def main():
         browser_context = BrowserContext(browser=browser)
 
         # 3. Create a ChatOpenAI model for agent reasoning
+        # You can use any browser-use compatible model you want here like Anthropic, Deepseek, Gemini, etc.
+        # See supported models here: https://docs.browser-use.com/customize/supported-models
         model = ChatOpenAI(
             model="gpt-4o",
             temperature=0.3,
