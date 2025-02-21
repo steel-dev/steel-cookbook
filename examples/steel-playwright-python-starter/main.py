@@ -32,8 +32,8 @@ def main():
             # user_agent='custom-ua',      # Set a custom User-Agent
         )
 
-        print(f"""Session created successfully with Session ID: {session.id}.
-You can view the session live at {session.session_viewer_url}
+        print(f"""\033[1;93mSteel Session created successfully!\033[0m
+You can view the session live at \033[1;37m{session.session_viewer_url}\033[0m
         """)
 
         # Connect Playwright to the Steel session
