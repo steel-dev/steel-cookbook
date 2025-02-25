@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+uv.lock
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -149,6 +150,7 @@ __pycache__/
 .idea/
 *.swp
 *.swo
+.cursorrules
 
 # Logs
 *.log
@@ -157,3 +159,6 @@ npm-debug.log*
 # Build outputs
 dist/
 build/
+
+# Artifacts
+agent_history.gif

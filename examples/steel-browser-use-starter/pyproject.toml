@@ -1,0 +1,14 @@
+[project]
+name = "steel-browser-use-starter"
+version = "0.1.0"
+description = "Example demonstrating Steel integration with browser-use framework"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "steel-sdk>=0.1.0b3",
+    "browser-use>=0.1.31",
+    "python-dotenv>=1.0.0",
+    "langchain-openai>=0.0.5",
+    "pydantic>=2.0.0",
+    "asyncio>=3.4.3",
+]
