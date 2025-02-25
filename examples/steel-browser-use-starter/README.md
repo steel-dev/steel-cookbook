@@ -14,7 +14,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 
 - Python 3.11 or higher
 - Python package manager (Recommended `uv`: `pip install uv`)
-- Steel API key (Claim 100 free browser hours [here.](https://app.steel.dev/sign-up))
+- Steel API key (Get 100 free browser hours [here.](https://app.steel.dev/sign-up))
 - OpenAI API key
 
 ## Installation
@@ -36,8 +36,10 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 3. **Install the required dependencies using UV:**
 
    ```bash
-   uv pip install -e .
+   uv pip install .
    ```
+
+   Note: We're using UV's pip wrapper to install the package. This ensures all dependencies are resolved consistently using UV's dependency resolution. If you're having issue with speed or dependencies, feel free to switch back to python/pip and try these steps again.
 
 4. **Copy the environment variables file and configure your API keys:**
 
