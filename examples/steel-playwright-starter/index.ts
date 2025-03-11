@@ -29,9 +29,10 @@ async function main() {
       // userAgent: 'custom-ua-string',  // Set a custom User-Agent
     });
 
-    console.log(`Session created successfully with Session ID: ${session.id}.
-You can view the session live at ${session.sessionViewerUrl}
-    `);
+    console.log(
+      `\x1b[1;93mSteel Session created!\x1b[0m\n` +
+        `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
+    );
 
     // Connect Playwright to the Steel session
     browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`);

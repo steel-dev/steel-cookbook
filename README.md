@@ -9,6 +9,7 @@ Choose the starter that matches your preferred automation framework:
 ### JavaScript/TypeScript
 - [Steel + Puppeteer Starter](examples/steel-puppeteer-starter) - Use Steel with Puppeteer
 - [Steel + Playwright Starter](examples/steel-playwright-starter) - Use Steel with Playwright
+- [Reusing auth state between sessions](examples/reuse_auth_context_example) - Example script that how's how to use Steel's context endpoint to reuse browser state between sesisons to, in this case, stay logged into a website.
 
 
 ### Python
