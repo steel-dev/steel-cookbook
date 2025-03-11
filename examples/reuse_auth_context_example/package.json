@@ -1,0 +1,28 @@
+{
+  "name": "reuse_auth_context_example",
+  "version": "1.0.0",
+  "description": "A starter project for reusing authentication across Steel sessions with Playwright",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "playwright",
+    "authentication",
+    "session-reuse"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "playwright": "^1.48.2",
+    "steel-sdk": "^0.1.0-beta.2",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "ts-node": "^10.9.2"
+  }
+}
