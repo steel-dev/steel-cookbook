@@ -1,6 +1,16 @@
 # Steel Cookbook & Starter Projects
 
-This repository contains official starter projects and recipes for building web automations with Steel.
+This repository contains official starter projects and recipes for building web automations with Steel. It is also the home of `create-steel-app`, a CLI tool that helps you quickly set up new Steel projects.
+
+## Create Steel App
+
+`create-steel-app` is a command-line tool that helps you bootstrap Steel projects with your preferred automation framework.
+
+Usage:
+
+```bash
+npx create-steel-app
+```
 
 ## Starter Projects
 
