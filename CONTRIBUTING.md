@@ -1,4 +1,4 @@
-# Contributing to Steel Cookbook
+# Contributing to the Steel Cookbook
 
 Welcome, AI Builder! The Steel Cookbook is a community-driven resource aimed at sharing practical examples for building web automations with Steel. Our goal is to help AI engineers build better, more reliable web agents.
 

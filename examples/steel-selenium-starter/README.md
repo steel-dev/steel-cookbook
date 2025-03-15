@@ -13,8 +13,8 @@ git clone https://github.com/steel-dev/steel-cookbook
 cd steel-cookbook/examples/steel-selenium-starter
 
 # Create and activate virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt

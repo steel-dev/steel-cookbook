@@ -1,11 +1,10 @@
-import { chromium } from "playwright";
-import Steel from "steel-sdk";
-import dotenv from "dotenv";
+const puppeteer = require("puppeteer-core");
+const Steel = require("steel-sdk");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
 const STEEL_API_KEY = process.env.STEEL_API_KEY;
-
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
   steelAPIKey: STEEL_API_KEY,
@@ -34,23 +33,25 @@ async function main() {
         `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
     );
 
-    // Connect Playwright to the Steel session
-    browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`);
+    // Connect Puppeteer to the Steel session
+    browser = await puppeteer.connect({
+      browserWSEndpoint: `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`,
+    });
 
-    console.log("Connected to browser via Playwright");
+    console.log("Connected to browser via Puppeteer");
 
-    // Create page at existing context to ensure session is recorded.
-    const currentContext = browser.contexts()[0];
-    const page = await currentContext.pages()[0];
+    // Create a new page
+    const page = await browser.newPage();
 
     // ============================================================
     // Your Automations Go Here!
     // ============================================================
 
-    // Example script - Navigate to Hacker News and extract the top 5 stories
+    // Example script - Navigate to Hacker News and extract the top 5 stories (you can delete this)
+    // Navigate to Hacker News
     console.log("Navigating to Hacker News...");
     await page.goto("https://news.ycombinator.com", {
-      waitUntil: "networkidle",
+      waitUntil: "networkidle0",
     });
 
     // Extract the top 5 stories
@@ -89,7 +90,7 @@ async function main() {
   } catch (error) {
     console.error("An error occurred:", error);
   } finally {
-    // Cleanup: Gracefully close browser and release session when done
+    // Cleanup: Gracefully close browser and release session when done (even when an error occurs)
     if (browser) {
       await browser.close();
       console.log("Browser closed");

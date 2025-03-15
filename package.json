@@ -1,0 +1,41 @@
+{
+    "name": "create-steel-app",
+    "version": "1.0.0",
+    "type": "module",
+    "license": "MIT",
+    "author": "Nasr Mohamed",
+    "bin": {
+        "create-steel-app": "index.js",
+        "csa": "index.js"
+    },
+    "files": [
+        "index.js",
+        "templates",
+        "dist"
+    ],
+    "scripts": {
+        "dev": "unbuild --stub",
+        "build": "unbuild",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run build"
+    },
+    "engines": {
+        "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/steel-dev/steel-cookbook.git"
+    },
+    "bugs": {
+        "url": "https://github.com/steel-dev/steel-cookbook/issues"
+    },
+    "homepage": "https://github.com/steel-dev/steel-cookbook#readme",
+    "devDependencies": {
+        "@clack/prompts": "^0.10.0",
+        "@types/cross-spawn": "^6.0.6",
+        "cross-spawn": "^7.0.6",
+        "mri": "^1.2.0",
+        "picocolors": "^1.1.1",
+        "unbuild": "^3.5.0"
+    }
+}
