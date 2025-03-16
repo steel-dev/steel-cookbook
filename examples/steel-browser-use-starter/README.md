@@ -26,20 +26,20 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
    cd steel-cookbook/examples/steel-browser-use-starter
    ```
 
-2. **Create and activate a virtual environment with UV:**
+2. **Create and activate a virtual environment with venv:**
 
    ```bash
    python -m venv .venv
    source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
    ```
 
-3. **Install the required dependencies using UV:**
+3. **Install the required dependencies using venv:**
 
    ```bash
    pip install .
    ```
 
-   Note: We're using UV's pip wrapper to install the package. This ensures all dependencies are resolved consistently using UV's dependency resolution. If you're having issue with speed or dependencies, feel free to switch back to python/pip and try these steps again.
+   Note: We're using venv to manage our environment and pip to install the packages. This ensures all dependencies are resolved consistently using pip's dependency resolution. If you're having issue with speed or dependencies, feel free to switch back to python/pip and try these steps again.
 
 4. **Copy the environment variables file and configure your API keys:**
 
