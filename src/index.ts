@@ -63,6 +63,7 @@ type Template = {
   display: string;
   color: ColorFunc;
   customCommands?: string[];
+  extraEnvVarsRequired?: { name: string; display: string }[];
 };
 
 const TEMPLATES: Template[] = [
@@ -96,6 +97,20 @@ const TEMPLATES: Template[] = [
       "pip install .",
       "python main.py",
     ],
+    extraEnvVarsRequired: [
+      { name: "OPENAI_API_KEY", display: "OpenAI API key" },
+    ],
+  },
+  {
+    name: "steel-playwright-python-starter",
+    display: "(Python) Steel + Playwright",
+    color: cyanBright,
+    customCommands: [
+      "python -m venv .venv",
+      "source .venv/bin/activate",
+      "pip install -r requirements.txt",
+      "python main.py",
+    ],
   },
   {
     name: "steel-selenium-starter",
@@ -104,7 +119,7 @@ const TEMPLATES: Template[] = [
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
-      "pip install .",
+      "pip install -r requirements.txt",
       "python main.py",
     ],
   },
@@ -351,11 +366,17 @@ async function init() {
 
   // Only show API key instructions if they didn't provide one
   const hasProvidedApiKey = !prompts.isCancel(steelApiKey) && !!steelApiKey;
+  const envVarsToAdd = hasProvidedApiKey
+    ? template.extraEnvVarsRequired || []
+    : [
+        { name: "STEEL_API_KEY", display: "Steel API key" },
+        ...(template.extraEnvVarsRequired || []),
+      ];
 
   // prettier-ignore
   doneMessage +=`
     
-  ${!hasProvidedApiKey ? `${yellow("Important:")} Add your Steel API key to the .env file
+  ${envVarsToAdd.length ? `${yellow("Important:")} Add your ${envVarsToAdd.map(e => e.display).join(" + ")} to the .env file
   Get a free API key at: ${blueBright("https://app.steel.dev/settings/api-keys")}
   ` : ''}
   Learn more about Steel at: ${blueBright("https://docs.steel.dev/")}`;
