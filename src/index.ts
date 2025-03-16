@@ -270,9 +270,26 @@ async function init() {
     write("package.json", JSON.stringify(pkg, null, 2) + "\n");
   }
 
+  // Ask for Steel API key
+  const steelApiKey = await prompts.text({
+    message: `Enter your ${yellow("Steel")} API key (press Enter to skip):`,
+    placeholder: "ste-...",
+  });
+
   // Copy .env.example to .env
   if (fs.existsSync(path.join(root, ".env.example"))) {
     fs.copyFileSync(path.join(root, ".env.example"), path.join(root, ".env"));
+
+    if (!prompts.isCancel(steelApiKey) && steelApiKey) {
+      // Replace STEEL_API_KEY in the .env file
+      const envPath = path.join(root, ".env");
+      let envContent = fs.readFileSync(envPath, "utf-8");
+      envContent = envContent.replace(
+        /STEEL_API_KEY=.*/,
+        `STEEL_API_KEY=${steelApiKey}`
+      );
+      fs.writeFileSync(envPath, envContent);
+    }
   }
 
   // Ask if user wants to install dependencies only for JS/TS projects (not Python)
@@ -332,12 +349,15 @@ async function init() {
     }
   }
 
+  // Only show API key instructions if they didn't provide one
+  const hasProvidedApiKey = !prompts.isCancel(steelApiKey) && !!steelApiKey;
+
   // prettier-ignore
   doneMessage +=`
     
-  ${yellow("Important:")} Add your Steel API key to the .env file
+  ${!hasProvidedApiKey ? `${yellow("Important:")} Add your Steel API key to the .env file
   Get a free API key at: ${blueBright("https://app.steel.dev/settings/api-keys")}
-
+  ` : ''}
   Learn more about Steel at: ${blueBright("https://docs.steel.dev/")}`;
 
   prompts.outro(doneMessage);

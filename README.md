@@ -7,10 +7,21 @@ This repository contains official starter projects and recipes for building web 
 `create-steel-app` is a command-line tool that helps you bootstrap Steel projects with your preferred automation framework.
 
 Usage:
-
 ```bash
-npx create-steel-app
+# Using npm
+npm create steel-app
+
+# Using yarn
+yarn create steel-app
+
+# Using pnpm
+pnpm create steel-app
+
+# Using the shorter alias
+npm create csa
 ```
+
+Compatible with Node.js versions 18.0.0+, 20.0.0+, and 22.0.0+.
 
 ## Starter Projects
 
