@@ -6,8 +6,16 @@ import * as prompts from "@clack/prompts";
 import colors from "picocolors";
 import { execSync } from "node:child_process";
 
-const { blueBright, cyan, green, greenBright, yellow, magenta, cyanBright, yellowBright } =
-  colors;
+const {
+  blueBright,
+  cyan,
+  green,
+  greenBright,
+  yellow,
+  magenta,
+  cyanBright,
+  yellowBright,
+} = colors;
 
 const argv = mri<{
   template?: string;
@@ -42,12 +50,12 @@ const steelWelcomeMessage = `
 
 ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
 ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
-${yellowBright("@@@@@@@@@9999999999999@@@@@@@@@")}
-${yellowBright("@@@@@[                   ]@@@@@")}
-${yellowBright("@@@@[                      @@@@")}      ${cyan("Humans use Chrome, Agents use Steel.")}
+${yellowBright("@@@@@@@@@9999999999999@@@@@@@@@")}      ${cyan("Humans use Chrome, Agents use Steel.")}
+${yellowBright("@@@@@[                   ]@@@@@")}      
+${yellowBright("@@@@[                      @@@@")}      
 ${yellowBright("@@@@     @@@@@@@@@@@@@     @@@@")}
 ${yellowBright("@@@@B              @@@     @@@@")}      Steel is an open-source browser API purpose-built for AI agents.
-${yellowBright("@@@@@@               @     @@@@")}      Give one or 10,000 agents the ability to interact with any website.
+${yellowBright("@@@@@@               @     @@@@")}      Give one or 1,000 agents the ability to interact with any website.
 ${yellowBright("@@@@@@@@@@@@@@@@     @     @@@@")}
 ${yellowBright("@@@@                 @     @@@@")}
 ${yellowBright("@@@@                @@     @@@@")}
@@ -56,7 +64,6 @@ ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}      ${green("GitHub:")} ${bl
 ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
 
 `;
-
 
 type ColorFunc = (str: string | number) => string;
 type Template = {
@@ -69,22 +76,22 @@ type Template = {
 
 const TEMPLATES: Template[] = [
   {
-    name: "steel-playwright-starter",
+    name: "steel-playwright-starter-js",
     display: "Playwright",
     color: magenta,
   },
   {
-    name: "steel-playwright-starter-ts",
+    name: "steel-playwright-starter",
     display: "Playwright + TypeScript",
     color: cyan,
   },
   {
-    name: "steel-puppeteer-starter",
+    name: "steel-puppeteer-starter-js",
     display: "Puppeteer",
     color: yellow,
   },
   {
-    name: "steel-puppeteer-starter-ts",
+    name: "steel-puppeteer-starter",
     display: "Puppeteer + TypeScript",
     color: blueBright,
   },
