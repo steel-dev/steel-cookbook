@@ -6,7 +6,7 @@ import * as prompts from "@clack/prompts";
 import colors from "picocolors";
 import { execSync } from "node:child_process";
 
-const { blueBright, cyan, green, greenBright, yellow, magenta, cyanBright } =
+const { blueBright, cyan, green, greenBright, yellow, magenta, cyanBright, yellowBright } =
   colors;
 
 const argv = mri<{
@@ -39,23 +39,24 @@ ${greenBright('playwright-typescript')}  Browser automation with Playwright and 
 
 // prettier-ignore
 const steelWelcomeMessage = `
-                  
-   :=***************=:  
- +@@@@@@@@@@@@@@@@@@@@+ 
--@@@@@@@@@@@@@@@@@@@@@@-
-%@@@@@@@@@@@@@@@@@@@@@@%
-@@@@+============*@@@@@@      ${cyan("Humans use Chrome, Agents use Steel.")}
-@@@@*++++++++-.  :@@@@@@
-#@@@@@@@@@@@@@%. :@@@@@@      
-:@@@@@@@@@@@@@@%.:@@@@@@      Steel is an open-source browser API purpose-built for AI agents.
- +%@@@@@@@@@@@@@=:@@@@@@      Create interactive web automations that can work with any website.
-  .-++++++%%%@@@#:@@@@@@
--=========###@@@#:@@@@@@
-@@@@@@@@@@@@@@@@=:@@@@@@
-@@@@@@@@@@@@@@@%.:@@@@@@      ${green("Documentation:")} ${blueBright("https://docs.steel.dev/")}
-@@@@@@@@@@@@@@%: :@@@@@@      ${green("GitHub:")} ${blueBright("https://github.com/steel-dev/steel-browser")}
-*************-.  .******
+
+${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
+${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
+${yellowBright("@@@@@@@@@9999999999999@@@@@@@@@")}
+${yellowBright("@@@@@[                   ]@@@@@")}
+${yellowBright("@@@@[                      @@@@")}      ${cyan("Humans use Chrome, Agents use Steel.")}
+${yellowBright("@@@@     @@@@@@@@@@@@@     @@@@")}
+${yellowBright("@@@@B              @@@     @@@@")}      Steel is an open-source browser API purpose-built for AI agents.
+${yellowBright("@@@@@@               @     @@@@")}      Give one or 10,000 agents the ability to interact with any website.
+${yellowBright("@@@@@@@@@@@@@@@@     @     @@@@")}
+${yellowBright("@@@@                 @     @@@@")}
+${yellowBright("@@@@                @@     @@@@")}
+${yellowBright("@@@@@@@@@@@@@@@@g@@@@@@@@@@@@@@")}      ${green("Documentation:")} ${blueBright("https://docs.steel.dev/")}
+${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}      ${green("GitHub:")} ${blueBright("https://github.com/steel-dev/steel-browser")}
+${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
+
 `;
+
 
 type ColorFunc = (str: string | number) => string;
 type Template = {
