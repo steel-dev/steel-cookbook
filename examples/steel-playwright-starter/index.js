@@ -1,6 +1,6 @@
-import { chromium } from "playwright";
-import Steel from "steel-sdk";
-import dotenv from "dotenv";
+const { chromium } = require("playwright");
+const Steel = require("steel-sdk");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
@@ -35,7 +35,9 @@ async function main() {
     );
 
     // Connect Playwright to the Steel session
-    browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`);
+    browser = await chromium.connectOverCDP(
+      `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`
+    );
 
     console.log("Connected to browser via Playwright");
 

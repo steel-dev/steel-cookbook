@@ -1,8 +1,6 @@
-// run `npm start` in the terminal
-
-import puppeteer from "puppeteer";
-import Steel from "steel-sdk";
-import dotenv from "dotenv";
+const puppeteer = require("puppeteer-core");
+const Steel = require("steel-sdk");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
