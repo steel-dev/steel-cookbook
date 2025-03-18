@@ -1,0 +1,27 @@
+{
+  "name": "steel-cua",
+  "version": "1.0.0",
+  "description": "Steel Browser Computer Use Agent",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "openai",
+    "computer-use",
+    "browser-automation"
+  ],
+  "author": "Steel Dev",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "openai": "^4.86.2",
+    "playwright": "^1.50.0",
+    "steel-sdk": "latest"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}
