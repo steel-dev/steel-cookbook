@@ -7,6 +7,7 @@ import colors from "picocolors";
 import { execSync } from "node:child_process";
 
 const {
+  blue,
   blueBright,
   cyan,
   green,
@@ -15,6 +16,7 @@ const {
   magenta,
   cyanBright,
   yellowBright,
+  magentaBright,
 } = colors;
 
 const argv = mri<{
@@ -93,17 +95,17 @@ const TEMPLATES: Template[] = [
   {
     name: "steel-puppeteer-starter",
     display: "Puppeteer + TypeScript",
-    color: blueBright,
+    color: blue,
   },
   {
     name: "steel-oai-computer-use-node-starter",
-    display: "Steel + OpenAI Computer Use",
-    color: greenBright,
+    display: "Steel + OpenAI Computer Use + TypeScript",
+    color: blueBright,
   },
   {
     name: "steel-browser-use-starter",
     display: "(Python) Steel + Browser Use",
-    color: greenBright,
+    color: green,
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
@@ -117,7 +119,7 @@ const TEMPLATES: Template[] = [
   {
     name: "steel-oai-computer-use-python-starter",
     display: "(Python) Steel + OpenAI Computer Use",
-    color: greenBright,
+    color: magentaBright,
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
@@ -131,7 +133,7 @@ const TEMPLATES: Template[] = [
   {
     name: "steel-playwright-python-starter",
     display: "(Python) Steel + Playwright",
-    color: cyanBright,
+    color: greenBright,
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
