@@ -89,8 +89,7 @@ class SteelBrowser {
 
       const context = this.browser.contexts()[0];
       this.page = context.pages()[0];
-
-      await this.page.goto("https://bing.com");
+      await this.page.goto("https://google.com");
     } catch (error) {
       console.error("Error connecting to Steel session:", error);
 
@@ -106,6 +105,41 @@ class SteelBrowser {
 
       throw error;
     }
+  }
+
+  async applySameTabScript(): Promise<void> {
+    if (!this.page) throw new Error("Page not initialized");
+    await this.page.addInitScript(
+      `
+      window.addEventListener('load', () => {
+          // Initial cleanup
+          document.querySelectorAll('a[target="_blank"]').forEach(a => a.target = '_self');
+          
+          // Watch for dynamic changes
+          const observer = new MutationObserver((mutations) => {
+              mutations.forEach((mutation) => {
+                  if (mutation.addedNodes) {
+                      mutation.addedNodes.forEach((node) => {
+                          if (node.nodeType === 1) { // ELEMENT_NODE
+                              // Check the added element itself
+                              if (node.tagName === 'A' && node.target === '_blank') {
+                                  node.target = '_self';
+                              }
+                              // Check any anchor children
+                              node.querySelectorAll('a[target="_blank"]').forEach(a => a.target = '_self');
+                          }
+                      });
+                  }
+              });
+          });
+          
+          observer.observe(document.body, {
+              childList: true,
+              subtree: true
+          });
+      });
+      `
+    );
   }
 
   async cleanup(): Promise<void> {
@@ -144,6 +178,11 @@ class SteelBrowser {
 
     if (isNaN(parsedX) || isNaN(parsedY)) {
       throw new Error(`Invalid coordinates: x=${x}, y=${y}`);
+    }
+
+    if (button == "wheel") {
+      await this.page.mouse.wheel(parsedX, parsedY);
+      return;
     }
 
     await this.page.mouse.click(parsedX, parsedY, {

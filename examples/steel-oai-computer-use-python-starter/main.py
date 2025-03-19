@@ -4,10 +4,12 @@ import base64
 import requests
 import json
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Page
 from steel import Steel
+from const import MODIFIERS, PLAYWRIGHT_KEYS
 
 load_dotenv()
+
 
 def create_response(**kwargs):
     """Send a request to OpenAI API to get a response."""
@@ -29,9 +31,11 @@ def create_response(**kwargs):
 
     return response.json()
 
+
 def pp(obj):
     """Pretty print a JSON object."""
     print(json.dumps(obj, indent=4))
+
 
 def sanitize_message(msg: dict) -> dict:
     """Return a copy of the message with image_url omitted for computer_call_output messages."""
@@ -51,7 +55,7 @@ class SteelBrowser:
     def __init__(self):
         self.client = Steel(
             steel_api_key=os.getenv("STEEL_API_KEY"),
-            base_url=os.getenv("STEEL_API_URL")
+            base_url=os.getenv("STEEL_API_URL"),
         )
         self.session = None
         self._playwright = None
@@ -73,13 +77,51 @@ class SteelBrowser:
         cdp_url = f"{connect_url}?apiKey={os.getenv('STEEL_API_KEY')}&sessionId={self.session.id}"
         self._browser = self._playwright.chromium.connect_over_cdp(cdp_url)
         self._page = self._browser.contexts[0].pages[0]
-        self._page.goto("https://bing.com")
+        self._page.goto("https://google.com")
+        self.apply_same_tab_script()
         return self
 
+    def apply_same_tab_script(self):
+        """Apply script to make links open in the same tab."""
+        self._page.add_init_script(
+            """
+            window.addEventListener('load', () => {
+                // Initial cleanup
+                document.querySelectorAll('a[target="_blank"]').forEach(a => a.target = '_self');
+                
+                // Watch for dynamic changes
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.addedNodes) {
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.nodeType === 1) { // ELEMENT_NODE
+                                    // Check the added element itself
+                                    if (node.tagName === 'A' && node.target === '_blank') {
+                                        node.target = '_self';
+                                    }
+                                    // Check any anchor children
+                                    node.querySelectorAll('a[target="_blank"]').forEach(a => a.target = '_self');
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+        """
+        )
+
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._page: self._page.close()
-        if self._browser: self._browser.close()
-        if self._playwright: self._playwright.stop()
+        if self._page:
+            self._page.close()
+        if self._browser:
+            self._browser.close()
+        if self._playwright:
+            self._playwright.stop()
         if self.session:
             self.client.sessions.release(self.session.id)
             print(f"Session ended: {self.session.session_viewer_url}")
@@ -87,7 +129,9 @@ class SteelBrowser:
     def screenshot(self) -> str:
         try:
             cdp_session = self._page.context.new_cdp_session(self._page)
-            result = cdp_session.send("Page.captureScreenshot", {"format": "png", "fromSurface": True})
+            result = cdp_session.send(
+                "Page.captureScreenshot", {"format": "png", "fromSurface": True}
+            )
             return result["data"]
         except:
             png_bytes = self._page.screenshot()
@@ -113,21 +157,29 @@ class SteelBrowser:
         self._page.mouse.move(x, y)
 
     def keypress(self, keys: list[str]) -> None:
+        if not keys:
+            return
+
+        # Handle modifier keys
+        if keys[0].upper() in MODIFIERS:
+            # Press and hold the modifier key
+            self._page.keyboard.down(MODIFIERS[keys[0].upper()])
+            # Press the remaining keys
+            for k in keys[1:]:
+                key = PLAYWRIGHT_KEYS.get(k.upper(), k)
+                self._page.keyboard.press(key)
+            # Release the modifier key
+            self._page.keyboard.up(MODIFIERS[keys[0].upper()])
+            return
+
+        # Handle regular key presses
         for k in keys:
-            # Handle common keys
-            if k.lower() == "enter": k = "Enter"
-            elif k.lower() == "space": k = " "
-            elif k.lower() == "backspace": k = "Backspace"
-            elif k.lower() == "tab": k = "Tab"
-            elif k.lower() in ["escape", "esc"]: k = "Escape"
-            elif k.lower() == "arrowup": k = "ArrowUp"
-            elif k.lower() == "arrowdown": k = "ArrowDown"
-            elif k.lower() == "arrowleft": k = "ArrowLeft"
-            elif k.lower() == "arrowright": k = "ArrowRight"
-            self._page.keyboard.press(k)
+            key = PLAYWRIGHT_KEYS.get(k.upper(), k)
+            self._page.keyboard.press(key)
 
     def drag(self, path: list[dict[str, int]]) -> None:
-        if not path: return
+        if not path:
+            return
         self._page.mouse.move(path[0]["x"], path[0]["y"])
         self._page.mouse.down()
         for point in path[1:]:
@@ -136,6 +188,19 @@ class SteelBrowser:
 
     def get_current_url(self) -> str:
         return self._page.url
+
+    def goto(self, url: str) -> None:
+        """Navigate to a specific URL."""
+        self._page.goto(url)
+
+    def back(self) -> None:
+        """Navigate back in the browser history."""
+        self._page.go_back()
+
+    def refresh(self) -> None:
+        """Refresh the current page."""
+        self._page.reload()
+
 
 def acknowledge_safety_check_callback(message: str) -> bool:
     response = input(
