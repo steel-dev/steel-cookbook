@@ -1,9 +1,10 @@
-import * as dotenv from 'dotenv';
-import * as readline from 'readline';
-import { chromium } from 'playwright';
-import type { Browser, Page } from 'playwright';
-import { OpenAI } from 'openai';
-import { Steel } from 'steel-sdk';
+import * as dotenv from "dotenv";
+import * as readline from "readline";
+import { chromium } from "playwright";
+import type { Browser, Page } from "playwright";
+import { OpenAI } from "openai";
+import { Steel } from "steel-sdk";
+import { MODIFIERS, PLAYWRIGHT_KEYS } from "./const";
 
 dotenv.config();
 
@@ -13,16 +14,16 @@ interface ResponseItem {
 }
 
 interface MessageResponseItem extends ResponseItem {
-  type: 'message';
-  role: 'assistant';
+  type: "message";
+  role: "assistant";
   content: {
-    type: 'output_text';
+    type: "output_text";
     text: string;
   }[];
 }
 
 interface ComputerCallResponseItem extends ResponseItem {
-  type: 'computer_call';
+  type: "computer_call";
   call_id: string;
   action: {
     type: string;
@@ -32,7 +33,7 @@ interface ComputerCallResponseItem extends ResponseItem {
 }
 
 interface FunctionCallResponseItem extends ResponseItem {
-  type: 'function_call';
+  type: "function_call";
   call_id: string;
   name: string;
   arguments: string;
@@ -53,7 +54,7 @@ interface Response {
  * This class provides methods to control a browser using Steel's API
  */
 class SteelBrowser {
-  environment = 'browser' as const;
+  environment = "browser" as const;
   dimensions = { width: 1024, height: 768 };
 
   private client: Steel;
@@ -78,7 +79,7 @@ class SteelBrowser {
     console.log(`Session created: ${this.session.sessionViewerUrl}`);
 
     const connectUrl =
-      process.env.STEEL_CONNECT_URL || 'wss://connect.steel.dev';
+      process.env.STEEL_CONNECT_URL || "wss://connect.steel.dev";
     const cdpUrl = `${connectUrl}?apiKey=${process.env.STEEL_API_KEY}&sessionId=${this.session.id}`;
 
     try {
@@ -89,9 +90,9 @@ class SteelBrowser {
       const context = this.browser.contexts()[0];
       this.page = context.pages()[0];
 
-      await this.page.goto('https://bing.com');
+      await this.page.goto("https://bing.com");
     } catch (error) {
-      console.error('Error connecting to Steel session:', error);
+      console.error("Error connecting to Steel session:", error);
 
       // Clean up if connection fails
       if (this.session) {
@@ -99,7 +100,7 @@ class SteelBrowser {
           await this.client.sessions.release(this.session.id);
           console.log(`Session released due to connection error`);
         } catch (releaseError) {
-          console.error('Error releasing session:', releaseError);
+          console.error("Error releasing session:", releaseError);
         }
       }
 
@@ -117,43 +118,43 @@ class SteelBrowser {
   }
 
   async screenshot(): Promise<string> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
 
     try {
       const cdpSession = await this.page.context().newCDPSession(this.page);
-      const result = await cdpSession.send('Page.captureScreenshot', {
-        format: 'png',
+      const result = await cdpSession.send("Page.captureScreenshot", {
+        format: "png",
         fromSurface: true,
       });
       return result.data;
     } catch (e) {
       const buffer = await this.page.screenshot();
-      return buffer.toString('base64');
+      return buffer.toString("base64");
     }
   }
 
   async click(
     x: number | string,
     y: number | string,
-    button: string = 'left'
+    button: string = "left"
   ): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
-    const parsedX = typeof x === 'string' ? parseInt(x, 10) : x;
-    const parsedY = typeof y === 'string' ? parseInt(y, 10) : y;
+    if (!this.page) throw new Error("Page not initialized");
+    const parsedX = typeof x === "string" ? parseInt(x, 10) : x;
+    const parsedY = typeof y === "string" ? parseInt(y, 10) : y;
 
     if (isNaN(parsedX) || isNaN(parsedY)) {
       throw new Error(`Invalid coordinates: x=${x}, y=${y}`);
     }
 
     await this.page.mouse.click(parsedX, parsedY, {
-      button: button as 'left' | 'right' | 'middle',
+      button: button as "left" | "right" | "middle",
     });
   }
 
   async doubleClick(x: number | string, y: number | string): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
-    const parsedX = typeof x === 'string' ? parseInt(x, 10) : x;
-    const parsedY = typeof y === 'string' ? parseInt(y, 10) : y;
+    if (!this.page) throw new Error("Page not initialized");
+    const parsedX = typeof x === "string" ? parseInt(x, 10) : x;
+    const parsedY = typeof y === "string" ? parseInt(y, 10) : y;
 
     if (isNaN(parsedX) || isNaN(parsedY)) {
       throw new Error(`Invalid coordinates: x=${x}, y=${y}`);
@@ -171,13 +172,13 @@ class SteelBrowser {
     scrollX: number | string,
     scrollY: number | string
   ): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
-    const parsedX = typeof x === 'string' ? parseInt(x, 10) : x;
-    const parsedY = typeof y === 'string' ? parseInt(y, 10) : y;
+    if (!this.page) throw new Error("Page not initialized");
+    const parsedX = typeof x === "string" ? parseInt(x, 10) : x;
+    const parsedY = typeof y === "string" ? parseInt(y, 10) : y;
     const parsedScrollX =
-      typeof scrollX === 'string' ? parseInt(scrollX, 10) : scrollX;
+      typeof scrollX === "string" ? parseInt(scrollX, 10) : scrollX;
     const parsedScrollY =
-      typeof scrollY === 'string' ? parseInt(scrollY, 10) : scrollY;
+      typeof scrollY === "string" ? parseInt(scrollY, 10) : scrollY;
 
     if (
       isNaN(parsedX) ||
@@ -198,7 +199,7 @@ class SteelBrowser {
   }
 
   async type(text: string): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     await this.page.keyboard.type(text);
   }
 
@@ -207,9 +208,9 @@ class SteelBrowser {
   }
 
   async move(x: number | string, y: number | string): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
-    const parsedX = typeof x === 'string' ? parseInt(x, 10) : x;
-    const parsedY = typeof y === 'string' ? parseInt(y, 10) : y;
+    if (!this.page) throw new Error("Page not initialized");
+    const parsedX = typeof x === "string" ? parseInt(x, 10) : x;
+    const parsedY = typeof y === "string" ? parseInt(y, 10) : y;
 
     if (isNaN(parsedX) || isNaN(parsedY)) {
       throw new Error(`Invalid coordinates: x=${x}, y=${y}`);
@@ -219,20 +220,21 @@ class SteelBrowser {
   }
 
   async keypress(keys: string[]): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
+
+    if (MODIFIERS[keys[0]]) {
+      await this.page.keyboard.down(MODIFIERS[keys[0].toUpperCase()]);
+      for (const k of keys.slice(1)) {
+        await this.page.keyboard.press(k);
+      }
+      await this.page.keyboard.up(MODIFIERS[keys[0].toUpperCase()]);
+    }
 
     for (const k of keys) {
-      let key = k;
-      if (k === 'ENTER') key = 'Enter';
-      else if (k === 'SPACE') key = 'Space';
-      else if (k === 'BACKSPACE') key = 'Backspace';
-      else if (k === 'TAB') key = 'Tab';
-      else if (k === 'ESCAPE' || k === 'ESC') key = 'Escape';
-      else if (k === 'ARROWUP') key = 'ArrowUp';
-      else if (k === 'ARROWDOWN') key = 'ArrowDown';
-      else if (k === 'ARROWLEFT') key = 'ArrowLeft';
-      else if (k === 'ARROWRIGHT') key = 'ArrowRight';
-
+      let key = PLAYWRIGHT_KEYS[k.toUpperCase()] || k;
+      if (!key) {
+        throw new Error(`Invalid key: ${k}`);
+      }
       await this.page.keyboard.press(key);
     }
   }
@@ -240,12 +242,12 @@ class SteelBrowser {
   async drag(
     path: Array<{ x: number | string; y: number | string }>
   ): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     if (path.length === 0) return;
 
     const parsedPath = path.map((point) => {
-      const x = typeof point.x === 'string' ? parseInt(point.x, 10) : point.x;
-      const y = typeof point.y === 'string' ? parseInt(point.y, 10) : point.y;
+      const x = typeof point.x === "string" ? parseInt(point.x, 10) : point.x;
+      const y = typeof point.y === "string" ? parseInt(point.y, 10) : point.y;
 
       if (isNaN(x) || isNaN(y)) {
         throw new Error(`Invalid path coordinates`);
@@ -265,22 +267,22 @@ class SteelBrowser {
   }
 
   getCurrentUrl(): string {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     return this.page.url();
   }
 
   async back(): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     await this.page.goBack();
   }
 
   async goto(url: string): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     await this.page.goto(url);
   }
 
   async refresh(): Promise<void> {
-    if (!this.page) throw new Error('Page not initialized');
+    if (!this.page) throw new Error("Page not initialized");
     await this.page.reload();
   }
 }
@@ -290,25 +292,25 @@ class SteelBrowser {
  */
 function isComputerCall(item: any): item is ComputerCallResponseItem {
   return (
-    item?.type === 'computer_call' && 'action' in item && 'call_id' in item
+    item?.type === "computer_call" && "action" in item && "call_id" in item
   );
 }
 
 async function executeAction(
   browser: SteelBrowser,
-  action: ComputerCallResponseItem['action']
+  action: ComputerCallResponseItem["action"]
 ): Promise<void> {
   const actionType = action.type;
 
   try {
-    if (actionType === 'click') {
+    if (actionType === "click") {
       let x, y, button;
 
       if (
-        (action.x === 'left' ||
-          action.x === 'right' ||
-          action.x === 'middle') &&
-        typeof action.y === 'number'
+        (action.x === "left" ||
+          action.x === "right" ||
+          action.x === "middle") &&
+        typeof action.y === "number"
       ) {
         x = action.button ?? 0;
         y = action.y;
@@ -316,40 +318,40 @@ async function executeAction(
       } else {
         x = action.x ?? 0;
         y = action.y ?? 0;
-        button = action.button ?? 'left';
+        button = action.button ?? "left";
       }
 
       await browser.click(x, y, button);
-    } else if (actionType === 'goto' && action.url) {
+    } else if (actionType === "goto" && action.url) {
       await browser.goto(action.url);
-    } else if (actionType === 'back') {
+    } else if (actionType === "back") {
       await browser.back();
-    } else if (actionType === 'refresh') {
+    } else if (actionType === "refresh") {
       await browser.refresh();
-    } else if (actionType === 'doubleClick' || actionType === 'double_click') {
+    } else if (actionType === "doubleClick" || actionType === "double_click") {
       await browser.doubleClick(action.x ?? 0, action.y ?? 0);
-    } else if (actionType === 'move') {
+    } else if (actionType === "move") {
       await browser.move(action.x ?? 0, action.y ?? 0);
-    } else if (actionType === 'scroll') {
+    } else if (actionType === "scroll") {
       await browser.scroll(
         action.x ?? 0,
         action.y ?? 0,
         action.scrollX ?? action.scroll_x ?? 0,
         action.scrollY ?? action.scroll_y ?? 0
       );
-    } else if (actionType === 'type') {
-      await browser.type(action.text || '');
-    } else if (actionType === 'keypress') {
+    } else if (actionType === "type") {
+      await browser.type(action.text || "");
+    } else if (actionType === "keypress") {
       await browser.keypress(action.keys || []);
-    } else if (actionType === 'drag') {
+    } else if (actionType === "drag") {
       await browser.drag(action.path || []);
-    } else if (actionType === 'wait') {
+    } else if (actionType === "wait") {
       await browser.wait(action.ms ?? 1000);
-    } else if (actionType === 'screenshot') {
+    } else if (actionType === "screenshot") {
       // Just take a screenshot, no additional action needed
     } else {
       const actionParams = Object.fromEntries(
-        Object.entries(action).filter(([key]) => key !== 'type')
+        Object.entries(action).filter(([key]) => key !== "type")
       );
       await (browser as any)[actionType](...Object.values(actionParams));
     }
@@ -374,11 +376,11 @@ async function sendScreenshot(
   const screenshot = await browser.screenshot();
 
   return client.responses.create({
-    model: 'computer-use-preview',
+    model: "computer-use-preview",
     previous_response_id: responseId,
     tools: [
       {
-        type: 'computer_use_preview' as const,
+        type: "computer-preview" as const,
         display_width: browser.dimensions.width,
         display_height: browser.dimensions.height,
         environment: browser.environment,
@@ -386,17 +388,20 @@ async function sendScreenshot(
     ],
     input: [
       {
-        type: 'computer_call_output',
+        type: "computer_call_output",
         call_id: callId,
-        acknowledged_safety_checks: safetyChecks,
+        acknowledged_safety_checks: safetyChecks.map((check) => ({
+          id: check,
+          code: check,
+          message: `Acknowledged: ${check}`,
+        })),
         output: {
-          type: 'input_image',
+          type: "computer_screenshot",
           image_url: `data:image/png;base64,${screenshot}`,
         },
-        current_url: browser.getCurrentUrl(),
       },
     ],
-    truncation: 'auto',
+    truncation: "auto",
   }) as Promise<Response>;
 }
 
@@ -410,7 +415,7 @@ const rl = readline.createInterface({
  */
 async function runCuaLoop(): Promise<void> {
   const task = await new Promise<string>((resolve) =>
-    rl.question('What task should the assistant perform? ', resolve)
+    rl.question("What task should the assistant perform? ", resolve)
   );
 
   const browser = new SteelBrowser();
@@ -424,7 +429,7 @@ async function runCuaLoop(): Promise<void> {
 
     const tools = [
       {
-        type: 'computer_use_preview' as const,
+        type: "computer-preview" as const,
         display_width: browser.dimensions.width,
         display_height: browser.dimensions.height,
         environment: browser.environment,
@@ -433,13 +438,13 @@ async function runCuaLoop(): Promise<void> {
 
     // Initial request to OpenAI
     const response = (await client.responses.create({
-      model: 'computer-use-preview',
+      model: "computer-use-preview",
       tools,
-      input: [{ role: 'user', content: task }],
+      input: [{ role: "user", content: task }],
       reasoning: {
-        generate_summary: 'concise',
+        generate_summary: "concise",
       },
-      truncation: 'auto',
+      truncation: "auto",
     })) as Response;
 
     // Process first response
@@ -462,7 +467,7 @@ async function runCuaLoop(): Promise<void> {
       await processResponses(client, browser, response);
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
   } finally {
     // Clean up resources
     await browser.cleanup();
@@ -483,7 +488,7 @@ async function processResponses(
   // Main loop
   while (true) {
     for (const item of response.output) {
-      if (item.type === 'message') {
+      if (item.type === "message") {
         const messageItem = item as MessageResponseItem;
         console.log(`Assistant: ${messageItem.content[0].text}`);
       }
@@ -491,7 +496,7 @@ async function processResponses(
 
     const computerCalls = response.output.filter(isComputerCall);
     if (computerCalls.length === 0) {
-      console.log('Task completed.');
+      console.log("Task completed.");
       break;
     }
 
@@ -517,13 +522,13 @@ async function processResponses(
  */
 async function main() {
   try {
-    console.log('🤖 Welcome to the Steel-powered Computer Use Agent!');
+    console.log("🤖 Welcome to the Steel-powered Computer Use Agent!");
     await runCuaLoop();
     console.log(
-      '👋 Session completed. Thank you for using the Computer Use Agent!'
+      "👋 Session completed. Thank you for using the Computer Use Agent!"
     );
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error("❌ Error:", error);
     try {
       rl.close();
     } catch (e) {
