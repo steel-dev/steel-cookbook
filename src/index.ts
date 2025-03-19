@@ -7,6 +7,7 @@ import colors from "picocolors";
 import { execSync } from "node:child_process";
 
 const {
+  blue,
   blueBright,
   cyan,
   green,
@@ -15,6 +16,7 @@ const {
   magenta,
   cyanBright,
   yellowBright,
+  magentaBright,
 } = colors;
 
 const argv = mri<{
@@ -48,7 +50,7 @@ ${greenBright('playwright-typescript')}  Browser automation with Playwright and 
 // prettier-ignore
 const steelWelcomeMessage = `
 
-${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
+${yellowBright(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ")}
 ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
 ${yellowBright("@@@@@@@@@9999999999999@@@@@@@@@")}      ${cyan("Humans use Chrome, Agents use Steel.")}
 ${yellowBright("@@@@@[                   ]@@@@@")}      
@@ -61,7 +63,7 @@ ${yellowBright("@@@@                 @     @@@@")}
 ${yellowBright("@@@@                @@     @@@@")}
 ${yellowBright("@@@@@@@@@@@@@@@@g@@@@@@@@@@@@@@")}      ${green("Documentation:")} ${blueBright("https://docs.steel.dev/")}
 ${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}      ${green("GitHub:")} ${blueBright("https://github.com/steel-dev/steel-browser")}
-${yellowBright("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")}
+${yellowBright(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ")}
 
 `;
 
@@ -93,12 +95,31 @@ const TEMPLATES: Template[] = [
   {
     name: "steel-puppeteer-starter",
     display: "Puppeteer + TypeScript",
+    color: blue,
+  },
+  {
+    name: "steel-oai-computer-use-node-starter",
+    display: "Steel + OpenAI Computer Use + TypeScript",
     color: blueBright,
   },
   {
     name: "steel-browser-use-starter",
     display: "(Python) Steel + Browser Use",
-    color: greenBright,
+    color: green,
+    customCommands: [
+      "python -m venv .venv",
+      "source .venv/bin/activate",
+      "pip install .",
+      "python main.py",
+    ],
+    extraEnvVarsRequired: [
+      { name: "OPENAI_API_KEY", display: "OpenAI API key" },
+    ],
+  },
+  {
+    name: "steel-oai-computer-use-python-starter",
+    display: "(Python) Steel + OpenAI Computer Use",
+    color: magentaBright,
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
@@ -112,7 +133,7 @@ const TEMPLATES: Template[] = [
   {
     name: "steel-playwright-python-starter",
     display: "(Python) Steel + Playwright",
-    color: cyanBright,
+    color: greenBright,
     customCommands: [
       "python -m venv .venv",
       "source .venv/bin/activate",
