@@ -1,17 +1,48 @@
 import os
 import time
 import base64
+import requests
+import json
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright, Browser, Page
-from openai import OpenAI
+from playwright.sync_api import sync_playwright
+from steel import Steel
 
-# Load environment variables
 load_dotenv()
 
-# -------------
-#  Steel Browser Integration
-# -------------
-from steel import Steel
+def create_response(**kwargs):
+    """Send a request to OpenAI API to get a response."""
+    url = "https://api.openai.com/v1/responses"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+        "Content-Type": "application/json",
+        "Openai-beta": "responses=v1",
+    }
+
+    openai_org = os.getenv("OPENAI_ORG")
+    if openai_org:
+        headers["Openai-Organization"] = openai_org
+
+    response = requests.post(url, headers=headers, json=kwargs)
+
+    if response.status_code != 200:
+        print(f"Error: {response.status_code} {response.text}")
+
+    return response.json()
+
+def pp(obj):
+    """Pretty print a JSON object."""
+    print(json.dumps(obj, indent=4))
+
+def sanitize_message(msg: dict) -> dict:
+    """Return a copy of the message with image_url omitted for computer_call_output messages."""
+    if msg.get("type") == "computer_call_output":
+        output = msg.get("output", {})
+        if isinstance(output, dict):
+            sanitized = msg.copy()
+            sanitized["output"] = {**output, "image_url": "[omitted]"}
+            return sanitized
+    return msg
+
 
 class SteelBrowser:
     environment = "browser"
@@ -28,7 +59,6 @@ class SteelBrowser:
         self._page = None
 
     def __enter__(self):
-        # Create a Steel session
         self.session = self.client.sessions.create(
             use_proxy=False,
             solve_captcha=False,
@@ -85,15 +115,15 @@ class SteelBrowser:
     def keypress(self, keys: list[str]) -> None:
         for k in keys:
             # Handle common keys
-            if k == "ENTER": k = "Enter"
-            elif k == "SPACE": k = "Space"
-            elif k == "BACKSPACE": k = "Backspace"
-            elif k == "TAB": k = "Tab"
-            elif k == "ESCAPE" or k == "ESC": k = "Escape"
-            elif k == "ARROWUP": k = "ArrowUp"
-            elif k == "ARROWDOWN": k = "ArrowDown"
-            elif k == "ARROWLEFT": k = "ArrowLeft"
-            elif k == "ARROWRIGHT": k = "ArrowRight"
+            if k.lower() == "enter": k = "Enter"
+            elif k.lower() == "space": k = " "
+            elif k.lower() == "backspace": k = "Backspace"
+            elif k.lower() == "tab": k = "Tab"
+            elif k.lower() in ["escape", "esc"]: k = "Escape"
+            elif k.lower() == "arrowup": k = "ArrowUp"
+            elif k.lower() == "arrowdown": k = "ArrowDown"
+            elif k.lower() == "arrowleft": k = "ArrowLeft"
+            elif k.lower() == "arrowright": k = "ArrowRight"
             self._page.keyboard.press(k)
 
     def drag(self, path: list[dict[str, int]]) -> None:
@@ -107,98 +137,96 @@ class SteelBrowser:
     def get_current_url(self) -> str:
         return self._page.url
 
-def execute_action(browser, action):
-    """Execute a computer action on the browser."""
-    action_type = action.type
-    action_params = {k: v for k, v in vars(action).items() if k != "type"}
-    
-    # Execute the action
-    getattr(browser, action_type)(**action_params)
-    print(f"Executed action: {action_type}")
+def acknowledge_safety_check_callback(message: str) -> bool:
+    response = input(
+        f"Safety Check Warning: {message}\nDo you want to acknowledge and proceed? (y/n): "
+    ).lower()
+    return response.strip() == "y"
 
-def send_screenshot(client, browser, response_id, call_id, safety_checks):
-    """Send a screenshot back to the model."""
-    screenshot = browser.screenshot()
-    current_url = browser.get_current_url()
-    
-    return client.responses.create(
-        model="computer-use-preview",
-        previous_response_id=response_id,
-        tools=[{
-            "type": "computer_use_preview",
-            "display_width": browser.dimensions[0],
-            "display_height": browser.dimensions[1],
-            "environment": "browser"
-        }],
-        input=[{
+
+def handle_item(item, computer):
+    """Handle each item; may cause a computer action + screenshot."""
+    if item["type"] == "message":  # print messages
+        print(item["content"][0]["text"])
+
+    if item["type"] == "computer_call":  # perform computer actions
+        action = item["action"]
+        action_type = action["type"]
+        action_args = {k: v for k, v in action.items() if k != "type"}
+        print(f"{action_type}({action_args})")
+
+        # give our computer environment action to perform
+        getattr(computer, action_type)(**action_args)
+
+        screenshot_base64 = computer.screenshot()
+
+        pending_checks = item.get("pending_safety_checks", [])
+        for check in pending_checks:
+            if not acknowledge_safety_check_callback(check["message"]):
+                raise ValueError(f"Safety check failed: {check['message']}")
+
+        # return value informs model of the latest screenshot
+        call_output = {
             "type": "computer_call_output",
-            "call_id": call_id,
-            "acknowledged_safety_checks": safety_checks,
+            "call_id": item["call_id"],
+            "acknowledged_safety_checks": pending_checks,
             "output": {
                 "type": "input_image",
-                "image_url": f"data:image/png;base64,{screenshot}"
+                "image_url": f"data:image/png;base64,{screenshot_base64}",
             },
-            "current_url": current_url
-        }],
-        truncation="auto"
-    )
+        }
 
-def run_cua_loop():
-    # Get user task
-    task = input("What task should the assistant perform? ")
-    
-    with SteelBrowser() as browser:
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        tools = [{
-            "type": "computer_use_preview",
-            "display_width": browser.dimensions[0],
-            "display_height": browser.dimensions[1],
-            "environment": "browser"
-        }]
-        
-        # Initial request
-        response = client.responses.create(
-            model="computer-use-preview",
-            tools=tools,
-            input=[{"role": "user", "content": task}],
-            reasoning={"generate_summary": "concise"},
-            truncation="auto"
-        )
-        
-        # Process first response
-        computer_calls = [i for i in response.output if i.type == "computer_call"]
-        if computer_calls:
-            comp_call = computer_calls[0]
-            execute_action(browser, comp_call.action)
-            response = send_screenshot(client, browser, response.id, comp_call.call_id, [])
-            
-        # Main loop
+        if computer.environment == "browser":
+            current_url = computer.get_current_url()
+            call_output["output"]["current_url"] = current_url
+
+        return [call_output]
+
+    return []
+
+
+def main():
+    """Run the CUA (Computer Use Assistant) loop with Steel browser."""
+    with SteelBrowser() as computer:
+        tools = [
+            {
+                "type": "computer-preview",
+                "display_width": computer.dimensions[0],
+                "display_height": computer.dimensions[1],
+                "environment": computer.environment,
+            }
+        ]
+
+        items = []
         while True:
-            # Print any text messages
-            for item in response.output:
-                if item.type == "message":
-                    print(f"Assistant: {item.content[0].text}")
-                
-            # Check for computer calls
-            computer_calls = [i for i in response.output if i.type == "computer_call"]
-            if not computer_calls:
-                print("Task completed.")
-                break
-                
-            # Execute action and send screenshot
-            comp_call = computer_calls[0]
-            action = comp_call.action
-            print(f"Action: {action.type}")
-            
-            execute_action(browser, action)
-            
-            pending_checks = getattr(comp_call, "pending_safety_checks", [])
-            response = send_screenshot(client, browser, response.id, comp_call.call_id, pending_checks)
+            user_input = input("> ")
+            items.append({"role": "user", "content": user_input})
+
+            while True:
+                response = create_response(
+                    model="computer-use-preview",
+                    input=items,
+                    tools=tools,
+                    truncation="auto",
+                )
+
+                if "output" not in response:
+                    print(response)
+                    raise ValueError("No output from model")
+
+                items += response["output"]
+
+                for item in response["output"]:
+                    items += handle_item(item, computer)
+
+                if items[-1].get("role") == "assistant":
+                    break
+
 
 if __name__ == "__main__":
     try:
-        run_cua_loop()
+        main()
     except KeyboardInterrupt:
-        print("Interrupted by user.")
+        print("\nInterrupted by user.")
     except Exception as e:
         print(f"Error: {e}")
