@@ -5,7 +5,7 @@ description = "Example demonstrating Steel integration with browser-use framewor
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "steel-sdk>=0.1.0b3",
+    "steel-sdk>=0.0.1",
     "browser-use>=0.1.31",
     "python-dotenv>=1.0.0",
     "langchain-openai>=0.0.5",
