@@ -7,6 +7,7 @@ import colors from "picocolors";
 import { execSync } from "node:child_process";
 
 const {
+  red,
   blue,
   blueBright,
   cyan,
@@ -96,6 +97,11 @@ const TEMPLATES: Template[] = [
     name: "steel-puppeteer-starter",
     display: "Puppeteer + TypeScript",
     color: blue,
+  },
+  {
+    name: "steel-files-api-starter",
+    display: "Playwright + Files API Starter in TypeScript",
+    color: red,
   },
   {
     name: "steel-oai-computer-use-node-starter",

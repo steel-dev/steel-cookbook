@@ -43,6 +43,8 @@ async function main() {
       }
     );
 
+    console.log("Uploading CSV file to the Steel session...");
+
     // Upload CSV file to the Steel session.
     const uploadedFile = await client.sessions.files.upload(session.id, {
       file,
@@ -71,11 +73,24 @@ async function main() {
     //  Navigate to the CSV plotting website and wait for the page to load.
     await page.goto("https://www.csvplot.com/");
 
+    // Create a CDP session to pass in some custom controls
+    const cdpSession = await currentContext.newCDPSession(page);
+    const document = await cdpSession.send("DOM.getDocument");
+
+    // We need to find the input element using the selector
+    const inputNode = await cdpSession.send("DOM.querySelector", {
+      nodeId: document.root.nodeId,
+      selector: "#load-file",
+    });
+
     // Set the CSV file as input on the page.
-    await page.setInputFiles("#load-file", uploadedFile.path);
+    await cdpSession.send("DOM.setFileInputFiles", {
+      files: [uploadedFile.path],
+      nodeId: inputNode.nodeId,
+    });
 
     // Wait for the rendered SVG, scroll it into view, and capture a screenshot.
-    const svg = await page.waitForSelector("svg.main-svg", { timeout: 1000 });
+    const svg = await page.waitForSelector("svg.main-svg");
     await svg.scrollIntoViewIfNeeded();
     await svg.screenshot({ path: "stock.png" });
 
