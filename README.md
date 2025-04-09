@@ -10,12 +10,11 @@ The fastest way to get started with Steel & any of these recipes is using `creat
 npx create-steel-app@latest
 ```
 
-Then follow the prompts! 
+Then follow the prompts!
 
 Works with pure Python projects too as long as you have a node package manager (like `npm`) installed.
 
 Using a different package manager? See detailed installation instructions below.
-
 
 ## Starter Projects
 
@@ -27,6 +26,7 @@ Choose the starter that matches your preferred automation framework:
 - [Steel + Playwright Starter](examples/steel-playwright-starter) - Use Steel with Playwright
 - [Reusing auth state between sessions](examples/reuse_auth_context_example) - Example script that uses Steel's context endpoint to reuse browser state between sessions to, in this case, stay logged into a website.
 - [Steel + OpenAI CUA Starter (Node)](examples/steel-oai-computer-use-node-starter/) - Simple command line app that allows OpenAI's computer-use agent to accept a user task then execute it in a Steel browser session.
+- [Steel Files API Starter](examples/steel-files-api-starter/) - Use Steel Files API
 
 ### Python
 
@@ -34,7 +34,6 @@ Choose the starter that matches your preferred automation framework:
 - [Steel + Selenium Starter](examples/steel-selenium-starter) - Use Steel with Selenium in Python
 - [Steel + Browser Use Starter](examples/steel-browser-use-starter) - Use [Browser-use](https://github.com/browser-use/browser-use) to let an agent interact with a Steel Session
 - [Steel + OpenAI CUA Starter (Python)](examples/steel-oai-computer-use-python-starter/) - Simple command line app that allows OpenAI's computer-use agent to accept a user task then execute it in a Steel browser session.
-
 
 ## Create Steel App - Detailed Instructions
 
@@ -76,11 +75,9 @@ pnpm create steel-app my-steel-app --template steel-playwright-starter
 bun create steel-app my-steel-app --template steel-playwright-starter
 ```
 
-
 ## Contributing
 
 See our [Contributing Guide](CONTRIBUTING.md) for information on adding new recipes and examples.
-
 
 ## Support
 
