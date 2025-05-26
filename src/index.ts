@@ -104,6 +104,11 @@ const TEMPLATES: Template[] = [
     color: red,
   },
   {
+    name: "steel-credentials-starter",
+    display: "Playwright + Credentials",
+    color: magenta,
+  },
+  {
     name: "steel-oai-computer-use-node-starter",
     display: "Steel + OpenAI Computer Use + TypeScript",
     color: blueBright,
