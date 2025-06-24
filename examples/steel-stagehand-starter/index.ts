@@ -38,7 +38,7 @@ async function main() {
 
     // Connect Stagehand to the Steel session
 
-    const stagehand = new Stagehand({
+    stagehand = new Stagehand({
       env: "LOCAL",
       modelName: "gpt-4o",
       modelClientOptions: {

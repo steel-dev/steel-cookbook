@@ -89,29 +89,34 @@ const TEMPLATES: Template[] = [
     color: cyan,
   },
   {
+    name: "steel-stagehand-starter",
+    display: "Stagehand + TypeScript",
+    color: yellow,
+  },
+  {
     name: "steel-puppeteer-starter-js",
     display: "Puppeteer",
-    color: yellow,
+    color: blue,
   },
   {
     name: "steel-puppeteer-starter",
     display: "Puppeteer + TypeScript",
-    color: blue,
+    color: red,
   },
   {
     name: "steel-files-api-starter",
     display: "Playwright + Files API Starter in TypeScript",
-    color: red,
+    color: magenta,
   },
   {
     name: "steel-credentials-starter",
     display: "Playwright + Credentials",
-    color: magenta,
+    color: blueBright,
   },
   {
     name: "steel-oai-computer-use-node-starter",
     display: "Steel + OpenAI Computer Use + TypeScript",
-    color: blueBright,
+    color: greenBright,
   },
   {
     name: "steel-browser-use-starter",
