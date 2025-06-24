@@ -46,6 +46,7 @@ ${cyan      ('playwright'     )}  Browser automation with Playwright
 ${blueBright('puppeteer'      )}  Browser automation with Puppeteer
 ${green('puppeteer-typescript')}  Browser automation with Puppeteer and TypeScript
 ${greenBright('playwright-typescript')}  Browser automation with Playwright and TypeScript
+${magenta('stagehand-typescript')}  Browser automation with Stagehand and TypeScript
 `
 
 // prettier-ignore
