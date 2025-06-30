@@ -9,7 +9,7 @@ import asyncio
 from dotenv import load_dotenv
 from steel import Steel
 from browser_use import Agent, BrowserSession
-from langchain_openai import ChatOpenAI
+from browser_use.llm import ChatOpenAI
 from browser_use import Agent
 
 # 1. Initialize environment and clients
