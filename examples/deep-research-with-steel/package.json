@@ -1,0 +1,52 @@
+{
+  "name": "deep-research-with-steel",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "clean": "rm -rf dist",
+    "test": "ts-node test/providers.test.ts",
+    "test:providers": "ts-node test/providers.test.ts",
+    "test:query-planner": "ts-node test/QueryPlanner.test.ts",
+    "test:search-agent": "ts-node test/SearchAgent.test.ts",
+    "test:content-evaluator": "ts-node test/ContentEvaluator.test.ts",
+    "test:content-refiner": "ts-node test/ContentRefiner.test.ts",
+    "test:report-synthesizer": "ts-node test/ReportSynthesizer.test.ts",
+    "test:deep-research-agent": "ts-node test/DeepResearchAgent.test.ts",
+    "test:integration": "ts-node test/integration.test.ts",
+    "demo:search-agent": "ts-node demo/SearchAgent-demo.ts",
+    "demo:phase3": "ts-node demo/phase3-demo.ts",
+    "test:all": "npm run test:providers && npm run test:integration"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Deep Research Agent with Steel integration - MVP",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "ai": "^4.0.0",
+    "ansi-escapes": "^6.2.0",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.0",
+    "figures": "^3.2.0",
+    "gradient-string": "^2.0.0",
+    "inquirer": "^8.2.6",
+    "marked": "^10.0.0",
+    "ora": "^5.4.1",
+    "steel-sdk": "^0.7.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/gradient-string": "^1.1.6",
+    "@types/inquirer": "^9.0.0",
+    "@types/node": "^20.10.0",
+    "nodemon": "^3.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
