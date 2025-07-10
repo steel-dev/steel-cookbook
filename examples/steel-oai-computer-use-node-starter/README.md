@@ -1,6 +1,6 @@
 # Steel + OpenAI Computer Use Assistant in Node.js
 
-This example demonstrates how to integrate Steel with OpenAI's Computer Use Assistant (CUA) API in a Node.js application. It creates a browser automation agent where the assistant sees the browser through Steel's cloud sessions, analyzes the screen, and performs actions like clicking, typing, and navigating.
+This example shows how to integrate Steel with OpenAI's Computer Use Assistant (CUA) API to create a browser automation agent. The assistant sees the browser through Steel's cloud sessions, analyzes the screen, and performs actions like clicking, typing, and navigating.
 
 ## Prerequisites
 
@@ -47,15 +47,7 @@ This example demonstrates:
 
 ## Running the Example
 
-There are two ways to run the example:
-
-### Using ts-node (for development):
-
-```bash
-npm run dev
-```
-
-### Building and running the compiled JavaScript:
+Execute the main script:
 
 ```bash
 npm start
@@ -75,56 +67,44 @@ The script will:
 4. Send updated screenshots after each action
 5. Continue this loop until the task is complete
 
-## Key Components
+## Architecture
 
 ### SteelBrowser Class
 
-A TypeScript class that wraps around the Steel session and Playwright browser, providing methods for:
+Manages the Steel browser session and provides computer actions:
 
-- Creating and managing a browser session
-- Taking screenshots
-- Executing various browser actions (click, type, scroll, etc.)
+- Steel session creation and management
+- Standard computer actions (click, type, scroll, etc.)
+- Custom CDP screenshot handling
+- Virtual mouse cursor support
+- URL blocking and security checks
+- Proper session cleanup
 
-The class implements additional browser actions like:
+### Agent Class
 
-- Navigation (`goto`, `back`, `refresh`)
-- Mouse interactions (`click`, `doubleClick`, `move`, `drag`)
-- Keyboard input (`type`, `keypress`)
-- Waiting and scrolling
+Manages the interaction loop between OpenAI and the computer:
 
-### OpenAI Integration
+- Handles OpenAI API requests/responses
+- Processes computer actions and function calls
+- Manages safety checks and error handling
+- Provides debug and image display options
 
-The script connects to OpenAI's Computer Use Assistant API to:
+## Key Features
 
-- Send browser screenshots
-- Receive actions to execute
-- Process text responses from the assistant
-
-It handles the complete interaction loop, including:
-
-- Initial task submission
-- Action execution
-- Screenshot capture and response processing
-- Final task completion and cleanup
+- **Safety checks**: Includes URL blocking and user confirmation for safety-critical actions
+- **Error handling**: Proper exception handling and fallback mechanisms
+- **Session management**: Proper cleanup of Steel sessions and browser resources
+- **Single file design**: Clean separation of concerns in one easy-to-understand file
 
 ## Customization
 
 You can modify the example to:
 
-- Change the initial URL (currently Bing.com)
-- Adjust the browser dimensions
-- Add more action types
-- Implement additional error handling
-- Customize the UI/UX of the interaction
-
-## TypeScript Support
-
-This example is written in TypeScript for better type safety and developer experience. The TypeScript configuration is set up to:
-
-- Target modern JavaScript (ES2020)
-- Enable strict type checking
-- Generate declaration files
-- Support ES modules
+- Change the initial URL (currently Google.com)
+- Adjust the browser dimensions and settings
+- Add custom function tools
+- Implement additional security checks
+- Customize the interaction flow
 
 ## Support
 
