@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "nodemon --exec ts-node src/cli.ts",
+    "cli": "ts-node src/cli.ts",
     "clean": "rm -rf dist",
     "test": "ts-node test/providers.test.ts",
     "test:providers": "ts-node test/providers.test.ts",
@@ -18,6 +19,7 @@
     "test:integration": "ts-node test/integration.test.ts",
     "demo:search-agent": "ts-node demo/SearchAgent-demo.ts",
     "demo:phase3": "ts-node demo/phase3-demo.ts",
+    "demo:query-planner-unified": "ts-node demo/QueryPlanner-unified-demo.ts",
     "test:all": "npm run test:providers && npm run test:integration"
   },
   "keywords": [],

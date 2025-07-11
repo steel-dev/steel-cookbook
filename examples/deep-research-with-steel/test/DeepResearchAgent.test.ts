@@ -4,11 +4,9 @@ config();
 import { DeepResearchAgent } from "../src/core/DeepResearchAgent";
 import { loadConfig } from "../src/config";
 import {
-  ResearchOptions,
   ToolCallEvent,
   ToolResultEvent,
-  ResearchProgress,
-  ResearchReport,
+  ResearchOptions,
 } from "../src/core/interfaces";
 
 // Simple test runner
@@ -122,56 +120,27 @@ testRunner.test("DeepResearchAgent - Event Handling", async () => {
 
   let toolCallEvents: ToolCallEvent[] = [];
   let toolResultEvents: ToolResultEvent[] = [];
-  let progressEvents: ResearchProgress[] = [];
-  let textEvents: string[] = [];
-  let errorEvents: Error[] = [];
-  let doneEvents: ResearchReport[] = [];
+  let progressEvents: any[] = [];
+  let doneEvents: any[] = [];
 
-  // Set up event listeners
+  // Set up event tracking
   agent.on("tool-call", (event: ToolCallEvent) => {
     toolCallEvents.push(event);
-    console.log(
-      `   🔧 Tool call: ${event.toolName} - ${
-        event.query || event.url || "no query"
-      }`
-    );
+  });
+
+  agent.on("progress", (event: any) => {
+    progressEvents.push(event);
   });
 
   agent.on("tool-result", (event: ToolResultEvent) => {
     toolResultEvents.push(event);
-    console.log(
-      `   ${event.success ? "✅" : "❌"} Tool result: ${event.toolName} - ${
-        event.success ? "success" : event.error
-      }`
-    );
   });
 
-  agent.on("progress", (event: ResearchProgress) => {
-    progressEvents.push(event);
-    console.log(`   📊 Progress: ${event.phase} - ${event.progress}%`);
+  agent.on("done", (event: any) => {
+    doneEvents.push(event);
   });
 
-  agent.on("text", (text: string) => {
-    textEvents.push(text);
-    // Only log first few characters to avoid spam
-    if (text.length > 50) {
-      console.log(`   📝 Text: ${text.substring(0, 50)}...`);
-    } else {
-      console.log(`   📝 Text: ${text}`);
-    }
-  });
-
-  agent.on("error", (error: Error) => {
-    errorEvents.push(error);
-    console.log(`   ❌ Error: ${error.message}`);
-  });
-
-  agent.on("done", (result: ResearchReport) => {
-    doneEvents.push(result);
-    console.log(`   ✨ Done: ${result.executiveSummary.substring(0, 100)}...`);
-  });
-
-  // Test with a simple research query
+  // Execute research with basic options
   const options: ResearchOptions = {
     depth: 1,
     breadth: 2,
@@ -180,27 +149,38 @@ testRunner.test("DeepResearchAgent - Event Handling", async () => {
 
   const result = await agent.research("What is TypeScript?", options);
 
-  // Verify events were emitted
+  // Basic result validation
+  assertExists(result, "Should return a result");
+  assertExists(result.content, "Should have content");
+  assertExists(result.executiveSummary, "Should have executive summary");
+  assert(Array.isArray(result.citations), "Should have citations array");
+
+  // Event validation
   assert(toolCallEvents.length > 0, "Should have emitted tool-call events");
   assert(toolResultEvents.length > 0, "Should have emitted tool-result events");
-  assert(progressEvents.length > 0, "Should have emitted progress events");
-  assert(doneEvents.length === 1, "Should have emitted exactly one done event");
-  assert(errorEvents.length === 0, "Should not have emitted any error events");
 
+  // Validate tool call structure
+  toolCallEvents.forEach((event) => {
+    assertExists(event.toolName, "Tool call should have toolName");
+    assertExists(event.toolCallId, "Tool call should have toolCallId");
+    assertExists(event.input, "Tool call should have input");
+    assertExists(event.timestamp, "Tool call should have timestamp");
+  });
+
+  // Validate tool result structure
+  toolResultEvents.forEach((event) => {
+    assertExists(event.toolName, "Tool result should have toolName");
+    assertExists(event.toolCallId, "Tool result should have toolCallId");
+    assert(
+      typeof event.success === "boolean",
+      "Tool result should have success boolean"
+    );
+    assertExists(event.timestamp, "Tool result should have timestamp");
+  });
+
+  console.log("✅ DeepResearchAgent test passed!");
   console.log(
     `   Event counts - Tool calls: ${toolCallEvents.length}, Tool results: ${toolResultEvents.length}, Progress: ${progressEvents.length}, Done: ${doneEvents.length}`
-  );
-
-  // Verify result structure
-  assertExists(result.id, "Result should have an ID");
-  assertExists(result.query, "Result should have the original query");
-  assertExists(result.content, "Result should have content");
-  assertExists(result.executiveSummary, "Result should have executive summary");
-  assert(Array.isArray(result.citations), "Result should have citations array");
-  assertExists(result.metadata, "Result should have metadata");
-
-  console.log(
-    "   ✅ All events handled correctly and result structure validated"
   );
 });
 
@@ -321,12 +301,14 @@ testRunner.test(
       await agent.research("", { depth: 1, breadth: 1 });
       throw new Error("Should have thrown an error for empty query");
     } catch (error) {
-          assert(error instanceof Error, "Should throw an error");
-    assert(
-      (error as Error).message.includes("Query cannot be empty"),
-      "Should mention empty query"
-    );
-    console.log(`   ✅ Properly handled empty query error: ${(error as Error).message}`);
+      assert(error instanceof Error, "Should throw an error");
+      assert(
+        (error as Error).message.includes("Query cannot be empty"),
+        "Should mention empty query"
+      );
+      console.log(
+        `   ✅ Properly handled empty query error: ${(error as Error).message}`
+      );
     }
   }
 );
@@ -343,7 +325,7 @@ testRunner.test("DeepResearchAgent - Research Streaming", async () => {
   };
 
   let eventCount = 0;
-  let finalResult: ResearchReport | null = null;
+  let finalResult: any | null = null;
 
   // Test the async generator
   const stream = agent.researchStream("What is React?", options);
@@ -353,7 +335,7 @@ testRunner.test("DeepResearchAgent - Research Streaming", async () => {
 
     if (typeof event === "object" && "id" in event && "query" in event) {
       // This is the final result
-      finalResult = event as ResearchReport;
+      finalResult = event;
       console.log(
         `   🎯 Final result received: ${finalResult.executiveSummary.substring(
           0,

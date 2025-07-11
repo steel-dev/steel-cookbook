@@ -16,6 +16,7 @@ import {
   SearchResult,
 } from "../src/core/interfaces";
 import { loadConfig } from "../src/config";
+import { ProviderManager } from "../src/providers/providers";
 
 // Simple test runner
 class TestRunner {
@@ -74,10 +75,10 @@ const testRunner = new TestRunner();
 // Test setup helpers
 function createTestRefiner(): ContentRefiner {
   const config = loadConfig();
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
-  const planner = new QueryPlanner(provider);
+  const providerManager = new ProviderManager(config);
+  const planner = new QueryPlanner(providerManager, new EventEmitter());
   const eventEmitter = new EventEmitter();
-  return new ContentRefiner(provider, planner, eventEmitter);
+  return new ContentRefiner(providerManager, planner, eventEmitter);
 }
 
 function createIntegratedTestAgents(): {
@@ -87,16 +88,18 @@ function createIntegratedTestAgents(): {
   contentRefiner: ContentRefiner;
 } {
   const config = loadConfig();
-  const steelClient = new SteelClient(config.steel.apiKey);
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
+  const providerManager = new ProviderManager(config);
   const eventEmitter = new EventEmitter();
-  const planner = new QueryPlanner(provider);
+  const planner = new QueryPlanner(providerManager, eventEmitter);
 
   return {
-    searchAgent: new SearchAgent(steelClient, eventEmitter),
-    contentEvaluator: new ContentEvaluator(provider, eventEmitter),
+    searchAgent: new SearchAgent(providerManager, eventEmitter),
+    contentEvaluator: new ContentEvaluator(
+      providerManager.getAIProvider(),
+      eventEmitter
+    ),
     queryPlanner: planner,
-    contentRefiner: new ContentRefiner(provider, planner, eventEmitter),
+    contentRefiner: new ContentRefiner(providerManager, planner, eventEmitter),
   };
 }
 
@@ -111,16 +114,12 @@ function createMockLearning(content: string, sourceUrl: string): Learning {
   };
 }
 
-function createMockResearchDirection(
-  question: string,
-  priority: "high" | "medium" | "low" = "high"
-): ResearchDirection {
+function createMockResearchDirection(question: string): ResearchDirection {
   return {
     question,
     rationale: `This is important for understanding the topic`,
-    priority,
     searchQueries: [`search query for ${question}`],
-  };
+  } as unknown as ResearchDirection;
 }
 
 function createMockCompletenessAssessment(
@@ -145,7 +144,6 @@ function createMockEvaluation(
       createMockResearchDirection("What is the current state?"),
     ],
     completenessAssessment: createMockCompletenessAssessment(),
-    confidenceLevel: 0.7,
     ...overrides,
   };
 }
@@ -158,7 +156,6 @@ function createMockResearchPlan(originalQuery: string): ResearchPlan {
       {
         id: "sq-1",
         query: "Test sub-query",
-        priority: 0.8,
         category: "general",
       },
     ],
@@ -380,8 +377,8 @@ testRunner.test("ContentRefiner - Analyze Research Gaps", async () => {
       "continue"
     ),
     researchDirections: [
-      createMockResearchDirection("High priority question 1", "high"),
-      createMockResearchDirection("High priority question 2", "high"),
+      createMockResearchDirection("High priority question 1"),
+      createMockResearchDirection("High priority question 2"),
     ],
   });
   evaluationManyGaps.completenessAssessment.knowledgeGaps = [
@@ -397,10 +394,7 @@ testRunner.test("ContentRefiner - Analyze Research Gaps", async () => {
     originalQuery,
     evaluationManyGaps
   );
-  assert(
-    gapAnalysis1.priority === "high",
-    "Priority should be high with many gaps"
-  );
+  // Priority scoring removed
   assert(
     gapAnalysis1.criticalGaps.length <= 3,
     "Should limit critical gaps to 3"
@@ -418,9 +412,7 @@ testRunner.test("ContentRefiner - Analyze Research Gaps", async () => {
       false,
       "continue"
     ),
-    researchDirections: [
-      createMockResearchDirection("Low priority question", "low"),
-    ],
+    researchDirections: [createMockResearchDirection("Low priority question")],
   });
   evaluationFewGaps.completenessAssessment.knowledgeGaps = ["Single gap"];
 
@@ -428,15 +420,12 @@ testRunner.test("ContentRefiner - Analyze Research Gaps", async () => {
     originalQuery,
     evaluationFewGaps
   );
-  assert(
-    gapAnalysis2.priority === "low",
-    "Priority should be low with few gaps and high coverage"
-  );
+  // Priority scoring removed
   assert(
     gapAnalysis2.criticalGaps.length === 1,
     "Should have one critical gap"
   );
-  console.log("   ✅ Correctly identifies low priority gaps");
+  console.log("   ✅ Gap analysis processed with low number of gaps");
 });
 
 // Test 5: Refine search strategy with mock data
@@ -454,16 +443,20 @@ testRunner.test("ContentRefiner - Refine Search Strategy Mock", async () => {
     ),
   });
 
-  const refinedPlan1 = await refiner.refineSearchStrategy(
+  const refinedDecision1 = await refiner.refineSearchStrategy(
     originalQuery,
     evaluationSynthesize,
-    currentPlan
+    currentPlan,
+    [], // empty accumulated learnings
+    [] // empty accumulated queries
   );
   assert(
-    refinedPlan1 === null,
-    "Should return null when synthesis is recommended"
+    !refinedDecision1.shouldContinue,
+    "Should return false for shouldContinue when synthesis is recommended"
   );
-  console.log("   ✅ Correctly returns null for synthesis recommendation");
+  console.log(
+    "   ✅ Correctly returns shouldContinue: false for synthesis recommendation"
+  );
 
   // Test case 2: Should return null for high coverage
   const evaluationHighCoverage = createMockEvaluation({
@@ -474,16 +467,20 @@ testRunner.test("ContentRefiner - Refine Search Strategy Mock", async () => {
     ),
   });
 
-  const refinedPlan2 = await refiner.refineSearchStrategy(
+  const refinedDecision2 = await refiner.refineSearchStrategy(
     originalQuery,
     evaluationHighCoverage,
-    currentPlan
+    currentPlan,
+    [], // empty accumulated learnings
+    [] // empty accumulated queries
   );
   assert(
-    refinedPlan2 === null,
-    "Should return null when coverage is high enough"
+    !refinedDecision2.shouldContinue,
+    "Should return false for shouldContinue when coverage is high enough"
   );
-  console.log("   ✅ Correctly returns null for high coverage");
+  console.log(
+    "   ✅ Correctly returns shouldContinue: false for high coverage"
+  );
 
   // Test case 3: Should return null for no research directions
   const evaluationNoDirections = createMockEvaluation({
@@ -495,16 +492,20 @@ testRunner.test("ContentRefiner - Refine Search Strategy Mock", async () => {
     ),
   });
 
-  const refinedPlan3 = await refiner.refineSearchStrategy(
+  const refinedDecision3 = await refiner.refineSearchStrategy(
     originalQuery,
     evaluationNoDirections,
-    currentPlan
+    currentPlan,
+    [], // empty accumulated learnings
+    [] // empty accumulated queries
   );
   assert(
-    refinedPlan3 === null,
-    "Should return null when no research directions"
+    !refinedDecision3.shouldContinue,
+    "Should return false for shouldContinue when no research directions"
   );
-  console.log("   ✅ Correctly returns null for no research directions");
+  console.log(
+    "   ✅ Correctly returns shouldContinue: false for no research directions"
+  );
 });
 
 // Test 6: Real API Integration - ContentRefiner with real evaluation
@@ -528,9 +529,11 @@ testRunner.test("ContentRefiner - Real API Integration", async () => {
   console.log(`   📊 Found ${serpResult.results.length} search results`);
 
   // Step 2: Evaluate the findings
+  const mockPlan = createMockResearchPlan(testQuery);
   const evaluation = await contentEvaluator.evaluateFindings(
     testQuery,
     serpResult.results,
+    mockPlan,
     1,
     3
   );
@@ -564,27 +567,31 @@ testRunner.test("ContentRefiner - Real API Integration", async () => {
     `   🤔 Termination decision: ${terminationDecision.shouldTerminate} (${terminationDecision.reason})`
   );
 
-  // Step 5: Test refinement strategy (simplified - should return null for most cases)
-  const refinedPlan = await contentRefiner.refineSearchStrategy(
+  // Step 5: Test refinement strategy with accumulated context
+  const refinedDecision = await contentRefiner.refineSearchStrategy(
     testQuery,
     evaluation,
-    initialPlan
+    initialPlan,
+    evaluation.learnings, // accumulated learnings
+    ["initial query"] // accumulated queries
   );
 
-  if (refinedPlan) {
+  if (refinedDecision.shouldContinue) {
     console.log(
-      `   🔄 Refined plan created with ${refinedPlan.subQueries.length} sub-queries`
+      `   🔄 ContentRefiner decided to continue with ${refinedDecision.researchDirections.length} research directions`
     );
     assert(
-      refinedPlan.originalQuery === testQuery,
-      "Original query should be preserved"
+      refinedDecision.researchDirections.length > 0,
+      "Should have research directions when continuing"
     );
     assert(
-      refinedPlan.subQueries.length > 0,
-      "Should have refined sub-queries"
+      typeof refinedDecision.strategicGuidance === "string",
+      "Should have strategic guidance"
     );
   } else {
-    console.log(`   ⏹️ ContentRefiner decided to terminate research`);
+    console.log(
+      `   ⏹️ ContentRefiner decided to terminate research: ${refinedDecision.reason}`
+    );
   }
 
   // Step 6: Test gap analysis
@@ -594,7 +601,7 @@ testRunner.test("ContentRefiner - Real API Integration", async () => {
   );
   assertExists(gapAnalysis, "Gap analysis should be returned");
   console.log(
-    `   📊 Gap analysis: ${gapAnalysis.priority} priority, ${gapAnalysis.criticalGaps.length} critical gaps`
+    `   📊 Gap analysis: ${gapAnalysis.criticalGaps.length} critical gaps`
   );
   console.log(
     `   💡 Recommendations: ${gapAnalysis.recommendations.length} items`
@@ -616,8 +623,8 @@ testRunner.test("ContentRefiner - Real API Integration", async () => {
 // Test 7: Event emission
 testRunner.test("ContentRefiner - Event Emission", async () => {
   const config = loadConfig();
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
-  const planner = new QueryPlanner(provider);
+  const providerManager = new ProviderManager(config);
+  const planner = new QueryPlanner(providerManager, new EventEmitter());
   const eventEmitter = new EventEmitter();
 
   let progressEmitted = false;
@@ -633,11 +640,13 @@ testRunner.test("ContentRefiner - Event Emission", async () => {
   eventEmitter.on("tool-call", (data) => {
     toolCallEmitted = true;
     console.log(
-      `   ✅ Tool call event emitted: ${data.toolName} - ${data.metadata?.decision}`
+      `   ✅ Tool call event emitted: ${data.toolName} - ${
+        data.input?.metadata?.decision || data.input?.action
+      }`
     );
   });
 
-  const refiner = new ContentRefiner(provider, planner, eventEmitter);
+  const refiner = new ContentRefiner(providerManager, planner, eventEmitter);
   const originalQuery = "What is React?";
   const evaluation = createMockEvaluation({
     completenessAssessment: createMockCompletenessAssessment(
@@ -648,7 +657,13 @@ testRunner.test("ContentRefiner - Event Emission", async () => {
   });
   const currentPlan = createMockResearchPlan(originalQuery);
 
-  await refiner.refineSearchStrategy(originalQuery, evaluation, currentPlan);
+  await refiner.refineSearchStrategy(
+    originalQuery,
+    evaluation,
+    currentPlan,
+    [],
+    []
+  );
 
   assert(progressEmitted, "Progress event should be emitted");
   assert(toolCallEmitted, "Tool call event should be emitted");

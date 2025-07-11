@@ -1,11 +1,76 @@
+/**
+ * ContentEvaluator Agent - Research Quality Assessment and Learning Extraction
+ *
+ * OVERVIEW:
+ * The ContentEvaluator is a critical component that analyzes search results and extracted
+ * content to determine research quality, completeness, and next steps. It extracts structured
+ * learnings from unstructured content and provides intelligent guidance for research continuation.
+ *
+ * INPUTS:
+ * - originalQuery: String - The main research question
+ * - findings: SearchResult[] - Array of search results with content
+ * - currentDepth: Number - Current iteration depth in research
+ * - maxDepth: Number - Maximum allowed research depth
+ *
+ * OUTPUTS:
+ * - ResearchEvaluation: Comprehensive assessment containing:
+ *   - Learning[]: Structured knowledge extracted from content
+ *   - ResearchDirection[]: Suggested follow-up research questions
+ *   - CompletenessAssessment: Analysis of research completeness
+ *   - confidenceLevel: Overall confidence score (0-1)
+ *
+ * POSITION IN RESEARCH FLOW:
+ * 1. **POST-SEARCH ANALYSIS** (After SearchAgent):
+ *    - Receives search results from SearchAgent
+ *    - Extracts structured learnings from unstructured content
+ *    - Classifies information by type (factual, analytical, statistical)
+ *    - Identifies entities and key concepts
+ *
+ * 2. **RESEARCH GUIDANCE** (Feeds into ContentRefiner):
+ *    - Assesses research completeness and quality
+ *    - Identifies knowledge gaps and missing information
+ *    - Suggests specific research directions for next iteration
+ *    - Provides termination recommendations
+ *
+ * KEY FEATURES:
+ * - Structured learning extraction with entity recognition
+ * - Multi-type content classification (factual, analytical, statistical, procedural)
+ * - Intelligent gap analysis and completeness assessment
+ * - Research direction generation with priority scoring
+ * - Confidence scoring based on source quality and coverage
+ * - Adaptive evaluation based on research depth and findings
+ *
+ * EVALUATION CRITERIA:
+ * - Content quality and relevance
+ * - Source diversity and authority
+ * - Coverage of different aspects of the topic
+ * - Presence of quantitative vs qualitative information
+ * - Currency and recency of information
+ * - Logical gaps in understanding
+ *
+ * USAGE EXAMPLE:
+ * ```typescript
+ * const evaluator = new ContentEvaluator(aiProvider, eventEmitter);
+ * const evaluation = await evaluator.evaluateFindings(
+ *   "AI in healthcare", findings, 1, 3
+ * );
+ * // Returns: ResearchEvaluation with learnings, gaps, and next steps
+ * ```
+ */
+
 import { EventEmitter } from "events";
-import { generateTextOutput } from "../providers/providers";
+import { generateObject } from "ai";
+import { z } from "zod";
 import {
   SearchResult,
   Learning,
   ResearchDirection,
   CompletenessAssessment,
   ResearchEvaluation,
+  LearningSchema,
+  ResearchDirectionSchema,
+  CompletenessAssessmentSchema,
+  ResearchPlan,
 } from "../core/interfaces";
 
 export class ContentEvaluator {
@@ -13,42 +78,123 @@ export class ContentEvaluator {
 
   constructor(private provider: any, private eventEmitter: EventEmitter) {}
 
+  /**
+   * Main evaluation method that analyzes search findings comprehensively
+   *
+   * This method orchestrates the entire evaluation process:
+   * 1. Extracts structured learnings from unstructured content
+   * 2. Identifies potential research directions for next iteration
+   * 3. Assesses completeness and determines if research should continue
+   * 4. Calculates overall confidence in the findings
+   *
+   * The evaluation considers both the quality and quantity of information,
+   * as well as the current research depth and progress.
+   */
   async evaluateFindings(
     originalQuery: string,
     findings: SearchResult[],
+    currentPlan: ResearchPlan, // NEW: Current research plan context
     currentDepth: number,
     maxDepth: number
   ): Promise<ResearchEvaluation> {
     this.eventEmitter.emit("progress", { phase: "evaluating", progress: 75 });
 
+    // Validate inputs
     if (!findings || findings.length === 0) {
       throw new Error("No findings provided for evaluation");
     }
 
     try {
-      // Simplified evaluation approach - extract key information
-      const learnings = await this.extractSimpleLearnings(
-        originalQuery,
-        findings
-      );
-      const researchDirections = await this.identifyResearchDirections(
-        originalQuery,
-        findings,
-        currentDepth,
-        maxDepth
-      );
-      const completenessAssessment = this.assessCompleteness(
-        originalQuery,
-        findings,
-        currentDepth,
-        maxDepth
-      );
+      // Truncate content to fit within context window
+      const truncatedFindings = findings.map((finding) => ({
+        ...finding,
+        content:
+          finding.content.length > this.MAX_CONTENT_LENGTH
+            ? finding.content.substring(0, this.MAX_CONTENT_LENGTH) + "..."
+            : finding.content,
+      }));
+
+      // Use AI SDK's generateObject for structured evaluation
+      const { object } = await generateObject({
+        model: this.provider,
+        prompt: `Evaluate these research findings for the query: "${originalQuery}"
+
+Current research plan context:
+Strategic Plan: ${currentPlan.strategicPlan || "No strategic plan provided"}
+Sub-queries being researched: ${currentPlan.subQueries
+          .map((sq) => `- ${sq.query}`)
+          .join("\n")}
+
+Current findings:
+${truncatedFindings
+  .map((f) => `Source: ${f.url}\nContent: ${f.content}`)
+  .join("\n---\n")}
+
+Research depth: ${currentDepth}/${maxDepth}
+
+Provide a comprehensive evaluation:
+1. Extract key learnings with high specificity (include entities, numbers, dates)
+2. Assess how well findings address the current plan's sub-queries
+3. Identify which planned research areas were well-covered vs. under-covered
+4. Identify research directions that would add significant value
+5. Assess completeness and recommend next action based on plan objectives`,
+
+        schema: z.object({
+          learnings: z.array(
+            z.object({
+              content: z
+                .string()
+                .describe(
+                  "Specific, detailed learning with entities and facts"
+                ),
+              type: z.enum([
+                "factual",
+                "analytical",
+                "procedural",
+                "statistical",
+              ]),
+              entities: z
+                .array(z.string())
+                .describe("Key entities mentioned (people, places, companies)"),
+              confidence: z.number().min(0).max(1),
+              sourceUrl: z.string(),
+            })
+          ),
+          researchDirections: z.array(
+            z.object({
+              question: z
+                .string()
+                .describe("Specific research question to pursue"),
+              rationale: z
+                .string()
+                .describe("Why this direction would add value"),
+              searchQueries: z
+                .array(z.string())
+                .describe("Specific queries to pursue this direction"),
+            })
+          ),
+          completenessAssessment: z.object({
+            coverage: z
+              .number()
+              .min(0)
+              .max(1)
+              .describe("How well we have covered the topic"),
+            knowledgeGaps: z
+              .array(z.string())
+              .describe("Specific gaps identified"),
+            hasEnoughInfo: z
+              .boolean()
+              .describe("Can we synthesize a good answer?"),
+            recommendedAction: z.enum(["continue", "refine", "synthesize"]),
+          }),
+          // Confidence metric removed
+        }),
+      });
 
       const evaluation: ResearchEvaluation = {
-        learnings,
-        researchDirections,
-        completenessAssessment,
-        confidenceLevel: this.calculateConfidenceLevel(findings),
+        learnings: object.learnings,
+        researchDirections: object.researchDirections,
+        completenessAssessment: object.completenessAssessment,
       };
 
       this.validateEvaluation(evaluation);
@@ -62,195 +208,18 @@ export class ContentEvaluator {
     }
   }
 
-  private async extractSimpleLearnings(
-    originalQuery: string,
-    findings: SearchResult[]
-  ): Promise<Learning[]> {
-    const learnings: Learning[] = [];
-
-    // Create learnings from each finding
-    for (const finding of findings.slice(0, 5)) {
-      // Limit to first 5 findings
-      const contentSnippet =
-        finding.content.length > 500
-          ? finding.content.substring(0, 500) + "..."
-          : finding.content;
-
-      // Extract simple learnings based on content analysis
-      const entities = this.extractEntities(contentSnippet);
-
-      learnings.push({
-        content: finding.summary || contentSnippet,
-        type: this.classifyLearningType(contentSnippet),
-        entities,
-        confidence: finding.relevanceScore || 0.7,
-        sourceUrl: finding.url,
-      });
-    }
-
-    return learnings;
-  }
-
-  private async identifyResearchDirections(
-    originalQuery: string,
-    findings: SearchResult[],
-    currentDepth: number,
-    maxDepth: number
-  ): Promise<ResearchDirection[]> {
-    const directions: ResearchDirection[] = [];
-
-    // If we're at max depth, don't suggest more directions
-    if (currentDepth >= maxDepth - 1) {
-      return directions;
-    }
-
-    // Generate simple research directions based on query analysis
-    const queryLower = originalQuery.toLowerCase();
-
-    if (queryLower.includes("typescript")) {
-      directions.push({
-        question: "What are the latest TypeScript features and updates?",
-        rationale: "Understanding recent developments provides current context",
-        priority: "medium",
-        searchQueries: [
-          "TypeScript latest features",
-          "TypeScript updates 2024",
-        ],
-      });
-    } else if (
-      queryLower.includes("ai") ||
-      queryLower.includes("artificial intelligence")
-    ) {
-      directions.push({
-        question: "What are the practical applications of AI in industry?",
-        rationale: "Real-world applications demonstrate AI impact",
-        priority: "high",
-        searchQueries: [
-          "AI applications industry",
-          "artificial intelligence use cases",
-        ],
-      });
-    } else {
-      // Generic research direction
-      directions.push({
-        question: `What are the recent developments related to ${originalQuery}?`,
-        rationale: "Recent developments provide current context",
-        priority: "medium",
-        searchQueries: [
-          `${originalQuery} recent developments`,
-          `${originalQuery} 2024`,
-        ],
-      });
-    }
-
-    return directions;
-  }
-
-  private assessCompleteness(
-    originalQuery: string,
-    findings: SearchResult[],
-    currentDepth: number,
-    maxDepth: number
-  ): CompletenessAssessment {
-    // Simple completeness assessment based on findings count and depth
-    const coverageScore = Math.min(findings.length / 10, 1.0); // Assume 10 findings = 100% coverage
-    const depthFactor = currentDepth / maxDepth;
-
-    const knowledgeGaps: string[] = [];
-
-    // Basic gap analysis
-    if (findings.length < 3) {
-      knowledgeGaps.push("Need more sources for comprehensive coverage");
-    }
-
-    if (currentDepth < 2) {
-      knowledgeGaps.push("May need deeper investigation of key topics");
-    }
-
-    const hasEnoughInfo = coverageScore > 0.6 || findings.length >= 5;
-    const recommendedAction = hasEnoughInfo ? "synthesize" : "continue";
-
-    return {
-      coverage: coverageScore,
-      knowledgeGaps,
-      hasEnoughInfo,
-      recommendedAction: recommendedAction as
-        | "continue"
-        | "refine"
-        | "synthesize",
-    };
-  }
-
-  private calculateConfidenceLevel(findings: SearchResult[]): number {
-    if (findings.length === 0) return 0;
-
-    const avgRelevance =
-      findings.reduce((sum, f) => sum + (f.relevanceScore || 0.5), 0) /
-      findings.length;
-    const countFactor = Math.min(findings.length / 5, 1.0); // 5 findings = max confidence from count
-
-    return (avgRelevance + countFactor) / 2;
-  }
-
-  private extractEntities(content: string): string[] {
-    const entities: string[] = [];
-
-    // Simple entity extraction using patterns
-    const patterns = [
-      /\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, // Person names
-      /\b[A-Z][a-zA-Z]+\s+(Inc|Corp|LLC|Ltd)\b/g, // Company names
-      /\b(19|20)\d{2}\b/g, // Years
-      /\b[A-Z][a-z]+Script\b/g, // Programming languages ending in Script
-      /\b[A-Z][a-zA-Z]*\b/g, // Capitalized words (potential proper nouns)
-    ];
-
-    patterns.forEach((pattern) => {
-      const matches = content.match(pattern);
-      if (matches) {
-        entities.push(...matches.slice(0, 3)); // Limit to 3 matches per pattern
-      }
-    });
-
-    // Remove duplicates and limit total
-    return [...new Set(entities)].slice(0, 5);
-  }
-
-  private classifyLearningType(
-    content: string
-  ): "factual" | "analytical" | "procedural" | "statistical" {
-    const contentLower = content.toLowerCase();
-
-    if (
-      contentLower.includes("step") ||
-      contentLower.includes("how to") ||
-      contentLower.includes("process")
-    ) {
-      return "procedural";
-    } else if (
-      contentLower.includes("%") ||
-      contentLower.includes("percent") ||
-      /\d+/.test(content)
-    ) {
-      return "statistical";
-    } else if (
-      contentLower.includes("analysis") ||
-      contentLower.includes("compare") ||
-      contentLower.includes("advantage")
-    ) {
-      return "analytical";
-    } else {
-      return "factual";
-    }
-  }
-
+  /**
+   * Validate evaluation results for consistency and completeness
+   *
+   * This method ensures that the evaluation results are well-formed and
+   * within expected ranges before returning to the caller.
+   */
   private validateEvaluation(evaluation: ResearchEvaluation): void {
     if (!evaluation.learnings || evaluation.learnings.length === 0) {
       console.warn("No learnings extracted from findings");
     }
 
-    if (evaluation.confidenceLevel < 0 || evaluation.confidenceLevel > 1) {
-      throw new Error("Confidence level must be between 0 and 1");
-    }
+    // Confidence validation removed
 
     if (
       evaluation.completenessAssessment.coverage < 0 ||
@@ -260,7 +229,11 @@ export class ContentEvaluator {
     }
   }
 
-  // Simplified methods for testing
+  // Simplified methods for testing and direct usage
+
+  /**
+   * Simple evaluation method for testing with minimal content
+   */
   async evaluateSimple(
     query: string,
     content: string,
@@ -277,30 +250,68 @@ export class ContentEvaluator {
       timestamp: new Date(),
     };
 
-    return this.evaluateFindings(query, [mockFinding], 1, 3);
+    const mockPlan: ResearchPlan = {
+      id: "test-plan",
+      originalQuery: query,
+      subQueries: [{ id: "test-sq", query, category: "general" }],
+      searchStrategy: {
+        maxDepth: 3,
+        maxBreadth: 3,
+        timeout: 30000,
+        retryAttempts: 3,
+      },
+      estimatedSteps: 3,
+    };
+
+    return this.evaluateFindings(query, [mockFinding], mockPlan, 1, 3);
   }
 
+  /**
+   * Extract learnings from content directly using AI (for testing)
+   */
   async extractLearnings(
     content: string,
     sourceUrl: string
   ): Promise<Learning[]> {
-    const entities = this.extractEntities(content);
+    const { object } = await generateObject({
+      model: this.provider,
+      prompt: `Extract key learnings from this content:
 
-    return [
-      {
-        content: content.substring(0, 200) + "...",
-        type: this.classifyLearningType(content),
-        entities,
-        confidence: 0.7,
-        sourceUrl,
-      },
-    ];
+${content}
+
+Source: ${sourceUrl}
+
+Extract specific, detailed learnings with entities and classify by type.`,
+      schema: z.object({
+        learnings: z.array(LearningSchema),
+      }),
+    });
+
+    return object.learnings;
   }
 
+  /**
+   * Assess completeness directly using AI (for testing)
+   */
   async assessCompletenessAsync(
     originalQuery: string,
     findings: SearchResult[]
   ): Promise<CompletenessAssessment> {
-    return this.assessCompleteness(originalQuery, findings, 1, 3);
+    const { object } = await generateObject({
+      model: this.provider,
+      prompt: `Assess the completeness of these research findings for the query: "${originalQuery}"
+
+Findings:
+${findings
+  .map((f) => `Source: ${f.url}\nContent: ${f.content.substring(0, 500)}...`)
+  .join("\n---\n")}
+
+Evaluate coverage, identify gaps, and recommend next action.`,
+      schema: z.object({
+        completenessAssessment: CompletenessAssessmentSchema,
+      }),
+    });
+
+    return object.completenessAssessment;
   }
 }

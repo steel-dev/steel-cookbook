@@ -7,6 +7,7 @@ import { SearchAgent } from "../src/agents/SearchAgent";
 import { AIProviderFactory, SteelClient } from "../src/providers/providers";
 import { SearchResult } from "../src/core/interfaces";
 import { loadConfig } from "../src/config";
+import { ProviderManager } from "../src/providers/providers";
 
 // Simple test runner
 class TestRunner {
@@ -72,20 +73,25 @@ function createTestEvaluator(): ContentEvaluator {
 
 function createTestSearchAgent(): SearchAgent {
   const config = loadConfig();
-  const steelClient = new SteelClient(config.steel.apiKey);
+  const providerManager = new ProviderManager(config);
   const eventEmitter = new EventEmitter();
-  return new SearchAgent(steelClient, eventEmitter);
+  return new SearchAgent(providerManager, eventEmitter);
 }
 
-function createIntegratedTestAgents(): { searchAgent: SearchAgent; contentEvaluator: ContentEvaluator } {
+function createIntegratedTestAgents(): {
+  searchAgent: SearchAgent;
+  contentEvaluator: ContentEvaluator;
+} {
   const config = loadConfig();
-  const steelClient = new SteelClient(config.steel.apiKey);
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
+  const providerManager = new ProviderManager(config);
   const eventEmitter = new EventEmitter();
-  
+
   return {
-    searchAgent: new SearchAgent(steelClient, eventEmitter),
-    contentEvaluator: new ContentEvaluator(provider, eventEmitter),
+    searchAgent: new SearchAgent(providerManager, eventEmitter),
+    contentEvaluator: new ContentEvaluator(
+      providerManager.getAIProvider(),
+      eventEmitter
+    ),
   };
 }
 
@@ -107,7 +113,7 @@ testRunner.test("ContentEvaluator - Initialize", async () => {
     "Should have extractLearnings method"
   );
   assert(
-    typeof evaluator.assessCompleteness === "function",
+    typeof evaluator.assessCompletenessAsync === "function",
     "Should have assessCompleteness method"
   );
 
@@ -144,18 +150,7 @@ testRunner.test("ContentEvaluator - Simple Evaluation", async () => {
     Array.isArray(evaluation.researchDirections),
     "Research directions should be an array"
   );
-  assert(
-    typeof evaluation.confidenceLevel === "number",
-    "Confidence level should be a number"
-  );
-  assert(
-    evaluation.confidenceLevel >= 0 && evaluation.confidenceLevel <= 1,
-    "Confidence level should be between 0 and 1"
-  );
-
-  console.log(
-    `   ✅ Generated ${evaluation.learnings.length} learnings and ${evaluation.researchDirections.length} research directions`
-  );
+  // Confidence metric removed from evaluation
 });
 
 // Test 3: Evaluate findings with multiple sources
@@ -189,9 +184,23 @@ testRunner.test("ContentEvaluator - Evaluate Multiple Findings", async () => {
     },
   ];
 
+  const mockPlan = {
+    id: "test-plan",
+    originalQuery: testQuery,
+    subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
+    searchStrategy: {
+      maxDepth: 3,
+      maxBreadth: 3,
+      timeout: 30000,
+      retryAttempts: 3,
+    },
+    estimatedSteps: 3,
+  };
+
   const evaluation = await evaluator.evaluateFindings(
     testQuery,
     testFindings,
+    mockPlan,
     1,
     3
   );
@@ -249,63 +258,127 @@ testRunner.test("ContentEvaluator - Evaluate Multiple Findings", async () => {
 });
 
 // Test 4: Real API Integration - SearchAgent + ContentEvaluator
-testRunner.test("ContentEvaluator - Real API Integration with SearchAgent", async () => {
-  const { searchAgent, contentEvaluator } = createIntegratedTestAgents();
-  
-  const testQuery = "What is Node.js?";
-  console.log(`   🔍 Searching for: "${testQuery}"`);
-  
-  // Get real search results from SearchAgent
-  const serpResult = await searchAgent.searchSERP(testQuery, {
-    maxResults: 3,
-    timeout: 15000,
-  });
-  
-  assertExists(serpResult, "SERP result should be returned");
-  assertExists(serpResult.results, "SERP results should have results array");
-  assert(Array.isArray(serpResult.results), "Results should be an array");
-  assert(serpResult.results.length > 0, "Should have at least one search result");
-  
-  console.log(`   📊 Found ${serpResult.results.length} search results`);
-  
-  // Evaluate the real search findings
-  const evaluation = await contentEvaluator.evaluateFindings(
-    testQuery,
-    serpResult.results,
-    1,
-    3
-  );
-  
-  assertExists(evaluation, "Evaluation should be returned");
-  assert(evaluation.learnings.length > 0, "Should extract learnings from real search results");
-  assert(evaluation.researchDirections.length >= 0, "Should identify research directions");
-  assert(typeof evaluation.completenessAssessment.coverage === "number", "Coverage should be a number");
-  assert(evaluation.completenessAssessment.coverage >= 0 && evaluation.completenessAssessment.coverage <= 1, "Coverage should be between 0 and 1");
-  
-  // Validate learning structure with real data
-  for (const learning of evaluation.learnings) {
-    assert(typeof learning.content === "string", "Learning content should be a string");
-    assert(["factual", "analytical", "procedural", "statistical"].includes(learning.type), "Learning type should be valid");
-    assert(Array.isArray(learning.entities), "Entities should be an array");
-    assert(typeof learning.confidence === "number", "Confidence should be a number");
-    assert(learning.confidence >= 0 && learning.confidence <= 1, "Confidence should be between 0 and 1");
-    assert(typeof learning.sourceUrl === "string", "Source URL should be a string");
-  }
-  
-  console.log(`   ✅ Successfully evaluated ${serpResult.results.length} real search results`);
-  console.log(`   ✅ Extracted ${evaluation.learnings.length} learnings from real web content`);
-  console.log(`   ✅ Coverage: ${evaluation.completenessAssessment.coverage.toFixed(2)}`);
-  console.log(`   ✅ Confidence: ${evaluation.confidenceLevel.toFixed(2)}`);
-  console.log(`   ✅ Research directions: ${evaluation.researchDirections.length}`);
-  
-  // Sample some learning content for verification
-  if (evaluation.learnings.length > 0) {
-    const firstLearning = evaluation.learnings[0];
-    if (firstLearning) {
-      console.log(`   📚 Sample learning: "${firstLearning.content.substring(0, 100)}..."`);
+testRunner.test(
+  "ContentEvaluator - Real API Integration with SearchAgent",
+  async () => {
+    const { searchAgent, contentEvaluator } = createIntegratedTestAgents();
+
+    const testQuery = "What is Node.js?";
+    console.log(`   🔍 Searching for: "${testQuery}"`);
+
+    // Get real search results from SearchAgent
+    const serpResult = await searchAgent.searchSERP(testQuery, {
+      maxResults: 3,
+      timeout: 15000,
+    });
+
+    assertExists(serpResult, "SERP result should be returned");
+    assertExists(serpResult.results, "SERP results should have results array");
+    assert(Array.isArray(serpResult.results), "Results should be an array");
+    assert(
+      serpResult.results.length > 0,
+      "Should have at least one search result"
+    );
+
+    console.log(`   📊 Found ${serpResult.results.length} search results`);
+
+    // Create mock plan for evaluation
+    const mockPlan = {
+      id: "test-plan",
+      originalQuery: testQuery,
+      subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
+      searchStrategy: {
+        maxDepth: 3,
+        maxBreadth: 3,
+        timeout: 30000,
+        retryAttempts: 3,
+      },
+      estimatedSteps: 3,
+    };
+
+    // Evaluate the real search findings
+    const evaluation = await contentEvaluator.evaluateFindings(
+      testQuery,
+      serpResult.results,
+      mockPlan,
+      1,
+      3
+    );
+
+    assertExists(evaluation, "Evaluation should be returned");
+    assert(
+      evaluation.learnings.length > 0,
+      "Should extract learnings from real search results"
+    );
+    assert(
+      evaluation.researchDirections.length >= 0,
+      "Should identify research directions"
+    );
+    assert(
+      typeof evaluation.completenessAssessment.coverage === "number",
+      "Coverage should be a number"
+    );
+    assert(
+      evaluation.completenessAssessment.coverage >= 0 &&
+        evaluation.completenessAssessment.coverage <= 1,
+      "Coverage should be between 0 and 1"
+    );
+
+    // Validate learning structure with real data
+    for (const learning of evaluation.learnings) {
+      assert(
+        typeof learning.content === "string",
+        "Learning content should be a string"
+      );
+      assert(
+        ["factual", "analytical", "procedural", "statistical"].includes(
+          learning.type
+        ),
+        "Learning type should be valid"
+      );
+      assert(Array.isArray(learning.entities), "Entities should be an array");
+      assert(
+        typeof learning.confidence === "number",
+        "Confidence should be a number"
+      );
+      assert(
+        learning.confidence >= 0 && learning.confidence <= 1,
+        "Confidence should be between 0 and 1"
+      );
+      assert(
+        typeof learning.sourceUrl === "string",
+        "Source URL should be a string"
+      );
+    }
+
+    console.log(
+      `   ✅ Successfully evaluated ${serpResult.results.length} real search results`
+    );
+    console.log(
+      `   ✅ Extracted ${evaluation.learnings.length} learnings from real web content`
+    );
+    console.log(
+      `   ✅ Coverage: ${evaluation.completenessAssessment.coverage.toFixed(2)}`
+    );
+    // Confidence metric removed
+    console.log(
+      `   ✅ Research directions: ${evaluation.researchDirections.length}`
+    );
+
+    // Sample some learning content for verification
+    if (evaluation.learnings.length > 0) {
+      const firstLearning = evaluation.learnings[0];
+      if (firstLearning) {
+        console.log(
+          `   📚 Sample learning: "${firstLearning.content.substring(
+            0,
+            100
+          )}..."`
+        );
+      }
     }
   }
-});
+);
 
 // Test 5: Extract learnings from content
 testRunner.test("ContentEvaluator - Extract Learnings", async () => {
@@ -376,7 +449,7 @@ testRunner.test("ContentEvaluator - Assess Completeness", async () => {
     },
   ];
 
-  const completeness = await evaluator.assessCompleteness(
+  const completeness = await evaluator.assessCompletenessAsync(
     testQuery,
     testFindings
   );
@@ -419,7 +492,21 @@ testRunner.test(
 
     let errorThrown = false;
     try {
-      await evaluator.evaluateFindings("test query", [], 1, 3);
+      const mockPlan = {
+        id: "test-plan",
+        originalQuery: "test query",
+        subQueries: [
+          { id: "test-sq", query: "test query", category: "general" },
+        ],
+        searchStrategy: {
+          maxDepth: 3,
+          maxBreadth: 3,
+          timeout: 30000,
+          retryAttempts: 3,
+        },
+        estimatedSteps: 3,
+      };
+      await evaluator.evaluateFindings("test query", [], mockPlan, 1, 3);
     } catch (error) {
       errorThrown = true;
       assert(error instanceof Error, "Should throw an error");

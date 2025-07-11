@@ -1,3 +1,55 @@
+/**
+ * Deep Research Agent Core Interfaces
+ *
+ * OVERVIEW:
+ * This file defines all the TypeScript interfaces, types, and data structures used
+ * throughout the Deep Research system. It provides type safety and clear contracts
+ * between different components of the system.
+ *
+ * KEY INTERFACE CATEGORIES:
+ *
+ * 1. CONFIGURATION INTERFACES:
+ *    - DeepResearchConfig: Main configuration for providers and search settings
+ *    - ResearchOptions: User-configurable research parameters
+ *    - Various provider and search options
+ *
+ * 2. RESEARCH PLANNING INTERFACES:
+ *    - ResearchPlan: Contains sub-queries and search strategy
+ *    - SubQuery: Individual search query with priority and metadata
+ *    - SearchStrategy: Configuration for search execution
+ *
+ * 3. SEARCH RESULT INTERFACES:
+ *    - SearchResult: Individual search result with content and metadata
+ *    - SERPResult: Search engine results page response
+ *    - PageContent: Extracted content from web pages
+ *
+ * 4. EVALUATION INTERFACES:
+ *    - ResearchEvaluation: Comprehensive evaluation of research findings
+ *    - Learning: Individual knowledge extracted from content
+ *    - ResearchDirection: Suggested follow-up research questions
+ *    - CompletenessAssessment: Analysis of research completeness
+ *    - RefinementDecision: Strategic decision making for research continuation
+ *
+ * 5. REPORT INTERFACES:
+ *    - ResearchReport: Final generated report with citations
+ *    - Citation: Individual source citation information
+ *
+ * 6. EVENT INTERFACES:
+ *    - Event types for real-time system feedback
+ *    - Progress tracking and tool call events
+ *
+ * 7. VALIDATION SCHEMAS:
+ *    - Zod schemas for runtime validation
+ *    - Type guards for type checking
+ *
+ * The interfaces follow a consistent pattern:
+ * - Clear naming conventions
+ * - Comprehensive metadata fields
+ * - Flexible configuration options
+ * - Strong typing with optional fields where appropriate
+ * - Built-in validation and defaults
+ */
+
 import { z } from "zod";
 
 // Configuration interfaces
@@ -29,8 +81,27 @@ export interface DeepResearchConfig {
 export interface SubQuery {
   id: string;
   query: string;
-  priority: number;
   category?: string;
+}
+
+// Free-form research plan (strategic thinking step)
+export interface FreeFormResearchPlan {
+  id: string;
+  originalQuery: string;
+  strategicPlan: string; // Free-form strategic thinking text
+  approach: string; // Overall approach description
+  estimatedSteps: number;
+  createdAt: Date;
+}
+
+// Structured queries generated from the plan
+export interface QueriesFromPlan {
+  queries: string[];
+  strategy: {
+    searchType: "comprehensive" | "focused";
+    approach: string;
+  };
+  estimatedSteps: number;
 }
 
 export interface ResearchPlan {
@@ -39,6 +110,7 @@ export interface ResearchPlan {
   subQueries: SubQuery[];
   searchStrategy: SearchStrategy;
   estimatedSteps: number;
+  strategicPlan?: string; // Optional free-form plan text
 }
 
 export interface SearchStrategy {
@@ -98,8 +170,13 @@ export interface Learning {
 export interface ResearchDirection {
   question: string;
   rationale: string;
-  priority: "high" | "medium" | "low";
   searchQueries: string[];
+  buildsUpon?: string[]; // NEW: Which existing learnings this builds on
+  expectedLearningType?:
+    | "factual"
+    | "analytical"
+    | "statistical"
+    | "procedural"; // NEW: Expected type of learning
 }
 
 export interface CompletenessAssessment {
@@ -113,7 +190,21 @@ export interface ResearchEvaluation {
   learnings: Learning[];
   researchDirections: ResearchDirection[];
   completenessAssessment: CompletenessAssessment;
-  confidenceLevel: number;
+}
+
+// NEW: RefinementDecision interface for strategic decision making
+export interface RefinementDecision {
+  shouldContinue: boolean;
+  reason: string; // Why continue/terminate
+  researchDirections: ResearchDirection[]; // What to research next
+  strategicGuidance: string; // How to approach next iteration
+  confidence: number; // Confidence in decision (0-1)
+  terminationMetadata?: {
+    // Additional context for decisions
+    coverageAchieved: number;
+    learningsCount: number;
+    iterationsCompleted: number;
+  };
 }
 
 // Report interfaces
@@ -175,6 +266,64 @@ export type ResearchEvent =
   | "text"
   | "done";
 
+// Progress events for research phases
+export interface ResearchProgressEvent extends BaseEvent {
+  type: "research-progress";
+  phase:
+    | "initialization"
+    | "planning"
+    | "searching"
+    | "evaluating"
+    | "refining"
+    | "synthesizing"
+    | "complete";
+  progress: number; // 0-100
+  currentStep?: string;
+  totalSteps?: number;
+  stepProgress?: number; // Progress within current step
+}
+
+// Text streaming events for real-time content generation
+export interface TextStreamEvent extends BaseEvent {
+  type: "text-stream";
+  content: string;
+  source: "synthesis" | "analysis" | "planning";
+  isComplete: boolean;
+  chunkIndex?: number;
+}
+
+// Research milestone events
+export interface ResearchMilestoneEvent extends BaseEvent {
+  type: "research-milestone";
+  milestone:
+    | "plan-created"
+    | "search-completed"
+    | "evaluation-completed"
+    | "refinement-completed"
+    | "report-generated";
+  data: any;
+  summary?: string;
+}
+
+// Error events
+export interface ResearchErrorEvent extends BaseEvent {
+  type: "research-error";
+  error: string;
+  code?: string;
+  phase?: string;
+  recoverable: boolean;
+  context?: Record<string, any>;
+}
+
+// Session events
+export interface ResearchSessionEvent extends BaseEvent {
+  type: "research-session-start" | "research-session-end";
+  query: string;
+  options?: Record<string, any>;
+  result?: any;
+}
+
+// Legacy interface for backward compatibility
 export interface ResearchProgress {
   phase: string;
   progress: number; // 0-100
@@ -182,23 +331,69 @@ export interface ResearchProgress {
   totalSteps?: number;
 }
 
-export interface ToolCallEvent {
-  toolName: "search" | "scrape" | "screenshot" | "analyze";
-  query?: string;
-  url?: string;
-  metadata?: Record<string, any>;
+// AI SDK v5 compliant event interfaces for clean hook consumption
+export interface BaseEvent {
+  id: string;
+  sessionId: string;
   timestamp: Date;
+  type: string;
+  metadata?: Record<string, any>;
 }
 
-export interface ToolResultEvent {
+// Tool lifecycle events following AI SDK v5 patterns
+export interface ToolCallStartEvent extends BaseEvent {
+  type: "tool-call-start";
+  toolCallId: string;
+  toolName: "search" | "scrape" | "screenshot" | "analyze";
+  input: {
+    query?: string;
+    url?: string;
+    action?: string;
+    metadata?: Record<string, any>;
+  };
+}
+
+export interface ToolCallProgressEvent extends BaseEvent {
+  type: "tool-call-progress";
+  toolCallId: string;
+  toolName: string;
+  progress: number;
+  status: string;
+}
+
+export interface ToolCallEndEvent extends BaseEvent {
+  type: "tool-call-end";
+  toolCallId: string;
   toolName: string;
   success: boolean;
-  resultCount?: number;
-  contentLength?: number;
+  output?: {
+    resultCount?: number;
+    contentLength?: number;
+    data?: any;
+    metadata?: Record<string, any>;
+  };
   error?: string;
-  timestamp: Date;
+  duration: number;
 }
 
+// Legacy interfaces for backward compatibility
+export interface ToolCallEvent extends ToolCallStartEvent {}
+export interface ToolResultEvent extends ToolCallEndEvent {}
+
+// Union type for all events for type-safe event handling
+export type DeepResearchEvent =
+  | ToolCallStartEvent
+  | ToolCallProgressEvent
+  | ToolCallEndEvent
+  | ResearchProgressEvent
+  | TextStreamEvent
+  | ResearchMilestoneEvent
+  | ResearchErrorEvent
+  | ResearchSessionEvent;
+
+// EventFactory has been extracted to "events.ts" to keep this file leaner.
+
+// Legacy interface for backward compatibility
 export interface ResearchUpdate {
   event: ResearchEvent;
   phase: string;
@@ -210,8 +405,26 @@ export interface ResearchUpdate {
 export const SubQuerySchema = z.object({
   id: z.string(),
   query: z.string(),
-  priority: z.number().min(0).max(1),
   category: z.string().optional(),
+});
+
+export const FreeFormResearchPlanSchema = z.object({
+  strategicPlan: z.string().describe("Free-form strategic thinking text"),
+  approach: z.string().describe("Overall approach description"),
+  estimatedSteps: z.number().describe("Estimated number of steps needed"),
+});
+
+export const QueriesFromPlanSchema = z.object({
+  queries: z
+    .array(z.string())
+    .describe("List of search queries extracted from the plan"),
+  strategy: z.object({
+    searchType: z
+      .enum(["comprehensive", "focused"])
+      .describe("Type of search strategy"),
+    approach: z.string().describe("Overall approach for the research"),
+  }),
+  estimatedSteps: z.number().describe("Estimated number of steps needed"),
 });
 
 export const ResearchPlanSchema = z.object({
@@ -225,6 +438,7 @@ export const ResearchPlanSchema = z.object({
     retryAttempts: z.number(),
   }),
   estimatedSteps: z.number(),
+  strategicPlan: z.string().optional().describe("Optional free-form plan text"),
 });
 
 export const SearchResultSchema = z.object({
@@ -259,8 +473,15 @@ export const LearningSchema = z.object({
 export const ResearchDirectionSchema = z.object({
   question: z.string(),
   rationale: z.string(),
-  priority: z.enum(["high", "medium", "low"]),
   searchQueries: z.array(z.string()),
+  buildsUpon: z
+    .array(z.string())
+    .optional()
+    .describe("Which existing learnings this builds on"),
+  expectedLearningType: z
+    .enum(["factual", "analytical", "statistical", "procedural"])
+    .optional()
+    .describe("Expected type of learning"),
 });
 
 export const CompletenessAssessmentSchema = z.object({
@@ -274,10 +495,35 @@ export const ResearchEvaluationSchema = z.object({
   learnings: z.array(LearningSchema),
   researchDirections: z.array(ResearchDirectionSchema),
   completenessAssessment: CompletenessAssessmentSchema,
-  confidenceLevel: z.number().min(0).max(1),
+});
+
+// NEW: Schema for RefinementDecision
+export const RefinementDecisionSchema = z.object({
+  shouldContinue: z.boolean(),
+  reason: z.string(),
+  researchDirections: z.array(ResearchDirectionSchema),
+  strategicGuidance: z.string(),
+  confidence: z.number().min(0).max(1),
+  terminationMetadata: z
+    .object({
+      coverageAchieved: z.number().min(0).max(1),
+      learningsCount: z.number(),
+      iterationsCompleted: z.number(),
+    })
+    .optional(),
 });
 
 // Type guards
+export const isFreeFormResearchPlan = (
+  obj: any
+): obj is FreeFormResearchPlan => {
+  return FreeFormResearchPlanSchema.safeParse(obj).success;
+};
+
+export const isQueriesFromPlan = (obj: any): obj is QueriesFromPlan => {
+  return QueriesFromPlanSchema.safeParse(obj).success;
+};
+
 export const isResearchPlan = (obj: any): obj is ResearchPlan => {
   return ResearchPlanSchema.safeParse(obj).success;
 };
@@ -306,6 +552,11 @@ export const isCompletenessAssessment = (
 
 export const isResearchEvaluation = (obj: any): obj is ResearchEvaluation => {
   return ResearchEvaluationSchema.safeParse(obj).success;
+};
+
+// NEW: Type guard for RefinementDecision
+export const isRefinementDecision = (obj: any): obj is RefinementDecision => {
+  return RefinementDecisionSchema.safeParse(obj).success;
 };
 
 // Default values

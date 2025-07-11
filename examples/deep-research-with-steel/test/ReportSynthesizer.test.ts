@@ -343,9 +343,23 @@ testRunner.test("ReportSynthesizer - Real API Integration", async () => {
   console.log(`   📊 Found ${serpResult.results.length} search results`);
 
   // Get real learnings from evaluation
+  const mockPlan = {
+    id: "test-plan",
+    originalQuery: testQuery,
+    subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
+    searchStrategy: {
+      maxDepth: 2,
+      maxBreadth: 3,
+      timeout: 30000,
+      retryAttempts: 3,
+    },
+    estimatedSteps: 3,
+  };
+
   const evaluation = await contentEvaluator.evaluateFindings(
     testQuery,
     serpResult.results,
+    mockPlan,
     1,
     2
   );
@@ -524,14 +538,14 @@ testRunner.test("ReportSynthesizer - Citation Generation", async () => {
     "Citation count should match findings"
   );
 
-    // Check citation structure
+  // Check citation structure
   for (let i = 0; i < report.citations.length; i++) {
     const citation = report.citations[i];
     const finding = mockFindings[i];
-    
+
     assertExists(citation, "Citation should exist");
     assertExists(finding, "Finding should exist");
-    
+
     assert(
       citation!.id === (i + 1).toString(),
       "Citation ID should be sequential"
@@ -541,8 +555,11 @@ testRunner.test("ReportSynthesizer - Citation Generation", async () => {
       citation!.title === finding!.title,
       "Citation title should match finding"
     );
-    assert(citation!.accessDate instanceof Date, "Access date should be a Date");
-    
+    assert(
+      citation!.accessDate instanceof Date,
+      "Access date should be a Date"
+    );
+
     if (citation!.relevantQuote) {
       assert(
         typeof citation!.relevantQuote === "string",

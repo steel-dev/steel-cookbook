@@ -96,20 +96,24 @@ async function promptForQuery(): Promise<{
 
 function setupProgressDisplay(agent: DeepResearchAgent): void {
   let currentSpinner: ReturnType<typeof ora> | null = null;
+  let strategicPlanBuffer = "";
+  let isBufferingPlan = false;
 
   agent.on("progress", (progress) => {
     if (currentSpinner) currentSpinner.stop();
 
-    const percentage = Math.round(progress.progress);
+    const percentage = Math.round(progress.progress || 0);
     const filled = Math.round(percentage / 5);
     const empty = 20 - filled;
     const progressBar =
       chalk.hex(theme.success)("█".repeat(filled)) +
       chalk.hex(theme.dim)("░".repeat(empty));
 
+    const currentStep = progress.currentStep || "Processing";
+
     currentSpinner = ora({
       text: chalk.hex(theme.text)(
-        `${progress.currentStep} ${progressBar} ${percentage}%`
+        `${currentStep} ${progressBar} ${percentage}%`
       ),
       color: "cyan",
     }).start();
@@ -123,10 +127,49 @@ function setupProgressDisplay(agent: DeepResearchAgent): void {
         ? "🔍"
         : toolCall.toolName === "scrape"
         ? "📄"
-        : "🧠";
-    const message = toolCall.query
-      ? `Searching: "${toolCall.query}"`
-      : `Using ${toolCall.toolName}`;
+        : toolCall.toolName === "analyze"
+        ? "🧠"
+        : "🔧";
+
+    let message = "";
+
+    if (toolCall.toolName === "analyze" && toolCall.input?.action) {
+      const action = toolCall.input.action;
+      switch (action) {
+        case "initial_planning":
+          message = "Creating research plan";
+          break;
+        case "strategic_planning":
+          message = "Developing strategic approach";
+          break;
+        case "query_extraction":
+          message = "Extracting search queries";
+          break;
+        case "refined_strategic_planning":
+          message = "Refining strategy based on findings";
+          break;
+        case "plan_refinement":
+          message = "Updating research plan";
+          break;
+        case "early_termination":
+          message = "Terminating research early";
+          break;
+        case "continue_research":
+          message = "Continuing research";
+          break;
+        case "proceed_to_synthesis":
+          message = "Proceeding to synthesis";
+          break;
+        default:
+          message = `Analyzing: ${action}`;
+      }
+    } else if (toolCall.input?.query) {
+      message = `Searching: "${toolCall.input.query}"`;
+    } else if (toolCall.input?.url) {
+      message = `Scraping: ${toolCall.input.url}`;
+    } else {
+      message = `Using ${toolCall.toolName}`;
+    }
 
     currentSpinner = ora({
       text: chalk.hex(theme.text)(`${icon} ${message}`),
@@ -136,10 +179,42 @@ function setupProgressDisplay(agent: DeepResearchAgent): void {
 
   agent.on("tool-result", (result) => {
     if (currentSpinner) {
-      const message =
-        result.toolName === "search"
-          ? `Found ${result.resultCount || 0} results`
-          : `${result.toolName} completed`;
+      let message = "";
+
+      if (result.toolName === "analyze" && result.output?.metadata?.action) {
+        const action = result.output.metadata.action;
+        switch (action) {
+          case "initial_planning":
+            message = `Created plan with ${
+              result.output.metadata.queryCount || 0
+            } queries`;
+            break;
+          case "strategic_planning":
+            message = `Strategic approach developed`;
+            break;
+          case "query_extraction":
+            message = `Extracted ${
+              result.output.metadata.queryCount || 0
+            } queries`;
+            break;
+          case "refined_strategic_planning":
+            message = `Strategy refined`;
+            break;
+          case "plan_refinement":
+            message = `Plan updated with ${
+              result.output.metadata.queryCount || 0
+            } queries`;
+            break;
+          default:
+            message = `Analysis completed`;
+        }
+      } else if (result.toolName === "search") {
+        message = `Found ${result.output?.resultCount || 0} results`;
+      } else if (result.toolName === "scrape") {
+        message = `Scraped ${result.output?.contentLength || 0} characters`;
+      } else {
+        message = `${result.toolName} completed`;
+      }
 
       if (result.success) {
         currentSpinner.succeed(chalk.hex(theme.success)(message));
@@ -152,15 +227,141 @@ function setupProgressDisplay(agent: DeepResearchAgent): void {
     }
   });
 
+  // Helper function to display strategic plan in a viewport
+  function displayStrategicPlanViewport(planText: string): void {
+    const lines = planText.split("\n").filter((line) => line.trim());
+    const maxHeight = 12; // Maximum lines to show in viewport
+    const maxWidth = 80; // Maximum width per line
+
+    // Process lines to fit viewport
+    const processedLines: string[] = [];
+    lines.forEach((line) => {
+      // Remove color codes for length calculation
+      const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, "");
+
+      if (cleanLine.length <= maxWidth) {
+        processedLines.push(line);
+      } else {
+        // Word wrap long lines
+        const words = cleanLine.split(" ");
+        let currentLine = "";
+
+        words.forEach((word) => {
+          if ((currentLine + word).length <= maxWidth) {
+            currentLine += (currentLine ? " " : "") + word;
+          } else {
+            if (currentLine) processedLines.push(currentLine);
+            currentLine = word;
+          }
+        });
+
+        if (currentLine) processedLines.push(currentLine);
+      }
+    });
+
+    // Determine what to show
+    let displayLines: string[];
+    let hasMore = false;
+
+    if (processedLines.length <= maxHeight) {
+      displayLines = processedLines;
+    } else {
+      displayLines = processedLines.slice(0, maxHeight - 1);
+      hasMore = true;
+    }
+
+    // Build viewport content
+    let viewportContent = displayLines.join("\n");
+
+    if (hasMore) {
+      const hiddenCount = processedLines.length - displayLines.length;
+      viewportContent +=
+        "\n" +
+        chalk.hex(theme.dim)(
+          `... ${hiddenCount} more lines (truncated for display)`
+        );
+    }
+
+    // Display in a styled box
+    console.log(
+      "\n" +
+        boxen(viewportContent, {
+          title: chalk.hex(theme.secondary)(" 📋 Strategic Plan "),
+          titleAlignment: "center",
+          padding: 1,
+          margin: { top: 0, bottom: 1, left: 2, right: 2 },
+          borderStyle: "round",
+          borderColor: theme.secondary,
+          backgroundColor: "#1a1a1a",
+        })
+    );
+
+    if (hasMore) {
+      console.log(
+        chalk.hex(theme.dim)(
+          "   💡 Full plan details logged for AI processing\n"
+        )
+      );
+    }
+  }
+
   agent.on("text", (text) => {
     if (currentSpinner) {
       currentSpinner.stop();
       currentSpinner = null;
     }
-    process.stdout.write(chalk.hex(theme.text)(text));
+
+    // Handle strategic plan text with viewport
+    if (
+      text.includes("📋 Strategic Research Plan:") ||
+      text.includes("🔄 Refined Strategic Plan:") ||
+      text.includes("🎯 Strategic Plan (Based on Guidance):")
+    ) {
+      isBufferingPlan = true;
+      strategicPlanBuffer = text;
+    } else if (isBufferingPlan) {
+      // Continue buffering until we see the end of the plan
+      strategicPlanBuffer += text;
+
+      // Check if this is the end of the plan - look for double newlines which indicate completion
+      // Also check for new plan headers to avoid missing transitions
+      if (
+        text === "\n\n" || // This is what QueryPlanner emits after the plan
+        text.includes("🔄 Refined Strategic Plan:") ||
+        text.includes("📋 Strategic Research Plan:") ||
+        text.includes("🎯 Strategic Plan (Based on Guidance):")
+      ) {
+        // Display the buffered plan in viewport
+        displayStrategicPlanViewport(strategicPlanBuffer);
+
+        // Reset buffer
+        strategicPlanBuffer = "";
+        isBufferingPlan = false;
+
+        // If this text starts a new plan, start buffering again
+        if (
+          text.includes("📋 Strategic Research Plan:") ||
+          text.includes("🔄 Refined Strategic Plan:") ||
+          text.includes("🎯 Strategic Plan (Based on Guidance):")
+        ) {
+          isBufferingPlan = true;
+          strategicPlanBuffer = text;
+        }
+      }
+    } else {
+      // Regular text output for non-plan content
+      process.stdout.write(chalk.hex(theme.text)(text));
+    }
   });
 
   agent.on("done", () => {
+    // Flush any remaining strategic plan buffer
+    if (isBufferingPlan && strategicPlanBuffer.trim()) {
+      displayStrategicPlanViewport(strategicPlanBuffer);
+      strategicPlanBuffer = "";
+      isBufferingPlan = false;
+    }
+
     if (currentSpinner) {
       currentSpinner.succeed(
         chalk.hex(theme.success)("✨ Research completed!")
@@ -187,19 +388,19 @@ function displayReport(report: any): void {
   console.log(chalk.hex(theme.secondary)("\n📊 Statistics:"));
   console.log(
     `  ${chalk.hex(theme.dim)("Sources:")} ${chalk.hex(theme.text)(
-      report.citations.length
+      report.citations?.length || 0
     )}`
   );
   console.log(
     `  ${chalk.hex(theme.dim)("Learnings:")} ${chalk.hex(theme.text)(
-      report.learnings.length
+      report.learnings?.length || 0
     )}`
   );
 
   console.log(chalk.hex(theme.success)("\n📄 Full Report:"));
   console.log(chalk.hex(theme.text)(report.content));
 
-  if (report.citations.length > 0) {
+  if (report.citations && report.citations.length > 0) {
     console.log(chalk.hex(theme.secondary)("\n🔗 Sources:"));
     report.citations.forEach((citation: any, index: number) => {
       console.log(

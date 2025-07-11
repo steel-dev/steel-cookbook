@@ -1,7 +1,7 @@
 import { QueryPlanner } from "../src/agents/QueryPlanner";
 import { AIProviderFactory } from "../src/providers/providers";
 import { loadConfig } from "../src/config";
-import { ResearchPlan } from "../src/core/interfaces";
+import { ResearchPlan, FreeFormResearchPlan } from "../src/core/interfaces";
 
 interface TestCase {
   name: string;
@@ -84,11 +84,7 @@ class QueryPlannerTest {
 
       // Validate sub-query structure
       for (const subQuery of plan.subQueries) {
-        if (
-          !subQuery.id ||
-          !subQuery.query ||
-          typeof subQuery.priority !== "number"
-        ) {
+        if (!subQuery.id || !subQuery.query) {
           return { passed: false, error: "Invalid sub-query structure" };
         }
       }
@@ -105,15 +101,20 @@ class QueryPlannerTest {
       // Display results
       console.log(`✅ Generated ${plan.subQueries.length} sub-queries:`);
       plan.subQueries.forEach((sq, i) => {
-        console.log(
-          `   ${i + 1}. [${sq.category}] ${sq.query} (priority: ${sq.priority})`
-        );
+        console.log(`   ${i + 1}. [${sq.category}] ${sq.query}`);
       });
 
       console.log(
         `📊 Strategy: ${plan.searchStrategy.maxDepth}/${plan.searchStrategy.maxBreadth}`
       );
       console.log(`📈 Estimated steps: ${plan.estimatedSteps}`);
+
+      // Check if strategic plan is included
+      if (plan.strategicPlan) {
+        console.log(
+          `📝 Strategic plan included: ${plan.strategicPlan.length} characters`
+        );
+      }
 
       return { passed: true };
     } catch (error) {
@@ -180,11 +181,7 @@ class QueryPlannerTest {
           `✅ Refined plan generated with ${refinedPlan.subQueries.length} new sub-queries:`
         );
         refinedPlan.subQueries.forEach((sq, i) => {
-          console.log(
-            `   ${i + 1}. [${sq.category}] ${sq.query} (priority: ${
-              sq.priority
-            })`
-          );
+          console.log(`   ${i + 1}. [${sq.category}] ${sq.query}`);
         });
 
         return { passed: true };
@@ -278,6 +275,133 @@ class QueryPlannerTest {
     }
   }
 
+  async testTwoStepPlanning(): Promise<{ passed: boolean; error?: string }> {
+    try {
+      console.log(`\n🧪 Testing: Two-Step Planning Process`);
+
+      const testQuery =
+        "What are the latest developments in AI safety research?";
+
+      // Test Step 1: Generate free-form research plan
+      const freeFormPlan = await this.queryPlanner.generateFreeFormResearchPlan(
+        testQuery,
+        2,
+        3
+      );
+
+      // Validate free-form plan structure
+      if (
+        !freeFormPlan.id ||
+        !freeFormPlan.originalQuery ||
+        !freeFormPlan.strategicPlan
+      ) {
+        return {
+          passed: false,
+          error: "Missing required free-form plan properties",
+        };
+      }
+
+      if (freeFormPlan.originalQuery !== testQuery) {
+        return {
+          passed: false,
+          error: "Original query mismatch in free-form plan",
+        };
+      }
+
+      if (freeFormPlan.strategicPlan.length < 50) {
+        return { passed: false, error: "Strategic plan too short" };
+      }
+
+      console.log(`✅ Free-form plan generated:`);
+      console.log(
+        `   📝 Strategic plan: ${freeFormPlan.strategicPlan.length} characters`
+      );
+      console.log(`   🎯 Approach: ${freeFormPlan.approach}`);
+      console.log(`   📊 Estimated steps: ${freeFormPlan.estimatedSteps}`);
+
+      // Test Step 2: Generate queries from plan
+      const queriesFromPlan = await this.queryPlanner.generateQueriesFromPlan(
+        freeFormPlan,
+        3
+      );
+
+      // Validate queries from plan
+      if (!queriesFromPlan.queries || queriesFromPlan.queries.length === 0) {
+        return { passed: false, error: "No queries generated from plan" };
+      }
+
+      if (queriesFromPlan.queries.length > 3) {
+        return {
+          passed: false,
+          error: "Too many queries generated (should be limited to 3)",
+        };
+      }
+
+      console.log(`✅ Queries extracted from plan:`);
+      queriesFromPlan.queries.forEach((query, i) => {
+        console.log(`   ${i + 1}. ${query}`);
+      });
+      console.log(`   🔍 Strategy: ${queriesFromPlan.strategy.searchType}`);
+      console.log(`   📈 Estimated steps: ${queriesFromPlan.estimatedSteps}`);
+
+      return { passed: true };
+    } catch (error) {
+      return {
+        passed: false,
+        error: `Two-step planning test failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  }
+
+  async testStrategicPlanIntegration(): Promise<{
+    passed: boolean;
+    error?: string;
+  }> {
+    try {
+      console.log(`\n🧪 Testing: Strategic Plan Integration`);
+
+      const testQuery =
+        "How can blockchain technology improve supply chain transparency?";
+
+      // Test that the main planResearch method now includes strategic planning
+      const plan = await this.queryPlanner.planResearch(testQuery, 2, 3);
+
+      // Validate that strategic plan is included
+      if (!plan.strategicPlan) {
+        return {
+          passed: false,
+          error: "Strategic plan not included in final plan",
+        };
+      }
+
+      if (plan.strategicPlan.length < 50) {
+        return {
+          passed: false,
+          error: "Strategic plan too short in final plan",
+        };
+      }
+
+      console.log(`✅ Strategic plan integrated into main planResearch:`);
+      console.log(
+        `   📝 Strategic plan: ${plan.strategicPlan.length} characters`
+      );
+      console.log(`   🔍 Generated ${plan.subQueries.length} sub-queries`);
+
+              // All queries are now treated equally (no priority system)
+
+      return { passed: true };
+    } catch (error) {
+      return {
+        passed: false,
+        error: `Strategic plan integration test failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  }
+
   async runAllTests(): Promise<void> {
     console.log("🚀 Starting QueryPlanner Tests...");
     console.log("=".repeat(50));
@@ -320,6 +444,30 @@ class QueryPlannerTest {
     } else {
       console.log(`❌ Edge Cases: FAILED - ${edgeCaseResult.error}`);
       failures.push(`Edge Cases: ${edgeCaseResult.error}`);
+    }
+
+    // Run two-step planning tests
+    totalTests++;
+    const twoStepResult = await this.testTwoStepPlanning();
+    if (twoStepResult.passed) {
+      passedTests++;
+      console.log(`✅ Two-Step Planning: PASSED`);
+    } else {
+      console.log(`❌ Two-Step Planning: FAILED - ${twoStepResult.error}`);
+      failures.push(`Two-Step Planning: ${twoStepResult.error}`);
+    }
+
+    // Run strategic plan integration tests
+    totalTests++;
+    const strategicPlanResult = await this.testStrategicPlanIntegration();
+    if (strategicPlanResult.passed) {
+      passedTests++;
+      console.log(`✅ Strategic Plan Integration: PASSED`);
+    } else {
+      console.log(
+        `❌ Strategic Plan Integration: FAILED - ${strategicPlanResult.error}`
+      );
+      failures.push(`Strategic Plan Integration: ${strategicPlanResult.error}`);
     }
 
     // Summary

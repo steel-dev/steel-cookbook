@@ -207,11 +207,15 @@ testRunner.test("searchSERP emits correct events", async () => {
     "search",
     "Tool call should be for search"
   );
+  assertNotNull(searchCallEvent!.data.toolCallId, "Tool call should have toolCallId");
+  assertNotNull(searchCallEvent!.data.input, "Tool call should have input");
   assertEquals(
     searchResultEvent!.data.success,
     true,
     "Search result should be successful"
   );
+  assertNotNull(searchResultEvent!.data.toolCallId, "Tool result should have toolCallId");
+  assertNotNull(searchResultEvent!.data.output, "Tool result should have output");
 
   // Should also have scrape events for individual pages
   const scrapeCallEvents = newEvents.filter(
@@ -273,16 +277,20 @@ testRunner.test("extractPageContent emits correct events", async () => {
     "scrape",
     "Tool call should be for scrape"
   );
+  assertNotNull(toolCallEvent!.data.toolCallId, "Tool call should have toolCallId");
+  assertNotNull(toolCallEvent!.data.input, "Tool call should have input");
   assertEquals(
     toolResultEvent!.data.toolName,
     "scrape",
     "Tool result should be for scrape"
   );
+  assertNotNull(toolResultEvent!.data.toolCallId, "Tool result should have toolCallId");
   assertEquals(
     toolResultEvent!.data.success,
     true,
     "Tool result should be successful"
   );
+  assertNotNull(toolResultEvent!.data.output, "Tool result should have output");
 });
 
 testRunner.test("handles invalid URLs gracefully", async () => {
