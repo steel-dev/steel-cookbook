@@ -70,33 +70,44 @@ The script will:
 4. Send updated screenshots after each action
 5. Continue this loop until the task is complete
 
-## Key Components
+## Architecture
 
 ### SteelBrowser Class
 
-A wrapper around the Steel session and Playwright browser that provides methods for:
+Manages the Steel browser session and provides computer actions:
 
-- Creating and managing a browser session
-- Taking screenshots
-- Executing various browser actions (click, type, scroll, etc.)
+- Steel session creation and management
+- Standard computer actions (click, type, scroll, etc.)
+- Custom CDP screenshot handling
+- Virtual mouse cursor support
+- URL blocking and security checks
+- Proper session cleanup
 
-### OpenAI Integration
+### Agent Class
 
-The script connects to OpenAI's Computer Use Assistant API to:
+Manages the interaction loop between OpenAI and the computer:
 
-- Send browser screenshots
-- Receive actions to execute
-- Process text responses from the assistant
+- Handles OpenAI API requests/responses
+- Processes computer actions and function calls
+- Manages safety checks and error handling
+- Provides debug and image display options
+
+## Key Features
+
+- **Safety checks**: Includes URL blocking and user confirmation for safety-critical actions
+- **Error handling**: Proper exception handling and fallback mechanisms
+- **Session management**: Proper cleanup of Steel sessions and browser resources
+- **Single file design**: Clean separation of concerns in one easy-to-understand file
 
 ## Customization
 
 You can modify the example to:
 
-- Change the initial URL (currently Bing.com)
-- Adjust the browser dimensions
-- Add more action types
-- Implement additional error handling
-- Customize the UI/UX of the interaction
+- Change the initial URL (currently Google.com)
+- Adjust the browser dimensions and settings
+- Add custom function tools
+- Implement additional security checks
+- Customize the interaction flow
 
 ## Support
 
