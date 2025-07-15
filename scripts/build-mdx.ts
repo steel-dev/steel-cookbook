@@ -2,10 +2,26 @@ import fs from "fs/promises";
 import path from "path";
 import { compileMDX } from "../utils/compile-mdx";
 import { fileURLToPath } from "url";
+import { execSync, execFile } from "node:child_process";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const OUTPUT_DIR = path.join(directory, "../dist");
-const MDX_DIR = path.join(directory, "../mdx");
+const ROOT_DIR = path.join(directory, "..");
+const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
+const MDX_DIR = path.join(ROOT_DIR, "./mdx");
+
+export function packageTemplate(srcDir: string, outFile: string) {
+  const absOut = path.resolve(outFile);
+  return fs.mkdir(path.dirname(absOut), { recursive: true }).then(
+    () =>
+      new Promise<void>((res, rej) =>
+        execFile(
+          "tar",
+          ["-czf", absOut, "-C", srcDir, "."],
+          (err) => (err ? rej(err) : res()),
+        ),
+      ),
+  );
+};
 
 async function build() {
   console.log("Starting MDX compilation...");
@@ -67,17 +83,31 @@ async function build() {
         "utf-8"
       );
 
+      // Build template tar.gz
+      const template = path.join(ROOT_DIR, meta.directory as string);
+      const output = path.join(OUTPUT_DIR, "templates", meta.id as string + ".tar.gz");
+      await packageTemplate(template, output);
+
       // Add this example's metadata to our manifest
+      const templateDirectory = path.relative(OUTPUT_DIR, output);
       manifest.push({
         slug: outputFolderName,
         ...meta,
+        template: templateDirectory,
       });
     }
 
     // 4. Write the final manifest file to the root of the output directory
+    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
+    const manifestContents = {
+      name: "Steel Registry",
+      description: "A collection of examples for using Steel",
+      version: shortHash,
+      examples: manifest,
+    }
     await fs.writeFile(
       path.join(OUTPUT_DIR, "manifest.json"),
-      JSON.stringify(manifest, null, 2),
+      JSON.stringify(manifestContents, null, 2),
       "utf-8"
     );
     console.log("Successfully wrote manifest.json.");

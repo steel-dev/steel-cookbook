@@ -1,0 +1,185 @@
+---
+id: "browser-use-python"
+title: "Drive a Steel Session with Playwright-python"
+accentColor: "purple"
+category: "AI_AGENTS"
+stack: "python"
+description: "Build an AI Agent with Steel and browser-use"
+flags: ["guide"]
+directory: "examples/steel-browser-use-starter"
+---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Create AI agents that can navigate the web autonomously using Steel's cloud browsers and the browser-use framework.
+  </Intro>
+
+  <Step number={1} title="Optional: Prepare your environment">
+    Browser-use requires Python 3.11 or higher. In a new directory, run the following command to create a virtual environment with Python 3.11 and activate it.
+
+    ```bash
+    python3.11 -m venv venv && \
+    source venv/bin/activate
+    ```
+  </Step>
+  
+  <Step number={2} title="Install Required Packages">
+    Run the following command to install the necessary packages for Steel, browser-use, and OpenAI integration.
+
+    ```bash
+    pip install steel-sdk browser-use langchain-openai
+    ```
+  </Step>
+
+  <Step number={3} title="Start a Steel Session">
+    Create a Steel session to get a remote browser instance for your AI agent.
+
+    ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1
+    from steel import Steel
+    from browser_use import Agent, BrowserSession
+    from langchain_openai import ChatOpenAI
+
+    # Initialize Steel client with API key
+    client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
+
+    # Create a Steel session
+    session = client.sessions.create()
+
+    print(f"View live session at: {session.session_viewer_url}")
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+  </Step>
+
+  <Step number={4} title="Define Your Browser and Browser Context">
+    Connect the browser-use framework to your Steel session using the CDP URL.
+
+    ```python showLineNumbers{13} filename="main.py" /YOUR_STEEL_API_KEY/#1
+    # Connect to Steel session
+    cdp_url = f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+  </Step>
+
+  <Step number={5} title="Configure Your AI Agent">
+    Define the AI agent with a specific task, language model, and browser session configuration.
+
+    ```python showLineNumbers{16} filename="main.py"
+    # Create a ChatOpenAI model for agent reasoning
+    # You can use any browser-use compatible model you want here like Anthropic, Deepseek, Gemini, etc.
+    # See supported models here: https://docs.browser-use.com/customize/supported-models
+    model = ChatOpenAI(
+        model="gpt-4o",
+        temperature=0.3,
+        api_key=os.getenv("OPENAI_API_KEY"),
+    )
+
+    # Define the task for the agent
+    task = "Go to docs.steel.dev, open the changelog, and tell me what's new."
+
+    # Create the agent with the task, model, and browser session
+    agent = Agent(
+        task=task,
+        llm=model,
+        browser_session=BrowserSession(cdp_url=cdp_url)
+    )
+    ```
+  </Step>
+
+  <Step number={6} title="Run the Agent">
+    Create an async main function to run the agent and handle cleanup.
+
+    ```python showLineNumbers{35} filename="main.py"
+    # Define the main function with the agent execution
+    async def main():
+        try:
+            # Run the agent
+            print("Running the agent...")
+            await agent.run()
+            print("Task completed!")
+        finally:
+            # Clean up resources
+            client.sessions.release(session.id)
+            print("Resources cleaned up")
+
+    # Run the async main function
+    if __name__ == '__main__':
+        asyncio.run(main())
+    ```
+  </Step>
+
+  <Step number={7} title="Run Your Script">
+    Execute your script to start a Steel-powered browser session with an AI agent. You can view your session live in the Steel Session Viewer.
+
+    ```bash
+    python main.py
+    ```
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete code example that combines all the steps above.
+    ```python showLineNumbers filename="main.py"
+    """
+    Steel Browser Use Starter Template
+    Integrates Steel with browser-use framework to create an AI agent for web interactions.
+    Requires STEEL_API_KEY & OPENAI_API_KEY in .env file.
+    """
+
+    import asyncio
+    from steel import Steel
+    from browser_use import Agent, BrowserSession
+    from langchain_openai import ChatOpenAI
+    import os
+    import time
+
+    # Initialize the Steel client with API key
+    # Replace "YOUR_STEEL_API_KEY" with your actual API key
+    client = Steel(steel_api_key=os.getenv("STEEL_API_KEY"))
+
+    # Create a Steel session
+    print("Creating Steel session...")
+    session = client.sessions.create()
+    print(f"Session created at {session.session_viewer_url}")
+
+    # Connect browser-use to Steel
+    # Replace YOUR_STEEL_API_KEY with your actual API key
+    cdp_url = f"wss://connect.steel.dev?apiKey={os.getenv('STEEL_API_KEY')}&sessionId={session.id}"
+
+    # Create and configure the AI agent
+    model = ChatOpenAI(
+        model="gpt-4o",
+        temperature=0.3,
+        api_key=os.getenv("OPENAI_API_KEY"),
+    )
+
+    task = "Go to docs.steel.dev, open the changelog, and tell me what's new."
+
+    agent = Agent(
+        task=task,
+        llm=model,
+        browser_session=BrowserSession(cdp_url=cdp_url)
+    )
+
+    async def main():
+      try:
+          # Run the agent
+          print("Running the agent...")
+          await agent.run()
+          print("Task completed!")
+          
+      except Exception as e:
+          print(f"An error occurred: {e}")
+      finally:
+          time.sleep(10)
+          
+          # Clean up resources
+          if session:
+              client.sessions.release(session.id)
+              print("Session released")
+          print("Done!")
+
+    # Run the async main function
+    if __name__ == '__main__':
+        asyncio.run(main())
+    ```
+  </FullCodeExample>
+</Guide>
