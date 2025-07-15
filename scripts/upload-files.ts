@@ -6,6 +6,7 @@ import {
   PutObjectCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
+  HeadObjectCommand,
   _Object,
 } from "@aws-sdk/client-s3";
 import "dotenv/config";
@@ -75,7 +76,7 @@ async function listAllObjects(prefix: string) {
   return objects;
 }
 
-function getContentType(filePath: string): string {
+function getContentType(filePath: string) {
   const ext = path.extname(filePath).toLowerCase();
   switch (ext) {
     case ".json":
@@ -137,7 +138,7 @@ export async function main() {
 }
 
 async function cleanupOldVersions(newVersion: string) {
-  console.log("\nCleaning up old versions...");
+  console.log("\n🧹 Cleaning up old versions by deployment time...");
 
   const listResponse = await S3.send(
     new ListObjectsV2Command({
@@ -154,25 +155,54 @@ async function cleanupOldVersions(newVersion: string) {
   if (!versionPrefixes.includes(newVersion)) {
     versionPrefixes.push(newVersion);
   }
-  versionPrefixes.sort();
 
-  if (versionPrefixes.length <= 2) {
+  const versionsWithTimestamps = await Promise.all(
+    versionPrefixes.map(async (version) => {
+      const manifestKey = `${VERSIONS_PREFIX}${version}/manifest.json`;
+      try {
+        const { LastModified } = await S3.send(
+          new HeadObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: manifestKey,
+          }),
+        );
+        return { version, deployedAt: LastModified! };
+      } catch (error) {
+        console.warn(
+          `  - Could not get metadata for version ${version}, skipping.`,
+        );
+        return null;
+      }
+    }),
+  );
+
+  const sortedVersions = versionsWithTimestamps
+    .filter((v): v is { version: string; deployedAt: Date } => v !== null)
+    .sort((a, b) => b.deployedAt.getTime() - a.deployedAt.getTime());
+
+  if (sortedVersions.length <= 2) {
     console.log("  ✔ No old versions to delete. Keeping all versions.");
     return;
   }
 
-  const versionsToKeep = versionPrefixes.slice(-2);
-  const versionsToDelete = versionPrefixes.slice(0, -2);
+  const versionsToKeep = sortedVersions.slice(0, 2);
+  const versionsToDelete = sortedVersions.slice(2);
 
-  console.log(`  - Keeping latest version: ${versionsToKeep[1]}`);
-  console.log(`  - Keeping previous version: ${versionsToKeep[0]}`);
+  console.log(
+    `  - Keeping latest version: ${versionsToKeep[0].version} (deployed at ${versionsToKeep[0].deployedAt.toISOString()})`,
+  );
+  console.log(
+    `  - Keeping previous version: ${versionsToKeep[1].version} (deployed at ${versionsToKeep[1].deployedAt.toISOString()})`,
+  );
 
   if (versionsToDelete.length === 0) {
     return;
   }
 
-  for (const version of versionsToDelete) {
-    console.log(`  - Deleting version: ${version}`);
+  for (const { version, deployedAt } of versionsToDelete) {
+    console.log(
+      `  - Deleting version: ${version} (deployed at ${deployedAt.toISOString()})`,
+    );
     const objects = await listAllObjects(`${VERSIONS_PREFIX}${version}/`);
     const keysToDelete = objects.map((obj) => ({ Key: obj.Key! }));
 
