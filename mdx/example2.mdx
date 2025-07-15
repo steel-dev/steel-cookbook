@@ -1,0 +1,49 @@
+---
+id: playwright-guide
+title: Drive a Steel Session with Playwright
+---
+
+<GuideContainer>
+
+<IntroBlock skipLink="#full-code">
+  Control Steel's managed browser infrastructure with Playwright in Python for reliable web automation without the headaches.
+</IntroBlock>
+
+<GuideStep title="Install Playwright and Steel SDK">
+  <p>Run the following command to install Playwright and the Steel SDK.</p>
+  ```bash
+  pip install playwright steel-sdk
+  ```
+</GuideStep>
+
+<GuideStep title="Start a Steel Session">
+  <p>Create a Steel session to get a remote browser instance that you can control with Playwright.</p>
+  ```python filename="main.py"
+  from steel import Steel
+  # ...
+  ```
+</GuideStep>
+
+{/* ... More GuideStep components ... */}
+
+<FullCodeExample id="full-code" title="Full Example">
+  <p>Complete code example that combines all the steps above.</p>
+  ```python filename="main.py"
+  from playwright.sync_api import sync_playwright
+  # ...
+  ```
+</FullCodeExample>
+
+<CtaButtons
+  githubUrl="https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-playwright-python-starter"
+  replitUrl="https://replit.com/@steel-dev/steel-playwright-python-starter?v=1"
+/>
+
+<NextSteps>
+  - [Learn about Session Lifecycles](https://docs.steel.dev/overview/sessions-api/session-lifecycle)
+  - [Learn more about Sessions](https://docs.steel.dev/overview/sessions-api/overview)
+  - [Python SDK Reference](https://docs.steel.dev/overview/reference/python-sdk-reference)
+  - [Playwright Python docs](https://playwright.dev/python/docs/intro)
+</NextSteps>
+
+</GuideContainer>

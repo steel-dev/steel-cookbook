@@ -1,0 +1,158 @@
+---
+id: "puppeteer"
+title: "Drive a Steel Session with Puppeteer"
+accentColor: "yellow"
+category: "BROWSER_AUTOMATION"
+stack: "nodejs"
+description: "Control Steel's managed browser infrastructure with Puppeteer in Node.js for reliable web automation without the headaches."
+clients:
+  - tag: "github"
+    text: "Fork on GitHub"
+    link: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-puppeteer-starter"
+  - tag: "replit"
+    text: "Run on Replit"
+    link: "https://replit.com/@steel-dev/steel-puppeteer-starter?v=1"
+  - tag: "stackblitz"
+    text: "Run on Stackblitz"
+    link: "https://stackblitz.com/edit/steel-puppeteer-starter?file=README.md"
+  - tag: "valtown"
+    text: "Run on Val Town"
+    link: "https://www.val.town/v/stevekrouse/steel_puppeteer_starter"
+nextSteps:
+  - text: "Learn about Session Lifecycles"
+    link: "https://docs.steel.dev/overview/sessions-api/session-lifecycle"
+  - text: "Learn more about Sessions"
+    link: "https://docs.steel.dev/overview/sessions-api/overview"
+  - text: "Node SDK reference"
+    link: "https://docs.steel.dev/overview/reference/node-sdk-reference"
+  - text: "Puppeteer docs"
+    link: "https://pptr.dev/"
+---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Control Steel's managed browser infrastructure with Puppeteer in Node.js for reliable web automation without the headaches.
+  </Intro>
+
+  <Step number={1} title="Optional: Create a new directory & environment">
+    Run the following commands to create a new directory, index.ts file, and TS + Node project.
+    ```bash
+    mkdir steel-puppeteer-starter && \
+    cd steel-puppeteer-starter && \
+    npm init -y && \
+    npm install -D typescript && \
+    npx tsc --init && \
+    npm pkg set scripts.start="tsc && node dist/index.js" && \
+    touch index.ts
+    ```
+  </Step>
+
+  <Step number={2} title="Install Puppeteer and Steel SDK">
+    Run the following command to install Puppeteer and the Steel SDK.
+    ```bash
+    npm install puppeteer-core steel-sdk
+    ```
+  </Step>
+
+  <Step number={3} title="Connect and Scrape">
+    ```typescript showLineNumbers filename="index.ts" {11-14} /connect/1#1 /evaluate/#2
+    import puppeteer from "puppeteer-core";
+    import Steel from "steel-sdk";
+
+    async function main(session: any) {
+      const browser = await puppeteer.connect({
+        browserWSEndpoint: `wss://connect.steel.dev?apiKey=...&sessionId=${session.id}`,
+      });
+
+      const page = await browser.newPage();
+    
+      const stories = await page.evaluate(() => {
+        // This script runs in the browser context
+        return Array.from(document.querySelectorAll('tr.athing')).map(row => row.textContent);
+      });
+
+      console.log(stories);
+      await browser.close();
+    }
+    ```
+    This code shows how to <HighlightRef id={1}>connect</HighlightRef> to the session and then <HighlightRef id={2}>evaluate</HighlightRef> a script on the page to scrape content.
+  </Step>
+
+  <Step number={4} title="Start a Steel Session">
+    Create a Steel session to get a remote browser instance that you can control with Puppeteer.
+    ```typescript showLineNumbers filename="index.ts"
+    import Steel from "steel-sdk";
+
+    const client = new Steel({
+      steelAPIKey: "YOUR_STEEL_API_KEY",
+    });
+
+    async function main() {
+      const session = await client.sessions.create();
+      console.log(`View live session at: ${session.sessionViewerUrl}`);
+    }
+
+    main();
+    ```
+  </Step>
+
+  <Step number={5} title="Connect Puppeteer to Your Session">
+    Connect Puppeteer to the running Steel browser session.
+    ```typescript showLineNumbers filename="index.ts"
+    import puppeteer from "puppeteer-core";
+
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: `wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId=${session.id}`,
+    });
+
+    const page = await browser.newPage();
+    ```
+  </Step>
+
+  <Step number={6} title="Perform Browser Automation">
+    Now that Puppeteer is connected, you can add your own automations. Here's an example that scrapes Hacker News headlines.
+    ```typescript showLineNumbers filename="index.ts"
+    console.log("Navigating to Hacker News...");
+    await page.goto("https://news.ycombinator.com", {
+      waitUntil: "networkidle0",
+    });
+
+    const stories = await page.evaluate(() => {
+      // ...
+    });
+    ```
+  </Step>
+
+  <Step number={7} title="Release the Session When Done">
+    Close the browser and release the session to free up resources when your automation is complete.
+    ```typescript showLineNumbers filename="index.ts"
+    await browser.close();
+    await client.sessions.release(session.id);
+    ```
+  </Step>
+
+  <Step number={8} title="Run Your Script">
+    Execute your script to start a Steel-powered browser session. You can view your session live in the Steel Session Viewer.
+    ```bash
+    npm run start
+    ```
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete code example that combines all the steps above.
+    ```typescript showLineNumbers filename="index.ts"
+    import puppeteer from "puppeteer-core";
+    import Steel from "steel-sdk";
+
+    const client = new Steel({
+      steelAPIKey: process.env.STEEL_API_KEY,
+    });
+
+    async function main() {
+      // ... full code ...
+    }
+
+    main();
+    ```
+  </FullCodeExample>
+</Guide>
