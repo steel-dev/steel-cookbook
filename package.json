@@ -35,13 +35,17 @@
         "@clack/prompts": "^0.10.0",
         "@cloudflare/workers-types": "^4.20250430.0",
         "@types/cross-spawn": "^6.0.6",
+        "@types/node": "^24.0.14",
         "cross-spawn": "^7.0.6",
         "mri": "^1.2.0",
         "picocolors": "^1.1.1",
+        "typescript": "^5.8.3",
         "unbuild": "^3.5.0"
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.844.0",
         "alchemy": "^0.45.6",
+        "dotenv": "^17.2.0",
         "gray-matter": "^4.0.3",
         "prettier": "^3.6.2",
         "rehype-external-links": "^3.0.0",

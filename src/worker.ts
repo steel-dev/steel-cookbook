@@ -1,59 +1,69 @@
 import type { worker } from "../alchemy.run.ts";
 
 const MANIFEST_KEY = "manifest.json";
+const VERSIONS_PREFIX = "versions/";
+
+function getContentType(key: string): string {
+  if (key.endsWith(".json")) {
+    return "application/json";
+  }
+  if (key.endsWith(".md")) {
+    return "text/markdown; charset=utf-8";
+  }
+  if (key.endsWith(".gz")) {
+    return "application/gzip";
+  }
+  return "application/octet-stream";
+}
 
 export default {
   async fetch(
     request: Request,
     env: typeof worker.Env,
     ctx: ExecutionContext,
-  ): Promise<Response> {
+  ) {
     const url = new URL(request.url);
-    // Get the path and remove the leading slash to use as the R2 object key.
     const key = url.pathname.substring(1);
+    const version = url.searchParams.get("v");
 
-    // --- 1. Un-versioned Manifest Request -> Redirect using `version` field ---
-    if (key === MANIFEST_KEY && !url.searchParams.has("v")) {
-      const manifestObject = await env.BUCKET.get(MANIFEST_KEY);
-      if (manifestObject === null) {
-        return new Response("Manifest not found in R2", { status: 404 });
+    // default path, redirect to latest manifest
+    if (key === MANIFEST_KEY && !version) {
+      const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
+      if (rootManifestObject === null) {
+        return new Response("Root manifest not found in R2", { status: 404 });
       }
 
-      // Parse the manifest to read the version field directly.
-      const manifestData: { version?: string } = await manifestObject.json();
-      const version = manifestData.version;
+      const manifestData: { version?: string } = await rootManifestObject.json();
+      const latestVersion = manifestData.version;
 
-      if (!version) {
-        return new Response("Manifest in R2 is missing a 'version' field", {
+      if (!latestVersion) {
+        return new Response("Root manifest is missing a 'version' field", {
           status: 500,
         });
       }
 
-      // Create the redirect URL with the version from the manifest.
       const redirectUrl = new URL(request.url);
-      redirectUrl.searchParams.set("v", version);
+      redirectUrl.searchParams.set("v", latestVersion);
       return Response.redirect(redirectUrl.toString(), 302);
     }
 
-    // --- 2. Stale Manifest Validation ---
-    if (key === MANIFEST_KEY && url.searchParams.has("v")) {
-      const requestedVersion = url.searchParams.get("v");
-      const manifestObject = await env.BUCKET.get(MANIFEST_KEY);
-
-      if (manifestObject === null) {
-        return new Response("Manifest not found in R2", { status: 404 });
+    // stale manifest validation
+    if (key === MANIFEST_KEY && version) {
+      const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
+      if (rootManifestObject === null) {
+        return new Response("Root manifest not found in R2", { status: 404 });
       }
 
-      const manifestData: { version?: string } = await manifestObject.json();
+      const manifestData: { version?: string } = await rootManifestObject.json();
       const currentVersion = manifestData.version;
 
-      // If the requested version doesn't match the current one, it's stale.
-      if (requestedVersion !== currentVersion) {
-        return new Response("Stale manifest version", { status: 410 }); // 410 Gone
+      if (version !== currentVersion) {
+        return new Response("Stale manifest version requested", {
+          status: 410,
+        });
       }
     }
 
-    // --- 3. General Cache & R2 Serving Logic for ALL files ---
     const cache = (caches as any).default;
     let response = await cache.match(request);
 
@@ -61,13 +71,15 @@ export default {
       return response;
     }
 
-    // Get the object from R2 using its key.
-    const object = await env.BUCKET.get(key);
+    const r2ObjectKey = version ? `${VERSIONS_PREFIX}${version}/${key}` : key;
+
+    const object = await env.BUCKET.get(r2ObjectKey);
     if (object === null) {
-      return new Response(`Object '${key}' not found`, { status: 404 });
+      return new Response(`Object '${r2ObjectKey}' not found in R2`, {
+        status: 404,
+      });
     }
 
-    // Set R2's metadata as headers and add our own cache-control.
     const headers = new Headers();
     object.writeHttpMetadata(headers);
     headers.set("etag", object.httpEtag);
@@ -76,9 +88,10 @@ export default {
       "public, max-age=31536000, immutable",
     );
 
+    headers.set("Content-Type", getContentType(r2ObjectKey));
+
     response = new Response(object.body, { headers });
 
-    // Cache the response without blocking the client.
     ctx.waitUntil(cache.put(request, response.clone()));
 
     return response;
