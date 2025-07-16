@@ -1,0 +1,30 @@
+{
+  "name": "steel-stagehand-starter",
+  "version": "1.0.0",
+  "description": "A starter project for using Stagehand with Steel on Node.js & TypeScript",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "stagehand",
+    "browser",
+    "automation",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@browserbasehq/stagehand": "^2.0.0",
+    "dotenv": "^16.4.5",
+    "steel-sdk": "latest",
+    "typescript": "^5.6.3",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "ts-node": "^10.9.2"
+  }
+}

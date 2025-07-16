@@ -4,8 +4,7 @@
   "description": "Steel + Claude Computer Use Assistant Node.js Starter",
   "main": "index.ts",
   "scripts": {
-    "start": "npx tsx index.ts",
-    "dev": "npx tsx watch index.ts",
+    "start": "ts-node index.ts",
     "build": "npx tsc",
     "type-check": "npx tsc --noEmit"
   },
@@ -27,7 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "tsx": "^4.19.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },
   "engines": {
