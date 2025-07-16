@@ -1,0 +1,36 @@
+{
+  "name": "steel-claude-computer-use-node-starter",
+  "version": "1.0.0",
+  "description": "Steel + Claude Computer Use Assistant Node.js Starter",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx tsx index.ts",
+    "dev": "npx tsx watch index.ts",
+    "build": "npx tsc",
+    "type-check": "npx tsc --noEmit"
+  },
+  "keywords": [
+    "steel",
+    "claude",
+    "computer-use",
+    "automation",
+    "browser",
+    "ai"
+  ],
+  "author": "Steel Team",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.1",
+    "steel-sdk": "^0.6.0",
+    "playwright": "^1.49.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
