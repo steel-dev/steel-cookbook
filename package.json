@@ -18,6 +18,8 @@
         "dev": "unbuild --stub",
         "build": "unbuild",
         "typecheck": "tsc --noEmit",
+        "registry:build": "tsx scripts/build-mdx.ts",
+        "registry:publish": "tsx scripts/upload-files.ts",
         "prepublishOnly": "npm run build"
     },
     "engines": {
@@ -39,6 +41,7 @@
         "cross-spawn": "^7.0.6",
         "mri": "^1.2.0",
         "picocolors": "^1.1.1",
+        "tsx": "^4.20.3",
         "typescript": "^5.8.3",
         "unbuild": "^3.5.0"
     },
