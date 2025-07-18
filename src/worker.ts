@@ -3,6 +3,12 @@ import type { worker } from "../alchemy.run.ts";
 const MANIFEST_KEY = "manifest.json";
 const VERSIONS_PREFIX = "versions/";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+};
+
 function getContentType(key: string): string {
   if (key.endsWith(".json")) {
     return "application/json";
@@ -16,84 +22,95 @@ function getContentType(key: string): string {
   return "application/octet-stream";
 }
 
+async function handleRequest(
+  request: Request,
+  env: typeof worker.Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const key = url.pathname.substring(1);
+  const version = url.searchParams.get("v");
+
+  // default path, redirect to latest manifest
+  if (key === MANIFEST_KEY && !version) {
+    const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
+    if (rootManifestObject === null) {
+      return new Response("Root manifest not found in R2", { status: 404 });
+    }
+    const manifestData: { version?: string } = await rootManifestObject.json();
+    const latestVersion = manifestData.version;
+    if (!latestVersion) {
+      return new Response("Root manifest is missing a 'version' field", {
+        status: 500,
+      });
+    }
+    const redirectUrl = new URL(request.url);
+    redirectUrl.searchParams.set("v", latestVersion);
+    return Response.redirect(redirectUrl.toString(), 302);
+  }
+
+  // stale manifest validation
+  if (key === MANIFEST_KEY && version) {
+    const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
+    if (rootManifestObject === null) {
+      return new Response("Root manifest not found in R2", { status: 404 });
+    }
+    const manifestData: { version?: string } = await rootManifestObject.json();
+    const currentVersion = manifestData.version;
+    if (version !== currentVersion) {
+      return new Response("Stale manifest version requested", { status: 410 });
+    }
+  }
+
+  const cache = (caches as any).default;
+  let response = await cache.match(request);
+  if (response) {
+    return response;
+  }
+
+  const r2ObjectKey = version ? `${VERSIONS_PREFIX}${version}/${key}` : key;
+  const object = await env.BUCKET.get(r2ObjectKey);
+  if (object === null) {
+    return new Response(`Object '${r2ObjectKey}' not found in R2`, {
+      status: 404,
+    });
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  headers.set("Content-Type", getContentType(r2ObjectKey));
+
+  response = new Response(object.body, { headers });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
+}
+
 export default {
   async fetch(
     request: Request,
     env: typeof worker.Env,
     ctx: ExecutionContext,
-  ) {
-    const url = new URL(request.url);
-    const key = url.pathname.substring(1);
-    const version = url.searchParams.get("v");
-
-    // default path, redirect to latest manifest
-    if (key === MANIFEST_KEY && !version) {
-      const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
-      if (rootManifestObject === null) {
-        return new Response("Root manifest not found in R2", { status: 404 });
-      }
-
-      const manifestData: { version?: string } = await rootManifestObject.json();
-      const latestVersion = manifestData.version;
-
-      if (!latestVersion) {
-        return new Response("Root manifest is missing a 'version' field", {
-          status: 500,
-        });
-      }
-
-      const redirectUrl = new URL(request.url);
-      redirectUrl.searchParams.set("v", latestVersion);
-      return Response.redirect(redirectUrl.toString(), 302);
-    }
-
-    // stale manifest validation
-    if (key === MANIFEST_KEY && version) {
-      const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
-      if (rootManifestObject === null) {
-        return new Response("Root manifest not found in R2", { status: 404 });
-      }
-
-      const manifestData: { version?: string } = await rootManifestObject.json();
-      const currentVersion = manifestData.version;
-
-      if (version !== currentVersion) {
-        return new Response("Stale manifest version requested", {
-          status: 410,
-        });
-      }
-    }
-
-    const cache = (caches as any).default;
-    let response = await cache.match(request);
-
-    if (response) {
-      return response;
-    }
-
-    const r2ObjectKey = version ? `${VERSIONS_PREFIX}${version}/${key}` : key;
-
-    const object = await env.BUCKET.get(r2ObjectKey);
-    if (object === null) {
-      return new Response(`Object '${r2ObjectKey}' not found in R2`, {
-        status: 404,
+  ): Promise<Response> {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
       });
     }
 
-    const headers = new Headers();
-    object.writeHttpMetadata(headers);
-    headers.set("etag", object.httpEtag);
-    headers.set(
-      "Cache-Control",
-      "public, max-age=31536000, immutable",
-    );
+    const response = await handleRequest(request, env, ctx);
 
-    headers.set("Content-Type", getContentType(r2ObjectKey));
+    const newHeaders = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      newHeaders.set(key, value);
+    });
 
-    response = new Response(object.body, { headers });
-
-    ctx.waitUntil(cache.put(request, response.clone()));
-
-    return response;
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
   },
 };
