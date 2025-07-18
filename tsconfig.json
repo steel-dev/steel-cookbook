@@ -1,15 +1,16 @@
 {
-    "include": ["build.config.ts", "src", "__tests__"],
+    "include": ["build.config.ts", "src", "__tests__", "scripts"],
     "compilerOptions": {
       "outDir": "dist",
       "target": "ES2022",
-      "module": "ES2020",
+      "module": "esnext",
       "moduleResolution": "bundler",
       "strict": true,
       "skipLibCheck": true,
       "declaration": false,
       "sourceMap": false,
       "noUnusedLocals": true,
-      "esModuleInterop": true
+      "esModuleInterop": true,
+      "types": ["@cloudflare/workers-types", "@types/node"]
     }
   }

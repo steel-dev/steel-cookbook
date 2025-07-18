@@ -165,3 +165,4 @@ build/
 # Artifacts
 agent_history.gif
 .cursor/
+.alchemy
