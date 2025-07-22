@@ -1,12 +1,67 @@
 import * as dotenv from "dotenv";
-import * as readline from "readline";
 import { chromium } from "playwright";
 import type { Browser, Page } from "playwright";
 import { Steel } from "steel-sdk";
 
 dotenv.config();
 
-// Blocked domains for security
+const SYSTEM_PROMPT = `You are an expert browser automation assistant. You will be given a single task to complete using a Chrome browser with internet access. Your goal is to efficiently complete the task and provide a clear summary of what was accomplished.
+
+<CAPABILITIES>
+* You control a Chrome browser tab and can navigate to any website
+* You can click, type, scroll, take screenshots, and interact with web elements
+* You have full internet access and can visit any public website
+* You can read content, fill forms, search for information, and perform complex multi-step tasks
+* After each action, you receive a screenshot showing the current state
+
+<COORDINATE_SYSTEM>
+* The browser viewport has specific dimensions that you must respect
+* All coordinates (x, y) must be within the viewport bounds
+* X coordinates must be between 0 and the display width (inclusive)
+* Y coordinates must be between 0 and the display height (inclusive)
+* Always ensure your click, move, scroll, and drag coordinates are within these bounds
+* If you're unsure about element locations, take a screenshot first to see the current state
+
+<AUTONOMOUS_EXECUTION_RULES>
+* NEVER ask questions or request clarification - make reasonable assumptions and proceed
+* NEVER ask "What should I do?" or "How should I proceed?" - just do it
+* NEVER ask for permission to take actions - take them immediately
+* NEVER say "I could do X or Y" - just choose the most appropriate option and execute it
+* NEVER present multiple options - make a decision and act on it
+* NEVER ask for user input or confirmation - work completely independently
+* Make intelligent assumptions based on the task context
+* If something is ambiguous, choose the most logical interpretation and proceed
+* Take immediate action rather than explaining what you might do
+
+<EXECUTION_PRINCIPLES>
+* Complete the task efficiently in a single session - there will be no follow-up questions
+* Be thorough but focused - accomplish the specific task requested
+* If you encounter obstacles (captchas, errors), try alternative approaches immediately
+* Don't assume you need to sign in unless explicitly required for the task
+* Provide a clear final summary of what was accomplished
+* If the task cannot be completed, explain why and what alternatives were attempted
+
+<COMPLETION_RULES>
+* When you have successfully completed the task, end your response with "TASK_COMPLETED: [brief summary]"
+* If you cannot complete the task due to technical issues, captchas, or other blockers, end with "TASK_FAILED: [reason]"
+* If you need to give up after reasonable attempts, end with "TASK_ABANDONED: [explanation]"
+* Do not continue taking actions once you have gathered the requested information
+* Do not repeat the same actions or provide multiple versions of the same summary
+* NEVER add follow-up questions like "Would you like more information?" or "Do you need anything else?"
+* Your final response must be a complete answer with NO questions at the end
+* End with a period, not a question mark - provide information, don't ask for more tasks
+
+<CRITICAL_REQUIREMENTS>
+* This is fully automated execution - you must work completely independently
+* Start by taking a screenshot to see the current state, then immediately begin working
+* Navigate to the most relevant website for the task without asking
+* Be persistent with alternative approaches if initial attempts fail
+* Always verify task completion before finishing
+* STOP when you have the information requested - do not over-optimize
+* ALWAYS respect coordinate boundaries - coordinates outside the viewport will fail
+* DO NOT engage in conversation - only provide status updates and final results
+</CAPABILITIES>`;
+
 const BLOCKED_DOMAINS = [
   "maliciousbook.com",
   "evilvideos.com",
@@ -16,7 +71,6 @@ const BLOCKED_DOMAINS = [
   "ilanbigio.com",
 ];
 
-// Key mapping for CUA to Playwright
 const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
   "/": "Divide",
   "\\": "Backslash",
@@ -91,7 +145,6 @@ interface ResponseItem {
   output: (MessageItem | FunctionCallItem | ComputerCallItem)[];
 }
 
-// Utility Functions
 function pp(obj: any): void {
   console.log(JSON.stringify(obj, null, 2));
 }
@@ -148,13 +201,9 @@ function checkBlocklistedUrl(url: string): void {
     if (error instanceof Error && error.message.startsWith("Blocked URL:")) {
       throw error;
     }
-    // If URL parsing fails, allow it to continue
   }
 }
 
-/**
- * Steel browser implementation for OpenAI Computer Use Assistant.
- */
 class SteelBrowser {
   private client: Steel;
   private session: any;
@@ -217,7 +266,6 @@ class SteelBrowser {
     console.log("Steel Session created successfully!");
     console.log(`View live session at: ${this.session.sessionViewerUrl}`);
 
-    // Connect to Steel session
     const connectUrl =
       process.env.STEEL_CONNECT_URL || "wss://connect.steel.dev";
     const cdpUrl = `${connectUrl}?apiKey=${process.env.STEEL_API_KEY}&sessionId=${this.session.id}`;
@@ -228,7 +276,6 @@ class SteelBrowser {
 
     const context = this.browser.contexts()[0];
 
-    // Set up URL blocking
     await context.route("**/*", async (route, request) => {
       const url = request.url();
       try {
@@ -240,7 +287,6 @@ class SteelBrowser {
       }
     });
 
-    // Add virtual mouse if enabled
     if (this.virtualMouse) {
       await context.addInitScript(`
         if (window.self === window.top) {
@@ -283,10 +329,14 @@ class SteelBrowser {
       `);
     }
 
-    // Get the page
     this.page = context.pages()[0];
 
-    // Navigate to start URL
+    // Explicitly set viewport size to ensure it matches our expected dimensions
+    await this.page.setViewportSize({
+      width: width,
+      height: height,
+    });
+
     await this.page.goto(this.startUrl);
   }
 
@@ -310,18 +360,31 @@ class SteelBrowser {
     if (!this.page) throw new Error("Page not initialized");
 
     try {
-      // Try CDP screenshot first
-      const cdpSession = await this.page.context().newCDPSession(this.page);
-      const result = await cdpSession.send("Page.captureScreenshot", {
-        format: "png",
-        fromSurface: true,
+      // Use regular Playwright screenshot for consistent viewport sizing
+      const buffer = await this.page.screenshot({
+        fullPage: false,
+        clip: {
+          x: 0,
+          y: 0,
+          width: this.dimensions[0],
+          height: this.dimensions[1],
+        },
       });
-      return result.data;
-    } catch (error) {
-      console.log(`CDP screenshot failed, using fallback: ${error}`);
-      // Fallback to standard screenshot
-      const buffer = await this.page.screenshot({ fullPage: false });
       return buffer.toString("base64");
+    } catch (error) {
+      console.log(`Screenshot failed: ${error}`);
+      // Fallback to CDP screenshot without fromSurface
+      try {
+        const cdpSession = await this.page.context().newCDPSession(this.page);
+        const result = await cdpSession.send("Page.captureScreenshot", {
+          format: "png",
+          fromSurface: false,
+        });
+        return result.data;
+      } catch (cdpError) {
+        console.log(`CDP screenshot also failed: ${cdpError}`);
+        throw error;
+      }
     }
   }
 
@@ -336,7 +399,9 @@ class SteelBrowser {
       await this.page.mouse.wheel(x, y);
     } else {
       const buttonType = { left: "left", right: "right" }[button] || "left";
-      await this.page.mouse.click(x, y, { button: buttonType as any });
+      await this.page.mouse.click(x, y, {
+        button: buttonType as any,
+      });
     }
   }
 
@@ -382,12 +447,10 @@ class SteelBrowser {
       (key) => CUA_KEY_TO_PLAYWRIGHT_KEY[key.toLowerCase()] || key
     );
 
-    // Press all keys down
     for (const key of mappedKeys) {
       await this.page.keyboard.down(key);
     }
 
-    // Release all keys in reverse order
     for (const key of mappedKeys.reverse()) {
       await this.page.keyboard.up(key);
     }
@@ -425,39 +488,68 @@ class SteelBrowser {
     if (!this.page) throw new Error("Page not initialized");
     await this.page.goForward();
   }
+
+  async getViewportInfo(): Promise<any> {
+    /**Get detailed viewport information for debugging.*/
+    if (!this.page) {
+      return {};
+    }
+
+    try {
+      return await this.page.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+      }));
+    } catch {
+      return {};
+    }
+  }
 }
 
-/**
- * Agent class for managing OpenAI Computer Use Assistant interactions.
- */
 class Agent {
   private model: string;
   private computer: SteelBrowser;
   private tools: any[];
-  private acknowledgeSafetyCheckCallback: (message: string) => Promise<boolean>;
+  private autoAcknowledgeSafety: boolean;
   private printSteps: boolean = true;
   private debug: boolean = false;
   private showImages: boolean = false;
+  private viewportWidth: number;
+  private viewportHeight: number;
+  private systemPrompt: string;
 
   constructor(
     model: string = "computer-use-preview",
     computer: SteelBrowser,
     tools: any[] = [],
-    acknowledgeSafetyCheckCallback: (
-      message: string
-    ) => Promise<boolean> = async () => false
+    autoAcknowledgeSafety: boolean = true
   ) {
     this.model = model;
     this.computer = computer;
     this.tools = tools;
-    this.acknowledgeSafetyCheckCallback = acknowledgeSafetyCheckCallback;
+    this.autoAcknowledgeSafety = autoAcknowledgeSafety;
 
-    // Add computer tool
-    const dimensions = computer.getDimensions();
+    const [width, height] = computer.getDimensions();
+    this.viewportWidth = width;
+    this.viewportHeight = height;
+
+    // Create dynamic system prompt with viewport dimensions
+    this.systemPrompt = SYSTEM_PROMPT.replace(
+      "<COORDINATE_SYSTEM>",
+      `<COORDINATE_SYSTEM>
+* The browser viewport dimensions are ${width}x${height} pixels
+* The browser viewport has specific dimensions that you must respect`
+    );
+
     this.tools.push({
       type: "computer-preview",
-      display_width: dimensions[0],
-      display_height: dimensions[1],
+      display_width: width,
+      display_height: height,
       environment: computer.getEnvironment(),
     });
   }
@@ -468,65 +560,130 @@ class Agent {
     }
   }
 
-  async executeAction(actionType: string, actionArgs: any): Promise<void> {
-    // Helper function to convert string to number
-    const toNumber = (value: any): number => {
-      if (typeof value === "string") {
-        const num = parseFloat(value);
-        return isNaN(num) ? 0 : num;
-      }
-      return typeof value === "number" ? value : 0;
-    };
+  private async getViewportInfo(): Promise<any> {
+    /**Get detailed viewport information for debugging.*/
+    return await this.computer.getViewportInfo();
+  }
 
-    // Execute actions with proper type conversion
+  private async validateScreenshotDimensions(
+    screenshotBase64: string
+  ): Promise<any> {
+    /**Validate screenshot dimensions against viewport.*/
+    try {
+      // Decode base64 and get image dimensions
+      const buffer = Buffer.from(screenshotBase64, "base64");
+
+      // Simple way to get dimensions from PNG buffer
+      // PNG width is at bytes 16-19, height at bytes 20-23
+      const width = buffer.readUInt32BE(16);
+      const height = buffer.readUInt32BE(20);
+
+      const viewportInfo = await this.getViewportInfo();
+
+      const scalingInfo = {
+        screenshot_size: [width, height],
+        viewport_size: [this.viewportWidth, this.viewportHeight],
+        actual_viewport: [
+          viewportInfo.innerWidth || 0,
+          viewportInfo.innerHeight || 0,
+        ],
+        device_pixel_ratio: viewportInfo.devicePixelRatio || 1.0,
+        width_scale: this.viewportWidth > 0 ? width / this.viewportWidth : 1.0,
+        height_scale:
+          this.viewportHeight > 0 ? height / this.viewportHeight : 1.0,
+      };
+
+      // Warn about scaling mismatches
+      if (scalingInfo.width_scale !== 1.0 || scalingInfo.height_scale !== 1.0) {
+        console.log(`⚠️  Screenshot scaling detected:`);
+        console.log(`   Screenshot: ${width}x${height}`);
+        console.log(
+          `   Expected viewport: ${this.viewportWidth}x${this.viewportHeight}`
+        );
+        console.log(
+          `   Actual viewport: ${viewportInfo.innerWidth || "unknown"}x${viewportInfo.innerHeight || "unknown"}`
+        );
+        console.log(
+          `   Scale factors: ${scalingInfo.width_scale.toFixed(3)}x${scalingInfo.height_scale.toFixed(3)}`
+        );
+      }
+
+      return scalingInfo;
+    } catch (error) {
+      console.log(`⚠️  Error validating screenshot dimensions: ${error}`);
+      return {};
+    }
+  }
+
+  private validateCoordinates(actionArgs: any): any {
+    const validatedArgs = { ...actionArgs };
+
+    // Handle single coordinates (click, move, etc.)
+    if ("x" in actionArgs && "y" in actionArgs) {
+      validatedArgs.x = this.toNumber(actionArgs.x);
+      validatedArgs.y = this.toNumber(actionArgs.y);
+    }
+
+    // Handle path arrays (drag)
+    if ("path" in actionArgs && Array.isArray(actionArgs.path)) {
+      validatedArgs.path = actionArgs.path.map((point: any) => ({
+        x: this.toNumber(point.x),
+        y: this.toNumber(point.y),
+      }));
+    }
+
+    return validatedArgs;
+  }
+
+  private toNumber(value: any): number {
+    if (typeof value === "string") {
+      const num = parseFloat(value);
+      return isNaN(num) ? 0 : num;
+    }
+    return typeof value === "number" ? value : 0;
+  }
+
+  async executeAction(actionType: string, actionArgs: any): Promise<void> {
+    const validatedArgs = this.validateCoordinates(actionArgs);
+
     switch (actionType) {
       case "click":
         await this.computer.click(
-          toNumber(actionArgs.x),
-          toNumber(actionArgs.y),
-          actionArgs.button || "left"
+          validatedArgs.x,
+          validatedArgs.y,
+          validatedArgs.button || "left"
         );
         break;
       case "doubleClick":
       case "double_click":
-        await this.computer.doubleClick(
-          toNumber(actionArgs.x),
-          toNumber(actionArgs.y)
-        );
+        await this.computer.doubleClick(validatedArgs.x, validatedArgs.y);
         break;
       case "move":
-        await this.computer.move(
-          toNumber(actionArgs.x),
-          toNumber(actionArgs.y)
-        );
+        await this.computer.move(validatedArgs.x, validatedArgs.y);
         break;
       case "scroll":
         await this.computer.scroll(
-          toNumber(actionArgs.x),
-          toNumber(actionArgs.y),
-          toNumber(actionArgs.scrollX || actionArgs.scroll_x),
-          toNumber(actionArgs.scrollY || actionArgs.scroll_y)
+          validatedArgs.x,
+          validatedArgs.y,
+          this.toNumber(validatedArgs.scrollX || validatedArgs.scroll_x),
+          this.toNumber(validatedArgs.scrollY || validatedArgs.scroll_y)
         );
         break;
       case "drag":
-        const path = actionArgs.path || [];
-        const convertedPath = path.map((point: any) => ({
-          x: toNumber(point.x),
-          y: toNumber(point.y),
-        }));
-        await this.computer.drag(convertedPath);
+        const path = validatedArgs.path || [];
+        await this.computer.drag(path);
         break;
       case "type":
-        await this.computer.type(actionArgs.text || "");
+        await this.computer.type(validatedArgs.text || "");
         break;
       case "keypress":
-        await this.computer.keypress(actionArgs.keys || []);
+        await this.computer.keypress(validatedArgs.keys || []);
         break;
       case "wait":
-        await this.computer.wait(toNumber(actionArgs.ms) || 1000);
+        await this.computer.wait(this.toNumber(validatedArgs.ms) || 1000);
         break;
       case "goto":
-        await this.computer.goto(actionArgs.url || "");
+        await this.computer.goto(validatedArgs.url || "");
         break;
       case "back":
         await this.computer.back();
@@ -535,13 +692,11 @@ class Agent {
         await this.computer.forward();
         break;
       case "screenshot":
-        // Screenshot is handled automatically after action execution
         break;
       default:
-        // Try to call the method directly if it exists
         const method = (this.computer as any)[actionType];
         if (typeof method === "function") {
-          await method.call(this.computer, ...Object.values(actionArgs));
+          await method.call(this.computer, ...Object.values(validatedArgs));
         }
         break;
     }
@@ -562,7 +717,6 @@ class Agent {
         console.log(`${name}(${JSON.stringify(args)})`);
       }
 
-      // Call function on computer if it exists
       if (typeof (this.computer as any)[name] === "function") {
         const method = (this.computer as any)[name];
         await method.call(this.computer, ...Object.values(args));
@@ -584,24 +738,21 @@ class Agent {
         console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
       }
 
-      // Execute the action with proper argument parsing
       await this.executeAction(actionType, actionArgs);
-
-      // Take screenshot
       const screenshotBase64 = await this.computer.screenshot();
 
-      // Handle safety checks
+      // Validate screenshot dimensions for debugging
+      await this.validateScreenshotDimensions(screenshotBase64);
+
       const pendingChecks = item.pending_safety_checks || [];
       for (const check of pendingChecks) {
-        const acknowledged = await this.acknowledgeSafetyCheckCallback(
-          check.message
-        );
-        if (!acknowledged) {
+        if (this.autoAcknowledgeSafety) {
+          console.log(`⚠️  Auto-acknowledging safety check: ${check.message}`);
+        } else {
           throw new Error(`Safety check failed: ${check.message}`);
         }
       }
 
-      // Prepare response
       const callOutput: OutputItem = {
         type: "computer_call_output",
         call_id: item.call_id,
@@ -612,7 +763,6 @@ class Agent {
         },
       };
 
-      // Add current URL for browser environments
       if (this.computer.getEnvironment() === "browser") {
         const currentUrl = this.computer.getCurrentUrl();
         checkBlocklistedUrl(currentUrl);
@@ -625,77 +775,193 @@ class Agent {
     return [];
   }
 
-  async runFullTurn(
-    inputItems: any[],
+  async executeTask(
+    task: string,
     printSteps: boolean = true,
     debug: boolean = false,
-    showImages: boolean = false
-  ): Promise<any[]> {
+    maxIterations: number = 50
+  ): Promise<string> {
     this.printSteps = printSteps;
     this.debug = debug;
-    this.showImages = showImages;
+    this.showImages = false;
+
+    const inputItems = [
+      {
+        role: "system",
+        content: this.systemPrompt,
+      },
+      {
+        role: "user",
+        content: task,
+      },
+    ];
+
     let newItems: any[] = [];
+    let iterations = 0;
+    let consecutiveNoActions = 0;
+    let lastAssistantMessages: string[] = [];
 
-    // Keep looping until we get a final assistant response
-    while (
-      newItems.length === 0 ||
-      newItems[newItems.length - 1]?.role !== "assistant"
-    ) {
-      this.debugPrint([...inputItems, ...newItems].map(sanitizeMessage));
+    console.log(`🎯 Executing task: ${task}`);
+    console.log("=".repeat(60));
 
-      // Call OpenAI API
-      const response = await createResponse({
-        model: this.model,
-        input: [...inputItems, ...newItems],
-        tools: this.tools,
-        truncation: "auto",
-      });
+    const isTaskComplete = (
+      content: string
+    ): { completed: boolean; reason?: string } => {
+      const lowerContent = content.toLowerCase();
 
-      this.debugPrint(response);
-
-      if (!response.output) {
-        if (this.debug) {
-          console.log(response);
-        }
-        throw new Error("No output from model");
+      if (content.includes("TASK_COMPLETED:")) {
+        return { completed: true, reason: "explicit_completion" };
+      }
+      if (
+        content.includes("TASK_FAILED:") ||
+        content.includes("TASK_ABANDONED:")
+      ) {
+        return { completed: true, reason: "explicit_failure" };
       }
 
-      // Process response items
-      newItems.push(...response.output);
-      for (const item of response.output) {
-        const handleResult = await this.handleItem(item);
-        newItems.push(...handleResult);
+      const completionPatterns = [
+        /task\s+(completed|finished|done|accomplished)/i,
+        /successfully\s+(completed|finished|found|gathered)/i,
+        /here\s+(is|are)\s+the\s+(results?|information|summary)/i,
+        /to\s+summarize/i,
+        /in\s+conclusion/i,
+        /final\s+(answer|result|summary)/i,
+      ];
+
+      const failurePatterns = [
+        /cannot\s+(complete|proceed|access|continue)/i,
+        /unable\s+to\s+(complete|access|find|proceed)/i,
+        /blocked\s+by\s+(captcha|security|authentication)/i,
+        /giving\s+up/i,
+        /no\s+longer\s+able/i,
+        /have\s+tried\s+multiple\s+approaches/i,
+      ];
+
+      if (completionPatterns.some((pattern) => pattern.test(content))) {
+        return { completed: true, reason: "natural_completion" };
+      }
+
+      if (failurePatterns.some((pattern) => pattern.test(content))) {
+        return { completed: true, reason: "natural_failure" };
+      }
+
+      return { completed: false };
+    };
+
+    const detectRepetition = (newMessage: string): boolean => {
+      if (lastAssistantMessages.length < 2) return false;
+
+      const similarity = (str1: string, str2: string): number => {
+        const words1 = str1.toLowerCase().split(/\s+/);
+        const words2 = str2.toLowerCase().split(/\s+/);
+        const commonWords = words1.filter((word) => words2.includes(word));
+        return commonWords.length / Math.max(words1.length, words2.length);
+      };
+
+      return lastAssistantMessages.some(
+        (prevMessage) => similarity(newMessage, prevMessage) > 0.8
+      );
+    };
+
+    while (iterations < maxIterations) {
+      iterations++;
+      let hasActions = false;
+
+      if (
+        newItems.length > 0 &&
+        newItems[newItems.length - 1]?.role === "assistant"
+      ) {
+        const lastMessage = newItems[newItems.length - 1];
+        if (lastMessage.content?.[0]?.text) {
+          const content = lastMessage.content[0].text;
+
+          const completion = isTaskComplete(content);
+          if (completion.completed) {
+            console.log(`✅ Task completed (${completion.reason})`);
+            break;
+          }
+
+          if (detectRepetition(content)) {
+            console.log("🔄 Repetition detected - stopping execution");
+            lastAssistantMessages.push(content);
+            break;
+          }
+
+          lastAssistantMessages.push(content);
+          if (lastAssistantMessages.length > 3) {
+            lastAssistantMessages.shift(); // Keep only last 3
+          }
+        }
+      }
+
+      this.debugPrint([...inputItems, ...newItems].map(sanitizeMessage));
+
+      try {
+        const response = await createResponse({
+          model: this.model,
+          input: [...inputItems, ...newItems],
+          tools: this.tools,
+          truncation: "auto",
+        });
+
+        this.debugPrint(response);
+
+        if (!response.output) {
+          if (this.debug) {
+            console.log(response);
+          }
+          throw new Error("No output from model");
+        }
+
+        newItems.push(...response.output);
+
+        for (const item of response.output) {
+          if (item.type === "computer_call" || item.type === "function_call") {
+            hasActions = true;
+          }
+          const handleResult = await this.handleItem(item);
+          newItems.push(...handleResult);
+        }
+
+        if (!hasActions) {
+          consecutiveNoActions++;
+          if (consecutiveNoActions >= 3) {
+            console.log(
+              "⚠️  No actions for 3 consecutive iterations - stopping"
+            );
+            break;
+          }
+        } else {
+          consecutiveNoActions = 0;
+        }
+      } catch (error) {
+        console.error(`❌ Error during task execution: ${error}`);
+        throw error;
       }
     }
 
-    return newItems;
+    if (iterations >= maxIterations) {
+      console.warn(
+        `⚠️  Task execution stopped after ${maxIterations} iterations`
+      );
+    }
+
+    const assistantMessages = newItems.filter(
+      (item) => item.role === "assistant"
+    );
+    const finalMessage = assistantMessages[assistantMessages.length - 1];
+
+    return (
+      finalMessage?.content?.[0]?.text ||
+      "Task execution completed (no final message)"
+    );
   }
 }
 
-async function acknowledgeSafetyCheckCallback(
-  message: string
-): Promise<boolean> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(
-      `Safety Check Warning: ${message}\nDo you want to acknowledge and proceed? (y/n): `,
-      (answer) => {
-        rl.close();
-        resolve(answer.toLowerCase().trim() === "y");
-      }
-    );
-  });
-}
-
 async function main(): Promise<void> {
-  console.log("🚀 Steel + OpenAI Computer Use Assistant Demo");
-  console.log("=".repeat(50));
+  console.log("🚀 Steel + OpenAI Computer Use Assistant - Task Automation");
+  console.log("=".repeat(60));
 
-  // Check for required environment variables
   if (!process.env.STEEL_API_KEY) {
     console.log("❌ Error: STEEL_API_KEY environment variable is required");
     console.log("Get your API key at: https://app.steel.dev/settings/api-keys");
@@ -708,7 +974,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log("✅ API keys found!");
+  const task = process.env.TASK;
+  if (!task) {
+    console.log("❌ Error: TASK environment variable is required");
+    console.log("Set it to describe what you want the assistant to do.");
+    console.log(
+      'Example: export TASK="Search for the latest news about artificial intelligence"'
+    );
+    return;
+  }
+
+  console.log("✅ All required environment variables found!");
   console.log("\nStarting Steel browser session...");
 
   const computer = new SteelBrowser();
@@ -717,68 +993,30 @@ async function main(): Promise<void> {
     await computer.initialize();
     console.log("✅ Steel browser session started!");
 
-    // Create agent
-    const agent = new Agent(
-      "computer-use-preview",
-      computer,
-      [],
-      acknowledgeSafetyCheckCallback
-    );
+    const agent = new Agent("computer-use-preview", computer, [], true);
 
-    console.log("\n🤖 Computer Use Assistant is ready!");
-    console.log("Type your requests below. Examples:");
-    console.log("- 'Search for information about artificial intelligence'");
-    console.log("- 'Find the weather forecast for New York'");
-    console.log("- 'Go to Wikipedia and tell me about machine learning'");
-    console.log("Type 'exit' to quit.\n");
+    const startTime = Date.now();
 
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
+    try {
+      const result = await agent.executeTask(task, true, false, 50);
 
-    let items: any[] = [];
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    while (true) {
-      try {
-        const userInput = await new Promise<string>((resolve) => {
-          rl.question("👤 You: ", resolve);
-        });
-
-        if (["exit", "quit", "bye"].includes(userInput.toLowerCase().trim())) {
-          break;
-        }
-
-        if (!userInput.trim()) {
-          continue;
-        }
-
-        console.log(`\n🤖 Processing: ${userInput}`);
-        items.push({ role: "user", content: userInput });
-
-        // Run the agent
-        const outputItems = await agent.runFullTurn(
-          items,
-          true, // printSteps
-          false, // debug
-          false // showImages
-        );
-        items.push(...outputItems);
-        console.log("\n" + "─".repeat(50));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("SIGINT")) {
-          console.log("\n\n👋 Goodbye!");
-          break;
-        }
-        console.log(`\n❌ Error: ${error}`);
-        console.log("Continuing...");
-      }
+      console.log("\n" + "=".repeat(60));
+      console.log("🎉 TASK EXECUTION COMPLETED");
+      console.log("=".repeat(60));
+      console.log(`⏱️  Duration: ${duration} seconds`);
+      console.log(`🎯 Task: ${task}`);
+      console.log(`📋 Result:\n${result}`);
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error(`❌ Task execution failed: ${error}`);
+      process.exit(1);
     }
-
-    rl.close();
   } catch (error) {
     console.log(`❌ Failed to start Steel browser: ${error}`);
     console.log("Please check your STEEL_API_KEY and internet connection.");
+    process.exit(1);
   } finally {
     await computer.cleanup();
   }
