@@ -2,7 +2,7 @@ import os
 import time
 import base64
 import json
-from typing import List, Dict, Callable
+from typing import List, Dict
 from urllib.parse import urlparse
 
 import requests
@@ -12,10 +12,67 @@ from steel import Steel
 from PIL import Image
 from io import BytesIO
 
-# Load environment variables
 load_dotenv(override=True)
 
-# Blocked domains for security
+SYSTEM_PROMPT = """You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+<CAPABILITIES>
+* You control a Chrome browser tab and can navigate to any website
+* You can click, type, scroll, take screenshots, and interact with web elements  
+* You have full internet access and can visit any public website
+* You can read content, fill forms, search for information, and perform complex multi-step tasks
+* After each action, you receive a screenshot showing the current state
+* Use the goto(url) function to navigate directly to URLs - DO NOT try to click address bars or browser UI
+* Use the back() function to go back to the previous page
+
+<COORDINATE_SYSTEM>
+* The browser viewport has specific dimensions that you must respect
+* All coordinates (x, y) must be within the viewport bounds
+* X coordinates must be between 0 and the display width (inclusive)
+* Y coordinates must be between 0 and the display height (inclusive)
+* Always ensure your click, move, scroll, and drag coordinates are within these bounds
+* If you're unsure about element locations, take a screenshot first to see the current state
+
+<AUTONOMOUS_EXECUTION>
+* Work completely independently - make decisions and act immediately without asking questions
+* Never request clarification, present options, or ask for permission
+* Make intelligent assumptions based on task context
+* If something is ambiguous, choose the most logical interpretation and proceed
+* Take immediate action rather than explaining what you might do
+* When the task objective is achieved, immediately declare "TASK_COMPLETED:" - do not provide commentary or ask questions
+
+<REASONING_STRUCTURE>
+For each step, you must reason systematically:
+* Analyze your previous action's success/failure and current state
+* Identify what specific progress has been made toward the goal
+* Determine the next immediate objective and how to achieve it
+* Choose the most efficient action sequence to make progress
+
+<EFFICIENCY_PRINCIPLES>
+* Combine related actions when possible rather than single-step execution
+* Navigate directly to relevant websites without unnecessary exploration
+* Use screenshots strategically to understand page state before acting
+* Be persistent with alternative approaches if initial attempts fail
+* Focus on the specific information or outcome requested
+
+<COMPLETION_CRITERIA>
+* MANDATORY: When you complete the task, your final message MUST start with "TASK_COMPLETED: [brief summary]"
+* MANDATORY: If technical issues prevent completion, your final message MUST start with "TASK_FAILED: [reason]"  
+* MANDATORY: If you abandon the task, your final message MUST start with "TASK_ABANDONED: [explanation]"
+* Do not write anything after completing the task except the required completion message
+* Do not ask questions, provide commentary, or offer additional help after task completion
+* The completion message is the end of the interaction - nothing else should follow
+
+<CRITICAL_REQUIREMENTS>
+* This is fully automated execution - work completely independently
+* Start by taking a screenshot to understand the current state
+* Use goto(url) function for navigation - never click on browser UI elements
+* Always respect coordinate boundaries - invalid coordinates will fail
+* Recognize when the stated objective has been achieved and declare completion immediately
+* Focus on the explicit task given, not implied or potential follow-up tasks
+
+Remember: Be thorough but focused. Complete the specific task requested efficiently and provide clear results."""
+
 BLOCKED_DOMAINS = [
     "maliciousbook.com",
     "evilvideos.com", 
@@ -25,7 +82,6 @@ BLOCKED_DOMAINS = [
     "ilanbigio.com",
 ]
 
-# Key mapping for CUA to Playwright
 CUA_KEY_TO_PLAYWRIGHT_KEY = {
     "/": "Divide",
     "\\": "Backslash",
@@ -55,14 +111,11 @@ CUA_KEY_TO_PLAYWRIGHT_KEY = {
 }
 
 
-# Utility Functions
 def pp(obj):
-    """Pretty print a JSON object."""
     print(json.dumps(obj, indent=4))
 
 
 def show_image(base_64_image):
-    """Display an image from base64 string."""
     image_data = base64.b64decode(base_64_image)
     image = Image.open(BytesIO(image_data))
     image.show()
@@ -80,7 +133,6 @@ def sanitize_message(msg: dict) -> dict:
 
 
 def create_response(**kwargs):
-    """Send a request to OpenAI API to get a response."""
     url = "https://api.openai.com/v1/responses"
     headers = {
         "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
@@ -110,12 +162,6 @@ def check_blocklisted_url(url: str) -> None:
 
 
 class SteelBrowser:
-    """
-    Steel browser implementation for OpenAI Computer Use Assistant.
-    
-    This class manages a Steel browser session and provides methods for
-    computer actions like clicking, typing, and taking screenshots.
-    """
 
     def __init__(
         self,
@@ -126,9 +172,8 @@ class SteelBrowser:
         virtual_mouse: bool = True,
         session_timeout: int = 900000,  # 15 minutes
         ad_blocker: bool = True,
-        start_url: str = "https://www.google.com"
+        start_url: str = "https://www.google.com",
     ):
-        """Initialize the Steel browser instance."""
         self.client = Steel(
             steel_api_key=os.getenv("STEEL_API_KEY"),
             base_url=os.getenv("STEEL_BASE_URL", "https://api.steel.dev")
@@ -146,20 +191,16 @@ class SteelBrowser:
         self._page = None
 
     def get_environment(self):
-        """Return the environment type."""
         return "browser"
 
     def get_dimensions(self):
-        """Return browser dimensions."""
         return self.dimensions
 
     def get_current_url(self) -> str:
-        """Get the current page URL."""
         return self._page.url if self._page else ""
 
     def __enter__(self):
         """Enter context manager - create Steel session and connect browser."""
-        # Create Steel session
         width, height = self.dimensions
         session_params = {
             "use_proxy": self.proxy,
@@ -173,7 +214,6 @@ class SteelBrowser:
         print("Steel Session created successfully!")
         print(f"View live session at: {self.session.session_viewer_url}")
 
-        # Start Playwright and connect to Steel session
         self._playwright = sync_playwright().start()
         browser = self._playwright.chromium.connect_over_cdp(
             f"wss://connect.steel.dev?apiKey={os.getenv('STEEL_API_KEY')}&sessionId={self.session.id}",
@@ -182,7 +222,6 @@ class SteelBrowser:
         self._browser = browser
         context = browser.contexts[0]
 
-        # Set up URL blocking
         def handle_route(route, request):
             url = request.url
             try:
@@ -192,7 +231,6 @@ class SteelBrowser:
                 print(f"Blocking URL: {url}")
                 route.abort()
 
-        # Add virtual mouse if enabled
         if self.virtual_mouse:
             context.add_init_script("""
                 if (window.self === window.top) {
@@ -233,17 +271,16 @@ class SteelBrowser:
                 }
             """)
 
-        # Get the page and set up routing
         self._page = context.pages[0]
         self._page.route("**/*", handle_route)
-
-        # Navigate to start URL
+        
+        self._page.set_viewport_size({"width": width, "height": height})
+        
         self._page.goto(self.start_url)
         
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit context manager - clean up resources."""
         if self._page:
             self._page.close()
         if self._browser:
@@ -251,29 +288,33 @@ class SteelBrowser:
         if self._playwright:
             self._playwright.stop()
 
-        # Release Steel session
         if self.session:
             print("Releasing Steel session...")
             self.client.sessions.release(self.session.id)
             print(f"Session completed. View replay at {self.session.session_viewer_url}")
 
     def screenshot(self) -> str:
-        """Take a screenshot using CDP, fallback to standard screenshot."""
+        """Take a screenshot using Playwright for consistent viewport sizing."""
         try:
-            # Try CDP screenshot first
-            cdp_session = self._page.context.new_cdp_session(self._page)
-            result = cdp_session.send(
-                "Page.captureScreenshot", {"format": "png", "fromSurface": True}
+            width, height = self.dimensions
+            png_bytes = self._page.screenshot(
+                full_page=False,
+                clip={"x": 0, "y": 0, "width": width, "height": height}
             )
-            return result["data"]
-        except PlaywrightError as error:
-            print(f"CDP screenshot failed, using fallback: {error}")
-            # Fallback to standard screenshot
-            png_bytes = self._page.screenshot(full_page=False)
             return base64.b64encode(png_bytes).decode("utf-8")
+        except PlaywrightError as error:
+            print(f"Screenshot failed, trying CDP fallback: {error}")
+            try:
+                cdp_session = self._page.context.new_cdp_session(self._page)
+                result = cdp_session.send(
+                    "Page.captureScreenshot", {"format": "png", "fromSurface": False}
+                )
+                return result["data"]
+            except PlaywrightError as cdp_error:
+                print(f"CDP screenshot also failed: {cdp_error}")
+                raise error
 
     def click(self, x: int, y: int, button: str = "left") -> None:
-        """Click at coordinates."""
         if button == "back":
             self.back()
         elif button == "forward":
@@ -285,100 +326,195 @@ class SteelBrowser:
             self._page.mouse.click(x, y, button=button_type)
 
     def double_click(self, x: int, y: int) -> None:
-        """Double click at coordinates."""
         self._page.mouse.dblclick(x, y)
 
     def scroll(self, x: int, y: int, scroll_x: int, scroll_y: int) -> None:
-        """Scroll at coordinates."""
         self._page.mouse.move(x, y)
         self._page.evaluate(f"window.scrollBy({scroll_x}, {scroll_y})")
 
     def type(self, text: str) -> None:
-        """Type text."""
         self._page.keyboard.type(text)
 
     def wait(self, ms: int = 1000) -> None:
-        """Wait for specified milliseconds."""
         time.sleep(ms / 1000)
 
     def move(self, x: int, y: int) -> None:
-        """Move mouse to coordinates."""
         self._page.mouse.move(x, y)
 
     def keypress(self, keys: List[str]) -> None:
         """Press keys (supports modifier combinations)."""
         mapped_keys = [CUA_KEY_TO_PLAYWRIGHT_KEY.get(key.lower(), key) for key in keys]
-        # Press all keys down
         for key in mapped_keys:
             self._page.keyboard.down(key)
-        # Release all keys in reverse order
         for key in reversed(mapped_keys):
             self._page.keyboard.up(key)
 
     def drag(self, path: List[Dict[str, int]]) -> None:
-        """Drag along a path of coordinates."""
         if not path:
             return
-        self._page.mouse.move(path[0]["x"], path[0]["y"])
+        start_x, start_y = path[0]["x"], path[0]["y"]
+        self._page.mouse.move(start_x, start_y)
         self._page.mouse.down()
         for point in path[1:]:
-            self._page.mouse.move(point["x"], point["y"])
+            scaled_x, scaled_y = point["x"], point["y"]
+            self._page.mouse.move(scaled_x, scaled_y)
         self._page.mouse.up()
 
     def goto(self, url: str) -> None:
-        """Navigate to URL."""
         try:
             self._page.goto(url)
         except Exception as e:
             print(f"Error navigating to {url}: {e}")
 
     def back(self) -> None:
-        """Go back in browser history."""
         self._page.go_back()
 
     def forward(self) -> None:
-        """Go forward in browser history."""
         self._page.go_forward()
 
 
 class Agent:
-    """
-    Agent class for managing OpenAI Computer Use Assistant interactions.
-    
-    This class handles the conversation loop between OpenAI and the computer,
-    processing actions and managing safety checks.
-    """
 
     def __init__(
         self,
         model: str = "computer-use-preview",
         computer: SteelBrowser = None,
         tools: List[dict] = None,
-        acknowledge_safety_check_callback: Callable = None,
+        auto_acknowledge_safety: bool = True,
     ):
-        """Initialize the agent."""
         self.model = model
         self.computer = computer
         self.tools = tools or []
-        self.acknowledge_safety_check_callback = acknowledge_safety_check_callback or (lambda x: False)
+        self.auto_acknowledge_safety = auto_acknowledge_safety
         self.print_steps = True
         self.debug = False
         self.show_images = False
 
-        # Add computer tool if computer is provided
         if computer:
-            dimensions = computer.get_dimensions()
+            scaled_width, scaled_height = computer.get_dimensions()
+            self.viewport_width = scaled_width
+            self.viewport_height = scaled_height
+            
+            # Create dynamic system prompt with viewport dimensions
+            self.system_prompt = SYSTEM_PROMPT.replace(
+                '<COORDINATE_SYSTEM>',
+                f'<COORDINATE_SYSTEM>\n* The browser viewport dimensions are {scaled_width}x{scaled_height} pixels\n* The browser viewport has specific dimensions that you must respect'
+            )
+            
             self.tools.append({
                 "type": "computer-preview",
-                "display_width": dimensions[0],
-                "display_height": dimensions[1],
+                "display_width": scaled_width,
+                "display_height": scaled_height,
                 "environment": computer.get_environment(),
             })
+            
+            # Add goto function tool for direct URL navigation
+            self.tools.append({
+                "type": "function",
+                "name": "goto",
+                "description": "Navigate directly to a specific URL.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Fully qualified URL to navigate to (e.g., https://example.com).",
+                        },
+                    },
+                    "additionalProperties": False,
+                    "required": ["url"],
+                },
+            })
+            
+            # Add back function tool for browser navigation
+            self.tools.append({
+                "type": "function",
+                "name": "back",
+                "description": "Go back to the previous page.",
+                "parameters": {},
+            })
+        else:
+            self.viewport_width = 1024
+            self.viewport_height = 768
+            self.system_prompt = SYSTEM_PROMPT
 
     def debug_print(self, *args):
-        """Print debug information if debug mode is enabled."""
         if self.debug:
             pp(*args)
+
+
+
+    def get_viewport_info(self) -> dict:
+        """Get detailed viewport information for debugging."""
+        if not self.computer or not self.computer._page:
+            return {}
+        
+        try:
+            return self.computer._page.evaluate("""
+                () => ({
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight,
+                    devicePixelRatio: window.devicePixelRatio,
+                    screenWidth: window.screen.width,
+                    screenHeight: window.screen.height,
+                    scrollX: window.scrollX,
+                    scrollY: window.scrollY
+                })
+            """)
+        except:
+            return {}
+
+    def validate_screenshot_dimensions(self, screenshot_base64: str) -> dict:
+        """Validate screenshot dimensions against viewport."""
+        try:
+            image_data = base64.b64decode(screenshot_base64)
+            image = Image.open(BytesIO(image_data))
+            screenshot_width, screenshot_height = image.size
+            
+            viewport_info = self.get_viewport_info()
+            
+            scaling_info = {
+                "screenshot_size": (screenshot_width, screenshot_height),
+                "viewport_size": (self.viewport_width, self.viewport_height),
+                "actual_viewport": (viewport_info.get('innerWidth', 0), viewport_info.get('innerHeight', 0)),
+                "device_pixel_ratio": viewport_info.get('devicePixelRatio', 1.0),
+                "width_scale": screenshot_width / self.viewport_width if self.viewport_width > 0 else 1.0,
+                "height_scale": screenshot_height / self.viewport_height if self.viewport_height > 0 else 1.0
+            }
+            
+            # Warn about scaling mismatches
+            if scaling_info["width_scale"] != 1.0 or scaling_info["height_scale"] != 1.0:
+                print(f"⚠️  Screenshot scaling detected:")
+                print(f"   Screenshot: {screenshot_width}x{screenshot_height}")
+                print(f"   Expected viewport: {self.viewport_width}x{self.viewport_height}")
+                print(f"   Actual viewport: {viewport_info.get('innerWidth', 'unknown')}x{viewport_info.get('innerHeight', 'unknown')}")
+                print(f"   Scale factors: {scaling_info['width_scale']:.3f}x{scaling_info['height_scale']:.3f}")
+            
+            return scaling_info
+        except Exception as e:
+            print(f"⚠️  Error validating screenshot dimensions: {e}")
+            return {}
+
+    def validate_coordinates(self, action_args: dict) -> dict:
+        """Validate coordinates without clamping."""
+        validated_args = action_args.copy()
+        
+        # Handle single coordinates (click, move, etc.)
+        if 'x' in action_args and 'y' in action_args:
+            validated_args['x'] = int(float(action_args['x']))
+            validated_args['y'] = int(float(action_args['y']))
+        
+        # Handle path arrays (drag)
+        if 'path' in action_args and isinstance(action_args['path'], list):
+            validated_path = []
+            for point in action_args['path']:
+                validated_path.append({
+                    'x': int(float(point.get('x', 0))),
+                    'y': int(float(point.get('y', 0)))
+                })
+            validated_args['path'] = validated_path
+        
+        return validated_args
 
     def handle_item(self, item):
         """Handle each item from OpenAI response."""
@@ -391,7 +527,6 @@ class Agent:
             if self.print_steps:
                 print(f"{name}({args})")
 
-            # Call function on computer if it exists
             if hasattr(self.computer, name):
                 method = getattr(self.computer, name)
                 method(**args)
@@ -407,26 +542,32 @@ class Agent:
             action_type = action["type"]
             action_args = {k: v for k, v in action.items() if k != "type"}
             
+            # Validate coordinates and log any issues
+            validated_args = self.validate_coordinates(action_args)
+            
             if self.print_steps:
-                print(f"{action_type}({action_args})")
+                print(f"{action_type}({validated_args})")
 
-            # Execute the action
             method = getattr(self.computer, action_type)
-            method(**action_args)
+            method(**validated_args)
 
-            # Take screenshot
             screenshot_base64 = self.computer.screenshot()
+            
+            # Validate screenshot dimensions for debugging
+            if action_type == "screenshot" or self.debug:
+                self.validate_screenshot_dimensions(screenshot_base64)
+            
             if self.show_images:
                 show_image(screenshot_base64)
 
-            # Handle safety checks
             pending_checks = item.get("pending_safety_checks", [])
             for check in pending_checks:
                 message = check["message"]
-                if not self.acknowledge_safety_check_callback(message):
+                if self.auto_acknowledge_safety:
+                    print(f"⚠️  Auto-acknowledging safety check: {message}")
+                else:
                     raise ValueError(f"Safety check failed: {message}")
 
-            # Prepare response
             call_output = {
                 "type": "computer_call_output",
                 "call_id": item["call_id"],
@@ -437,7 +578,6 @@ class Agent:
                 },
             }
 
-            # Add current URL for browser environments
             if self.computer.get_environment() == "browser":
                 current_url = self.computer.get_current_url()
                 check_blocklisted_url(current_url)
@@ -447,53 +587,170 @@ class Agent:
 
         return []
 
-    def run_full_turn(self, input_items, print_steps=True, debug=False, show_images=False):
-        """Run a full conversation turn with OpenAI."""
+    def execute_task(
+        self, 
+        task: str, 
+        print_steps: bool = True, 
+        debug: bool = False, 
+        max_iterations: int = 50
+    ) -> str:
+        import re
+        
         self.print_steps = print_steps
         self.debug = debug
-        self.show_images = show_images
-        new_items = []
+        self.show_images = False
 
-        # Keep looping until we get a final assistant response
-        while not new_items or new_items[-1].get("role") != "assistant":
+        input_items = [
+            {
+                "role": "system",
+                "content": self.system_prompt,
+            },
+            {
+                "role": "user",
+                "content": task,
+            },
+        ]
+
+        new_items = []
+        iterations = 0
+        consecutive_no_actions = 0
+        last_assistant_messages = []
+
+        print(f"🎯 Executing task: {task}")
+        print("=" * 60)
+
+        def is_task_complete(content: str) -> dict:
+            """Check if the task is complete based on content patterns."""
+            
+            # Explicit completion markers
+            if "TASK_COMPLETED:" in content:
+                return {"completed": True, "reason": "explicit_completion"}
+            if "TASK_FAILED:" in content or "TASK_ABANDONED:" in content:
+                return {"completed": True, "reason": "explicit_failure"}
+            
+            # Natural completion patterns
+            completion_patterns = [
+                r'task\s+(completed|finished|done|accomplished)',
+                r'successfully\s+(completed|finished|found|gathered)',
+                r'here\s+(is|are)\s+the\s+(results?|information|summary)',
+                r'to\s+summarize',
+                r'in\s+conclusion',
+                r'final\s+(answer|result|summary)'
+            ]
+            
+            # Failure/abandonment patterns
+            failure_patterns = [
+                r'cannot\s+(complete|proceed|access|continue)',
+                r'unable\s+to\s+(complete|access|find|proceed)',
+                r'blocked\s+by\s+(captcha|security|authentication)',
+                r'giving\s+up',
+                r'no\s+longer\s+able',
+                r'have\s+tried\s+multiple\s+approaches'
+            ]
+            
+            for pattern in completion_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    return {"completed": True, "reason": "natural_completion"}
+            
+            for pattern in failure_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    return {"completed": True, "reason": "natural_failure"}
+            
+            return {"completed": False}
+
+        def detect_repetition(new_message: str) -> bool:
+            """Detect if the message is too similar to recent messages."""
+            if len(last_assistant_messages) < 2:
+                return False
+            
+            def similarity(str1: str, str2: str) -> float:
+                words1 = str1.lower().split()
+                words2 = str2.lower().split()
+                common_words = [word for word in words1 if word in words2]
+                return len(common_words) / max(len(words1), len(words2))
+            
+            return any(similarity(new_message, prev_message) > 0.8 
+                      for prev_message in last_assistant_messages)
+
+        while iterations < max_iterations:
+            iterations += 1
+            has_actions = False
+            
+            if new_items and new_items[-1].get("role") == "assistant":
+                last_message = new_items[-1]
+                if last_message.get("content") and len(last_message["content"]) > 0:
+                    content = last_message["content"][0].get("text", "")
+                    
+                    # Check for explicit completion
+                    completion = is_task_complete(content)
+                    if completion["completed"]:
+                        print(f"✅ Task completed ({completion['reason']})")
+                        break
+                    
+                    # Check for repetition
+                    if detect_repetition(content):
+                        print("🔄 Repetition detected - stopping execution")
+                        last_assistant_messages.append(content)
+                        break
+                    
+                    # Track assistant messages for repetition detection
+                    last_assistant_messages.append(content)
+                    if len(last_assistant_messages) > 3:
+                        last_assistant_messages.pop(0)  # Keep only last 3
+
             self.debug_print([sanitize_message(msg) for msg in input_items + new_items])
 
-            # Call OpenAI API
-            response = create_response(
-                model=self.model,
-                input=input_items + new_items,
-                tools=self.tools,
-                truncation="auto",
-            )
-            self.debug_print(response)
+            try:
+                response = create_response(
+                    model=self.model,
+                    input=input_items + new_items,
+                    tools=self.tools,
+                    truncation="auto",
+                )
+                self.debug_print(response)
 
-            if "output" not in response:
-                if self.debug:
-                    print(response)
-                raise ValueError("No output from model")
+                if "output" not in response:
+                    if self.debug:
+                        print(response)
+                    raise ValueError("No output from model")
 
-            # Process response items
-            new_items += response["output"]
-            for item in response["output"]:
-                new_items += self.handle_item(item)
+                new_items += response["output"]
+                
+                # Check if this iteration had any actions
+                for item in response["output"]:
+                    if item.get("type") in ["computer_call", "function_call"]:
+                        has_actions = True
+                    new_items += self.handle_item(item)
+                
+                # Track consecutive iterations without actions
+                if not has_actions:
+                    consecutive_no_actions += 1
+                    if consecutive_no_actions >= 3:
+                        print("⚠️  No actions for 3 consecutive iterations - stopping")
+                        break
+                else:
+                    consecutive_no_actions = 0
+                    
+            except Exception as error:
+                print(f"❌ Error during task execution: {error}")
+                raise error
 
-        return new_items
+        if iterations >= max_iterations:
+            print(f"⚠️  Task execution stopped after {max_iterations} iterations")
 
-
-def acknowledge_safety_check_callback(message: str) -> bool:
-    """Callback for safety check acknowledgment."""
-    response = input(
-        f"Safety Check Warning: {message}\nDo you want to acknowledge and proceed? (y/n): "
-    ).lower()
-    return response.strip() == "y"
+        assistant_messages = [item for item in new_items if item.get("role") == "assistant"]
+        if assistant_messages:
+            final_message = assistant_messages[-1]
+            if final_message.get("content") and len(final_message["content"]) > 0:
+                return final_message["content"][0].get("text", "Task execution completed (no final message)")
+        
+        return "Task execution completed (no final message)"
 
 
 def main():
-    """Main function - run the Computer Use Assistant demo."""
-    print("🚀 Steel + OpenAI Computer Use Assistant Demo")
-    print("=" * 50)
+    print("🚀 Steel + OpenAI Computer Use Assistant")
+    print("=" * 60)
     
-    # Check for required environment variables
     if not os.getenv("STEEL_API_KEY"):
         print("❌ Error: STEEL_API_KEY environment variable is required")
         print("Get your API key at: https://app.steel.dev/settings/api-keys")
@@ -504,59 +761,47 @@ def main():
         print("Get your API key at: https://platform.openai.com/")
         return
 
-    print("✅ API keys found!")
+    task = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
     print("\nStarting Steel browser session...")
 
     try:
         with SteelBrowser() as computer:
             print("✅ Steel browser session started!")
             
-            # Create agent
             agent = Agent(
                 computer=computer,
-                acknowledge_safety_check_callback=acknowledge_safety_check_callback,
+                auto_acknowledge_safety=True,
             )
             
-            print("\n🤖 Computer Use Assistant is ready!")
-            print("Type your requests below. Examples:")
-            print("- 'Search for information about artificial intelligence'")
-            print("- 'Find the weather forecast for New York'")
-            print("- 'Go to Wikipedia and tell me about machine learning'")
-            print("Type 'exit' to quit.\n")
-
-            items = []
-            while True:
-                try:
-                    user_input = input("👤 You: ").strip()
-                    if user_input.lower() in ['exit', 'quit', 'bye']:
-                        break
-                    
-                    if not user_input:
-                        continue
-
-                    print(f"\n🤖 Processing: {user_input}")
-                    items.append({"role": "user", "content": user_input})
-                    
-                    # Run the agent
-                    output_items = agent.run_full_turn(
-                        items,
-                        print_steps=True,
-                        show_images=False,
-                        debug=False,
-                    )
-                    items += output_items
-                    print("\n" + "─" * 50)
-                    
-                except KeyboardInterrupt:
-                    print("\n\n👋 Goodbye!")
-                    break
-                except Exception as e:
-                    print(f"\n❌ Error: {e}")
-                    print("Continuing...")
+            start_time = time.time()
+            
+            try:
+                result = agent.execute_task(
+                    task,
+                    print_steps=True,
+                    debug=False,
+                    max_iterations=50,
+                )
+                
+                duration = f"{(time.time() - start_time):.1f}"
+                
+                print("\n" + "=" * 60)
+                print("🎉 TASK EXECUTION COMPLETED")
+                print("=" * 60)
+                print(f"⏱️  Duration: {duration} seconds")
+                print(f"🎯 Task: {task}")
+                print(f"📋 Result:\n{result}")
+                print("=" * 60)
+                
+            except Exception as error:
+                print(f"❌ Task execution failed: {error}")
+                exit(1)
 
     except Exception as e:
         print(f"❌ Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
+        exit(1)
 
 
 if __name__ == "__main__":
