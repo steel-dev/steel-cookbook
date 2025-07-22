@@ -688,7 +688,7 @@ class ClaudeAgent {
 
   constructor(
     computer: SteelBrowser,
-    model: ModelName = "claude-3-5-sonnet-20241022"
+    model: ModelName = "claude-3-7-sonnet-20250219"
   ) {
     this.client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY!,

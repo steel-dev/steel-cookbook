@@ -560,7 +560,7 @@ class SteelBrowser:
 
 class ClaudeAgent:
 
-    def __init__(self, computer: SteelBrowser = None, model: str = "claude-3-5-sonnet-20241022"):
+    def __init__(self, computer: SteelBrowser = None, model: str = "claude-3-7-sonnet-20250219"):
         self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.computer = computer
         self.messages: List[BetaMessageParam] = []
