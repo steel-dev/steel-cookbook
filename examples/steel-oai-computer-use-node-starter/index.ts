@@ -5,14 +5,16 @@ import { Steel } from "steel-sdk";
 
 dotenv.config();
 
-const SYSTEM_PROMPT = `You are an expert browser automation assistant. You will be given a single task to complete using a Chrome browser with internet access. Your goal is to efficiently complete the task and provide a clear summary of what was accomplished.
+const SYSTEM_PROMPT = `You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
 <CAPABILITIES>
 * You control a Chrome browser tab and can navigate to any website
-* You can click, type, scroll, take screenshots, and interact with web elements
+* You can click, type, scroll, take screenshots, and interact with web elements  
 * You have full internet access and can visit any public website
 * You can read content, fill forms, search for information, and perform complex multi-step tasks
 * After each action, you receive a screenshot showing the current state
+* Use the goto(url) function to navigate directly to URLs - DO NOT try to click address bars or browser UI
+* Use the back() function to go back to the previous page
 
 <COORDINATE_SYSTEM>
 * The browser viewport has specific dimensions that you must respect
@@ -22,45 +24,45 @@ const SYSTEM_PROMPT = `You are an expert browser automation assistant. You will 
 * Always ensure your click, move, scroll, and drag coordinates are within these bounds
 * If you're unsure about element locations, take a screenshot first to see the current state
 
-<AUTONOMOUS_EXECUTION_RULES>
-* NEVER ask questions or request clarification - make reasonable assumptions and proceed
-* NEVER ask "What should I do?" or "How should I proceed?" - just do it
-* NEVER ask for permission to take actions - take them immediately
-* NEVER say "I could do X or Y" - just choose the most appropriate option and execute it
-* NEVER present multiple options - make a decision and act on it
-* NEVER ask for user input or confirmation - work completely independently
-* Make intelligent assumptions based on the task context
+<AUTONOMOUS_EXECUTION>
+* Work completely independently - make decisions and act immediately without asking questions
+* Never request clarification, present options, or ask for permission
+* Make intelligent assumptions based on task context
 * If something is ambiguous, choose the most logical interpretation and proceed
 * Take immediate action rather than explaining what you might do
+* When the task objective is achieved, immediately declare "TASK_COMPLETED:" - do not provide commentary or ask questions
 
-<EXECUTION_PRINCIPLES>
-* Complete the task efficiently in a single session - there will be no follow-up questions
-* Be thorough but focused - accomplish the specific task requested
-* If you encounter obstacles (captchas, errors), try alternative approaches immediately
-* Don't assume you need to sign in unless explicitly required for the task
-* Provide a clear final summary of what was accomplished
-* If the task cannot be completed, explain why and what alternatives were attempted
+<REASONING_STRUCTURE>
+For each step, you must reason systematically:
+* Analyze your previous action's success/failure and current state
+* Identify what specific progress has been made toward the goal
+* Determine the next immediate objective and how to achieve it
+* Choose the most efficient action sequence to make progress
 
-<COMPLETION_RULES>
-* When you have successfully completed the task, end your response with "TASK_COMPLETED: [brief summary]"
-* If you cannot complete the task due to technical issues, captchas, or other blockers, end with "TASK_FAILED: [reason]"
-* If you need to give up after reasonable attempts, end with "TASK_ABANDONED: [explanation]"
-* Do not continue taking actions once you have gathered the requested information
-* Do not repeat the same actions or provide multiple versions of the same summary
-* NEVER add follow-up questions like "Would you like more information?" or "Do you need anything else?"
-* Your final response must be a complete answer with NO questions at the end
-* End with a period, not a question mark - provide information, don't ask for more tasks
+<EFFICIENCY_PRINCIPLES>
+* Combine related actions when possible rather than single-step execution
+* Navigate directly to relevant websites without unnecessary exploration
+* Use screenshots strategically to understand page state before acting
+* Be persistent with alternative approaches if initial attempts fail
+* Focus on the specific information or outcome requested
+
+<COMPLETION_CRITERIA>
+* MANDATORY: When you complete the task, your final message MUST start with "TASK_COMPLETED: [brief summary]"
+* MANDATORY: If technical issues prevent completion, your final message MUST start with "TASK_FAILED: [reason]"  
+* MANDATORY: If you abandon the task, your final message MUST start with "TASK_ABANDONED: [explanation]"
+* Do not write anything after completing the task except the required completion message
+* Do not ask questions, provide commentary, or offer additional help after task completion
+* The completion message is the end of the interaction - nothing else should follow
 
 <CRITICAL_REQUIREMENTS>
-* This is fully automated execution - you must work completely independently
-* Start by taking a screenshot to see the current state, then immediately begin working
-* Navigate to the most relevant website for the task without asking
-* Be persistent with alternative approaches if initial attempts fail
-* Always verify task completion before finishing
-* STOP when you have the information requested - do not over-optimize
-* ALWAYS respect coordinate boundaries - coordinates outside the viewport will fail
-* DO NOT engage in conversation - only provide status updates and final results
-</CAPABILITIES>`;
+* This is fully automated execution - work completely independently
+* Start by taking a screenshot to understand the current state
+* Use goto(url) function for navigation - never click on browser UI elements
+* Always respect coordinate boundaries - invalid coordinates will fail
+* Recognize when the stated objective has been achieved and declare completion immediately
+* Focus on the explicit task given, not implied or potential follow-up tasks
+
+Remember: Be thorough but focused. Complete the specific task requested efficiently and provide clear results.`;
 
 const BLOCKED_DOMAINS = [
   "maliciousbook.com",
@@ -413,8 +415,8 @@ class SteelBrowser {
   async scroll(
     x: number,
     y: number,
-    scrollX: number,
-    scrollY: number
+    scroll_x: number,
+    scroll_y: number
   ): Promise<void> {
     if (!this.page) throw new Error("Page not initialized");
     await this.page.mouse.move(x, y);
@@ -422,7 +424,7 @@ class SteelBrowser {
       ({ scrollX, scrollY }) => {
         window.scrollBy(scrollX, scrollY);
       },
-      { scrollX, scrollY }
+      { scrollX: scroll_x, scrollY: scroll_y }
     );
   }
 
@@ -552,6 +554,33 @@ class Agent {
       display_height: height,
       environment: computer.getEnvironment(),
     });
+
+    // Add goto function tool for direct URL navigation
+    this.tools.push({
+      type: "function",
+      name: "goto",
+      description: "Navigate directly to a specific URL.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description:
+              "Fully qualified URL to navigate to (e.g., https://example.com).",
+          },
+        },
+        additionalProperties: false,
+        required: ["url"],
+      },
+    });
+
+    // Add back function tool for browser navigation
+    this.tools.push({
+      type: "function",
+      name: "back",
+      description: "Go back to the previous page.",
+      parameters: {},
+    });
   }
 
   debugPrint(...args: any[]): void {
@@ -665,8 +694,8 @@ class Agent {
         await this.computer.scroll(
           validatedArgs.x,
           validatedArgs.y,
-          this.toNumber(validatedArgs.scrollX || validatedArgs.scroll_x),
-          this.toNumber(validatedArgs.scrollY || validatedArgs.scroll_y)
+          this.toNumber(validatedArgs.scroll_x),
+          this.toNumber(validatedArgs.scroll_y)
         );
         break;
       case "drag":
@@ -959,7 +988,7 @@ class Agent {
 }
 
 async function main(): Promise<void> {
-  console.log("🚀 Steel + OpenAI Computer Use Assistant - Task Automation");
+  console.log("🚀 Steel + OpenAI Computer Use Assistant");
   console.log("=".repeat(60));
 
   if (!process.env.STEEL_API_KEY) {
@@ -974,17 +1003,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const task = process.env.TASK;
-  if (!task) {
-    console.log("❌ Error: TASK environment variable is required");
-    console.log("Set it to describe what you want the assistant to do.");
-    console.log(
-      'Example: export TASK="Search for the latest news about artificial intelligence"'
-    );
-    return;
-  }
+  const task =
+    process.env.TASK || "Go to Wikipedia and search for machine learning";
 
-  console.log("✅ All required environment variables found!");
   console.log("\nStarting Steel browser session...");
 
   const computer = new SteelBrowser();

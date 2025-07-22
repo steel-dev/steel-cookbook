@@ -24,7 +24,6 @@ TASK = os.getenv("TASK") or "Go to https://docs.steel.dev/, open the changelog, 
 
 client = Steel(steel_api_key=STEEL_API_KEY)
 
-
 print("Creating Steel session...")
 session = client.sessions.create()
 print(f"Session created at {session.session_viewer_url}")
