@@ -2,6 +2,7 @@ import type { worker } from "../alchemy.run.ts";
 
 const MANIFEST_KEY = "manifest.json";
 const VERSIONS_PREFIX = "versions/";
+const SCHEMAS_PREFIX = "/schemas/";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,9 @@ const corsHeaders = {
 };
 
 function getContentType(key: string): string {
+  if (key.startsWith("schemas/") && key.endsWith(".json")) {
+    return "application/schema+json";
+  }
   if (key.endsWith(".json")) {
     return "application/json";
   }
@@ -28,10 +32,11 @@ async function handleRequest(
   ctx: ExecutionContext,
 ): Promise<Response> {
   const url = new URL(request.url);
-  const key = url.pathname.substring(1);
+  const pathname = url.pathname;
+  const key = pathname.substring(1);
   const version = url.searchParams.get("v");
 
-  // default path, redirect to latest manifest
+  // Default path, redirect to latest manifest
   if (key === MANIFEST_KEY && !version) {
     const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
     if (rootManifestObject === null) {
@@ -49,7 +54,7 @@ async function handleRequest(
     return Response.redirect(redirectUrl.toString(), 302);
   }
 
-  // stale manifest validation
+  // Stale manifest validation
   if (key === MANIFEST_KEY && version) {
     const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
     if (rootManifestObject === null) {
@@ -68,7 +73,15 @@ async function handleRequest(
     return response;
   }
 
-  const r2ObjectKey = version ? `${VERSIONS_PREFIX}${version}/${key}` : key;
+  let r2ObjectKey: string;
+  // If path starts with /schemas/, use the path as the key from the root.
+  if (pathname.startsWith(SCHEMAS_PREFIX)) {
+    r2ObjectKey = key;
+  } else {
+    // Otherwise, use the existing versioned file logic.
+    r2ObjectKey = version ? `${VERSIONS_PREFIX}${version}/${key}` : key;
+  }
+
   const object = await env.BUCKET.get(r2ObjectKey);
   if (object === null) {
     return new Response(`Object '${r2ObjectKey}' not found in R2`, {
@@ -102,6 +115,7 @@ export default {
 
     const response = await handleRequest(request, env, ctx);
 
+    // Apply CORS headers to all responses
     const newHeaders = new Headers(response.headers);
     Object.entries(corsHeaders).forEach(([key, value]) => {
       newHeaders.set(key, value);

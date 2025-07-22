@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["examples"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "accentColor", "category", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "accentColor": {
+            "type": "string",
+            "enum": ["blue", "yellow", "orange", "purple", "green", "red"]
+          },
+          "category": {
+            "type": "string",
+            "enum": ["BROWSER_AUTOMATION", "AI_AUTOMATION"]
+          },
+          "description": { "type": "string" },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["cli", "guide", "playground"]
+            },
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -8,6 +8,7 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(directory, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MDX_DIR = path.join(ROOT_DIR, "./mdx");
+const GROUPS_FILE = path.join(MDX_DIR, "groups.json");
 
 export function packageTemplate(srcDir: string, outFile: string) {
   const absOut = path.resolve(outFile);
@@ -21,7 +22,7 @@ export function packageTemplate(srcDir: string, outFile: string) {
         ),
       ),
   );
-};
+}
 
 async function build() {
   console.log("Starting MDX compilation...");
@@ -32,7 +33,15 @@ async function build() {
     await fs.mkdir(OUTPUT_DIR, { recursive: true });
     console.log(`Output directory '${OUTPUT_DIR}' prepared.`);
 
-    // 2. Read all files from the MDX directory
+    // <-- 2. Load and parse the groups JSON file
+    console.log("Loading group definitions from groups.json...");
+    const groupsFileContents = await fs.readFile(GROUPS_FILE, "utf-8");
+    const groupsDefinition = JSON.parse(groupsFileContents);
+    // Extract the array from the 'examples' key as per your file structure
+    const groups = groupsDefinition.examples || [];
+    console.log(`Loaded ${groups.length} group definitions.`);
+
+    // 3. Read all files from the MDX directory
     const allFiles = await fs.readdir(MDX_DIR);
     const mdxFiles = allFiles.filter((file) => file.endsWith(".mdx"));
 
@@ -45,7 +54,7 @@ async function build() {
 
     const manifest: any = [];
 
-    // 3. Loop over each MDX file and compile it
+    // 4. Loop over each MDX file and compile it
     for (const fileName of mdxFiles) {
       const filePath = path.join(MDX_DIR, fileName);
       console.log(`- Compiling ${fileName}...`);
@@ -54,41 +63,37 @@ async function build() {
       const { content, toc, meta } = await compileMDX(source, "json");
       const { markdown } = await compileMDX(source, "markdown");
 
-      // Determine the output folder name from the mdx filename (e.g., "example.mdx" -> "example")
+      // ... (rest of the file writing and packaging logic is unchanged)
       const outputFolderName = path.basename(fileName, ".mdx");
       const exampleOutputDir = path.join(OUTPUT_DIR, outputFolderName);
-
-      // Create a dedicated folder for this example's assets
       await fs.mkdir(exampleOutputDir, { recursive: true });
-
-      // Write the compiled content, TOC, and metadata
       await fs.writeFile(
         path.join(exampleOutputDir, "content.json"),
         content,
-        "utf-8"
+        "utf-8",
       );
       await fs.writeFile(
         path.join(exampleOutputDir, "toc.json"),
         toc,
-        "utf-8"
+        "utf-8",
       );
       await fs.writeFile(
         path.join(exampleOutputDir, "meta.json"),
         JSON.stringify(meta, null, 2),
-        "utf-8"
+        "utf-8",
       );
       await fs.writeFile(
         path.join(exampleOutputDir, "readme.md"),
         markdown,
-        "utf-8"
+        "utf-8",
       );
-
-      // Build template tar.gz
       const template = path.join(ROOT_DIR, meta.directory as string);
-      const output = path.join(OUTPUT_DIR, "templates", meta.id as string + ".tar.gz");
+      const output = path.join(
+        OUTPUT_DIR,
+        "templates",
+        (meta.id as string) + ".tar.gz",
+      );
       await packageTemplate(template, output);
-
-      // Add this example's metadata to our manifest
       const templateDirectory = path.relative(OUTPUT_DIR, output);
       manifest.push({
         slug: outputFolderName,
@@ -97,23 +102,24 @@ async function build() {
       });
     }
 
-    // 4. Write the final manifest file to the root of the output directory
+    // <-- 3. Write the final manifest file with both groups and examples
     const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
     const manifestContents = {
       name: "Steel Registry",
       description: "A collection of examples for using Steel",
       version: shortHash,
+      groups: groups, // Add the loaded groups array here
       examples: manifest,
-    }
+    };
     await fs.writeFile(
       path.join(OUTPUT_DIR, "manifest.json"),
-      JSON.stringify(manifestContents, null, 2),
-      "utf-8"
+      JSON.stringify(manifestContents),
+      "utf-8",
     );
     console.log("Successfully wrote manifest.json.");
 
     console.log(
-      "\nBuild complete! Check the 'dist' directory for the compiled output."
+      "\nBuild complete! Check the 'dist' directory for the compiled output.",
     );
   } catch (error) {
     console.error("An error occurred during the build process:", error);
