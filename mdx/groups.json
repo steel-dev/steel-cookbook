@@ -1,0 +1,45 @@
+{
+  "$schema": "http://registry.steel-edge.net/schemas/v1/registry-groups.json",
+  "examples": [
+    {
+      "id": "playwright-starter",
+      "title": "Using Playwright with Steel",
+      "accentColor": "blue",
+      "category": "BROWSER_AUTOMATION",
+      "description": "A starter project for using Playwright with Steel",
+      "flags": ["cli", "guide", "playground"]
+    },
+    {
+      "id": "puppeteer-starter",
+      "title": "Using Puppeteer with Steel",
+      "accentColor": "yellow",
+      "category": "BROWSER_AUTOMATION",
+      "description": "A starter project for using Puppeteer with Steel",
+      "flags": ["cli", "guide", "playground"]
+    },
+    {
+      "id": "oai-computer-use",
+      "title": "Using Steel with OpenAI's Computer Use API",
+      "accentColor": "orange",
+      "category": "AI_AUTOMATION",
+      "description": "Create a browser automation agent with Steel and OpenAI's Computer Use Assistant.",
+      "flags": ["cli", "playground"]
+    },
+    {
+      "id": "claude-computer-use",
+      "title": "Using Steel with Claude's Computer Use API",
+      "accentColor": "purple",
+      "category": "AI_AUTOMATION",
+      "description": "Create a browser automation agent with Steel and Claude's Computer Use API.",
+      "flags": ["cli", "playground"]
+    },
+    {
+      "id": "stagehand-starter",
+      "title": "Using Steel with Stagehand for AI-Powered Automations",
+      "accentColor": "green",
+      "category": "AI_AUTOMATION",
+      "description": "A starter project demonstrating how to use Steel with Stagehand for AI-powered browser automations.",
+      "flags": ["cli", "playground"]
+    }
+  ]
+}
