@@ -12,133 +12,131 @@ language: "typescript"
 ---
 
 <Intro skipLink="#full-code-example">
-  Control Steel's managed browser infrastructure with Playwright in Node.js for reliable web automation without the headaches.
+  Control Steel's managed browser infrastructure with Playwright in Node.js for
+  reliable web automation without the headaches.
 </Intro>
 
 <Step number={1} title="Optional: Create a new directory & environment">
-  Run the following commands to create a new directory, index.ts file, and TS + Node project.
-  ```bash
-  mkdir steel-playwright-starter && \
-  cd steel-playwright-starter && \
-  npm init -y && \
-  npm install -D typescript && \
-  npx tsc --init && \
-  npm pkg set scripts.start="tsc && node dist/index.js" && \
-  touch index.ts
-  ```
+  Run the following commands to create a new directory, index.ts file, and TS +
+  Node project. ```bash mkdir steel-playwright-starter && \ cd
+  steel-playwright-starter && \ npm init -y && \ npm install -D typescript && \
+  npx tsc --init && \ npm pkg set scripts.start="tsc && node dist/index.js" && \
+  touch index.ts ```
 </Step>
 
 <Step number={2} title="Install Playwright and Steel SDK">
-  Run the following command to install Playwright and the Steel SDK.
-  ```bash
-  npm install playwright steel-sdk
-  ```
+  Run the following command to install Playwright and the Steel SDK. ```bash npm
+  install playwright steel-sdk ```
 </Step>
 
 <Step number={3} title="Start a Steel Session">
   Create a Steel session to get a remote browser instance that you can control with Playwright.
 
-  ```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1
-  import Steel from "steel-sdk";
-  import { chromium } from "playwright";
+```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1
+import Steel from "steel-sdk";
+import { chromium } from "playwright";
 
-  // Initialize Steel client with API key
-  const client = new Steel({
-    steelAPIKey: "YOUR_STEEL_API_KEY",
-  });
+// Initialize Steel client with API key
+const client = new Steel({
+  steelAPIKey: "YOUR_STEEL_API_KEY",
+});
 
-  async function main() {
-    // Create a session
-    const session = await client.sessions.create();
-    
-    console.log(`View live session at: ${session.sessionViewerUrl}`);
-    
-    // ===== Add code from subsequent steps below this line =====
-    
-  }
+async function main() {
+  // Create a session
+  const session = await client.sessions.create();
 
-  // Run the script
-  main();
-  ```
-  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
-</Step>
+  console.log(`View live session at: ${session.sessionViewerUrl}`);
+
+  // ===== Add code from subsequent steps below this line =====
+}
+
+// Run the script
+main();
+```
+
+- Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+  </Step>
 
 <Step number={4} title="Connect Playwright to Your Session">
   Connect Playwright to the running Steel browser session using the CDP protocol.
 
-  ```typescript showLineNumbers{15} filename="index.ts" /YOUR_STEEL_API_KEY/#1
-  // Inside main() function, below previous step
-  // Connect to the Steel session
-  const browser = await chromium.connectOverCDP(
-    `wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId=${session.id}`
-  );
+```typescript showLineNumbers{15} filename="index.ts" /YOUR_STEEL_API_KEY/#1
+// Inside main() function, below previous step
+// Connect to the Steel session
+const browser = await chromium.connectOverCDP(
+  `wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId=${session.id}`
+);
 
-  // Create page at existing context to ensure session is recorded
-  const currentContext = browser.contexts()[0];
-  const page = await currentContext.pages()[0];
-  ```
-  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
-</Step>
+// Create page at existing context to ensure session is recorded
+const currentContext = browser.contexts()[0];
+const page = await currentContext.pages()[0];
+```
+
+- Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+  </Step>
 
 <Step number={5} title="Perform Browser Automation">
   Now that Playwright is connected, you can add your own automations. Here's an example that scrapes Hacker News headlines.
 
-  ```typescript showLineNumbers{23} filename="index.ts"
-  // Inside main() function, below previous step
-  console.log('Navigating to Hacker News...');
-  await page.goto('https://news.ycombinator.com', {
-    waitUntil: 'networkidle',
-  });
+```typescript showLineNumbers{23} filename="index.ts"
+// Inside main() function, below previous step
+console.log("Navigating to Hacker News...");
+await page.goto("https://news.ycombinator.com", {
+  waitUntil: "networkidle",
+});
 
-  // Extract the top 5 stories
-  const stories = await page.evaluate(() => {
-    const items: { title: string; link: string; points: string }[] = [];
-    // Get all story items
-    const storyRows = document.querySelectorAll('tr.athing');
+// Extract the top 5 stories
+const stories = await page.evaluate(() => {
+  const items: { title: string; link: string; points: string }[] = [];
+  // Get all story items
+  const storyRows = document.querySelectorAll("tr.athing");
 
-    // Loop through first 5 stories
-    for (let i = 0; i < 5; i++) {
-      const row = storyRows[i];
-      const titleElement = row.querySelector('.titleline > a');
-      const subtext = row.nextElementSibling;
-      const score = subtext?.querySelector('.score');
+  // Loop through first 5 stories
+  for (let i = 0; i < 5; i++) {
+    const row = storyRows[i];
+    const titleElement = row.querySelector(".titleline > a");
+    const subtext = row.nextElementSibling;
+    const score = subtext?.querySelector(".score");
 
-      items.push({
-        title: titleElement?.textContent || '',
-        link: titleElement?.getAttribute('href') || '',
-        points: score?.textContent?.split(' ')[0] || '0',
-      });
-    }
-    return items;
-  });
+    items.push({
+      title: titleElement?.textContent || "",
+      link: titleElement?.getAttribute("href") || "",
+      points: score?.textContent?.split(" ")[0] || "0",
+    });
+  }
+  return items;
+});
 
-  // Print the results
-  console.log('\nTop 5 Hacker News Stories:');
-  stories.forEach((story, index) => {
-    console.log(`\n${index + 1}. ${story.title}`);
-    console.log(`   Link: ${story.link}`);
-    console.log(`   Points: ${story.points}`);
-  });
-  ```
+// Print the results
+console.log("\nTop 5 Hacker News Stories:");
+stories.forEach((story, index) => {
+  console.log(`\n${index + 1}. ${story.title}`);
+  console.log(`   Link: ${story.link}`);
+  console.log(`   Points: ${story.points}`);
+});
+```
+
 </Step>
 
 <Step number={6} title="Release the Session When Done">
   Close the browser and release the session to free up resources when your automation is complete.
 
-  ```typescript showLineNumbers{59} filename="index.ts"
-  // Inside main() function, below previous step
-  // Clean up resources
-  await browser.close();
-  await client.sessions.release(session.id);
-  ```
+```typescript showLineNumbers{59} filename="index.ts"
+// Inside main() function, below previous step
+// Clean up resources
+await browser.close();
+await client.sessions.release(session.id);
+```
+
 </Step>
 
 <Step number={8} title="Run Your Script">
   Execute your script to start a Steel-powered browser session. You can view your session live in the Steel Session Viewer.
 
-  ```bash
-  npm run start
-  ```
+```bash
+npm run start
+```
+
 </Step>
 
 <FullCodeExample id="full-code-example" title="Full Example">
@@ -147,17 +145,17 @@ language: "typescript"
   import Steel from "steel-sdk";
   import { chromium } from "playwright";
 
-  // Initialize Steel client with API key
-  const client = new Steel({
-    steelAPIKey: "YOUR_STEEL_API_KEY",
-  });
+// Initialize Steel client with API key
+const client = new Steel({
+steelAPIKey: "YOUR_STEEL_API_KEY",
+});
 
-  async function main() {
-    // Create a session
-    const session = await client.sessions.create();
-    
+async function main() {
+// Create a session
+const session = await client.sessions.create();
+
     console.log(`View live session at: ${session.sessionViewerUrl}`);
-    
+
     // Connect to the Steel session
     const browser = await chromium.connectOverCDP(
       `wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId=${session.id}`
@@ -166,7 +164,7 @@ language: "typescript"
     // Create page at existing context to ensure session is recorded
     const currentContext = browser.contexts()[0];
     const page = await currentContext.pages()[0];
-  
+
     console.log('Navigating to Hacker News...');
     await page.goto('https://news.ycombinator.com', {
       waitUntil: 'networkidle',
@@ -205,9 +203,12 @@ language: "typescript"
     // Clean up resources
     await browser.close();
     await client.sessions.release(session.id);
-  }
 
-  // Run the script
-  main();
-  ```
+}
+
+// Run the script
+main();
+
+```
 </FullCodeExample>
+```
