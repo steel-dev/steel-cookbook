@@ -6,18 +6,31 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const STEEL_API_KEY = process.env.STEEL_API_KEY;
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
   steelAPIKey: STEEL_API_KEY,
 });
 
 async function main() {
+  console.log("🚀 Steel + Puppeteer TypeScript Starter");
+  console.log("=".repeat(60));
+
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
+    return;
+  }
+
   let session;
   let browser;
 
   try {
-    console.log("Creating Steel session...");
+    console.log("\nCreating Steel session...");
 
     // Create a new Steel session with all available options
     session = await client.sessions.create({

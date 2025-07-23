@@ -11,17 +11,10 @@ import http.client
 # Load environment variables from .env file
 load_dotenv()
 
-# Check if the Steel API key is set in the environment variables, and raise an error if not
-STEEL_API_KEY = os.getenv('STEEL_API_KEY')
-if not STEEL_API_KEY:
-    raise EnvironmentError("STEEL_API_KEY environment variable not set.")
-
-# Initialize Steel client with the API key from environment variables
-client = Steel(steel_api_key=STEEL_API_KEY)
+# Replace with your own API key
+STEEL_API_KEY = os.getenv('STEEL_API_KEY') or "your-steel-api-key-here"
 
 # Helper Class: Custom Remote Connection class to include Steel-specific headers
-
-
 class CustomRemoteConnection(RemoteConnection):
     _session_id = None
 
@@ -35,8 +28,17 @@ class CustomRemoteConnection(RemoteConnection):
         headers.update({'session-id': self._session_id})
         return headers
 
+# Initialize Steel client with the API key from environment variables
+client = Steel(steel_api_key=STEEL_API_KEY)
 
 def main():
+    print("🚀 Steel + Selenium Python Starter")
+    print("=" * 60)
+    
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+        return
     session = None
     driver = None
 

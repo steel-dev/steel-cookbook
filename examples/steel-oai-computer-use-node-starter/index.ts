@@ -5,6 +5,15 @@ import { Steel } from "steel-sdk";
 
 dotenv.config();
 
+// Replace with your own API keys
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+const ANTHROPIC_API_KEY =
+  process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+
+// Replace with your own task
+const TASK =
+  process.env.TASK || "Go to Wikipedia and search for machine learning";
+
 const SYSTEM_PROMPT = `You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
 <CAPABILITIES>
@@ -991,20 +1000,23 @@ async function main(): Promise<void> {
   console.log("🚀 Steel + OpenAI Computer Use Assistant");
   console.log("=".repeat(60));
 
-  if (!process.env.STEEL_API_KEY) {
-    console.log("❌ Error: STEEL_API_KEY environment variable is required");
-    console.log("Get your API key at: https://app.steel.dev/settings/api-keys");
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
     return;
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    console.log("❌ Error: OPENAI_API_KEY environment variable is required");
-    console.log("Get your API key at: https://platform.openai.com/");
+  if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+    );
+    console.warn("   Get your API key at: https://console.anthropic.com/");
     return;
   }
-
-  const task =
-    process.env.TASK || "Go to Wikipedia and search for machine learning";
 
   console.log("\nStarting Steel browser session...");
 
@@ -1019,7 +1031,7 @@ async function main(): Promise<void> {
     const startTime = Date.now();
 
     try {
-      const result = await agent.executeTask(task, true, false, 50);
+      const result = await agent.executeTask(TASK, true, false, 50);
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -1027,7 +1039,7 @@ async function main(): Promise<void> {
       console.log("🎉 TASK EXECUTION COMPLETED");
       console.log("=".repeat(60));
       console.log(`⏱️  Duration: ${duration} seconds`);
-      console.log(`🎯 Task: ${task}`);
+      console.log(`🎯 Task: ${TASK}`);
       console.log(`📋 Result:\n${result}`);
       console.log("=".repeat(60));
     } catch (error) {

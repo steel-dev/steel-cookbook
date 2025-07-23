@@ -3,7 +3,7 @@ import time
 import base64
 import json
 import re
-from typing import List, Dict
+from typing import List
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -14,12 +14,17 @@ from io import BytesIO
 
 from anthropic import Anthropic
 from anthropic.types.beta import (
-    BetaMessage,
     BetaMessageParam,
-    BetaToolResultBlockParam,
 )
 
 load_dotenv(override=True)
+
+# Replace with your own API keys
+STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "your-anthropic-api-key-here"
+
+# Replace with your own task
+TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
 
 SYSTEM_PROMPT = """You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
@@ -214,7 +219,7 @@ class SteelBrowser:
         start_url: str = "https://www.google.com",
     ):
         self.client = Steel(
-            steel_api_key=os.getenv("STEEL_API_KEY"),
+            steel_api_key=STEEL_API_KEY,
             base_url=os.getenv("STEEL_BASE_URL", "https://api.steel.dev")
         )
         self.dimensions = (width, height)
@@ -252,7 +257,7 @@ class SteelBrowser:
 
         self._playwright = sync_playwright().start()
         browser = self._playwright.chromium.connect_over_cdp(
-            f"wss://connect.steel.dev?apiKey={os.getenv('STEEL_API_KEY')}&sessionId={self.session.id}",
+            f"wss://connect.steel.dev?apiKey={STEEL_API_KEY}&sessionId={self.session.id}",
             timeout=60000
         )
         self._browser = browser
@@ -559,9 +564,8 @@ class SteelBrowser:
 
 
 class ClaudeAgent:
-
     def __init__(self, computer: SteelBrowser = None, model: str = "claude-3-7-sonnet-20250219"):
-        self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
         self.computer = computer
         self.messages: List[BetaMessageParam] = []
         self.model = model
@@ -888,17 +892,15 @@ def main():
     print("🚀 Steel + Claude Computer Use Assistant")
     print("=" * 60)
     
-    if not os.getenv("STEEL_API_KEY"):
-        print("❌ Error: STEEL_API_KEY environment variable is required")
-        print("Get your API key at: https://app.steel.dev/settings/api-keys")
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         return
     
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        print("❌ Error: ANTHROPIC_API_KEY environment variable is required")
-        print("Get your API key at: https://console.anthropic.com/")
+    if ANTHROPIC_API_KEY == "your-anthropic-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key")
+        print("   Get your API key at: https://console.anthropic.com/")
         return
-
-    task = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
 
     print("\nStarting Steel browser session...")
 
@@ -915,7 +917,7 @@ def main():
             
             try:
                 result = agent.execute_task(
-                    task,
+                    TASK,
                     print_steps=True,
                     debug=False,
                     max_iterations=50,
@@ -927,7 +929,7 @@ def main():
                 print("🎉 TASK EXECUTION COMPLETED")
                 print("=" * 60)
                 print(f"⏱️  Duration: {duration} seconds")
-                print(f"🎯 Task: {task}")
+                print(f"🎯 Task: {TASK}")
                 print(f"📋 Result:\n{result}")
                 print("=" * 60)
                 

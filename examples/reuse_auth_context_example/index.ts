@@ -4,8 +4,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+
 const client = new Steel({
-  steelAPIKey: process.env.STEEL_API_KEY,
+  steelAPIKey: STEEL_API_KEY,
 });
 
 // Helper function to perform login
@@ -24,12 +26,25 @@ async function verifyAuth(page: Page): Promise<boolean> {
 }
 
 async function main() {
+  console.log("🚀 Steel + Reuse Auth Context Example");
+  console.log("=".repeat(60));
+
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
+    return;
+  }
+
   let session;
   let browser;
 
   try {
     // Step 1: Create and authenticate initial session
-    console.log("Creating initial Steel session...");
+    console.log("\nCreating initial Steel session...");
     session = await client.sessions.create();
     console.log(
       `\x1b[1;93mSteel Session #1 created!\x1b[0m\n` +
@@ -38,7 +53,7 @@ async function main() {
 
     // Connect Playwright to the session
     browser = await chromium.connectOverCDP(
-      `wss://connect.steel.dev?apiKey=${process.env.STEEL_API_KEY}&sessionId=${session.id}`
+      `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`
     );
 
     const page = await browser.contexts()[0].pages()[0];
@@ -57,7 +72,7 @@ async function main() {
     console.log("Session #1 released");
 
     // Step 3: Create new authenticated session
-    
+
     session = await client.sessions.create({ sessionContext: sessionContext });
     console.log(
       `\x1b[1;93mSteel Session #2 created!\x1b[0m\n` +
@@ -66,7 +81,7 @@ async function main() {
 
     // Connect to new session
     browser = await chromium.connectOverCDP(
-      `wss://connect.steel.dev?apiKey=${process.env.STEEL_API_KEY}&sessionId=${session.id}`
+      `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`
     );
 
     // Verify authentication transfer

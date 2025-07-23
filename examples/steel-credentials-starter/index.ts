@@ -6,7 +6,7 @@ import Steel from "steel-sdk";
 
 dotenv.config();
 
-const STEEL_API_KEY = process.env.STEEL_API_KEY;
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
@@ -14,35 +14,50 @@ const client = new Steel({
 });
 
 async function main() {
+  console.log("🚀 Steel + Credentials Starter");
+  console.log("=".repeat(60));
+
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
+    return;
+  }
+
   let session;
   let browser;
 
   try {
-    console.log("Creating credential...");
-    await client.credentials.create({
-      origin: "https://demo.testfire.net",
-      value: {
-        username: "admin",
-        password: "admin",
-      }
-    }).catch((err) => {
-      if (err.error.message === "Credential already exists") {
-        console.log("Credential already exists, moving on.");
-        return;
-      }
-      throw err;
-    })
+    console.log("\nCreating credential...");
+    await client.credentials
+      .create({
+        origin: "https://demo.testfire.net",
+        value: {
+          username: "admin",
+          password: "admin",
+        },
+      })
+      .catch((err) => {
+        if (err.error.message === "Credential already exists") {
+          console.log("Credential already exists, moving on.");
+          return;
+        }
+        throw err;
+      });
 
     console.log("Creating Steel session...");
 
     // Create a new Steel session with credentials enabled
     session = await client.sessions.create({
-      credentials: {}
+      credentials: {},
     });
 
     console.log(
       `\x1b[1;93mSteel Session created!\x1b[0m\n` +
-      `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
+        `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
     );
 
     // Connect Playwright to the Steel session
@@ -62,16 +77,16 @@ async function main() {
 
     //  Navigate to the demo website and wait for the page to load.
     await page.goto("https://demo.testfire.net", {
-      waitUntil: "networkidle"
+      waitUntil: "networkidle",
     });
 
     // Navigate to the login page
-    await page.click('#AccountLink');
+    await page.click("#AccountLink");
 
     // Wait for the login to succeed
     await setTimeout(2000);
 
-    const headingText = await page.textContent('h1');
+    const headingText = await page.textContent("h1");
     if (headingText?.trim() === "Hello Admin User") {
       console.log("Success, you are logged in");
     } else {
