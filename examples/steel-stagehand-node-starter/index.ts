@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const STEEL_API_KEY = process.env.STEEL_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
 
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
@@ -14,11 +14,32 @@ const client = new Steel({
 });
 
 async function main() {
+  console.log("🚀 Steel + Stagehand Node Starter");
+  console.log("=".repeat(60));
+
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
+    return;
+  }
+
+  if (OPENAI_API_KEY === "your-openai-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+    );
+    console.warn("   Get your API key at: https://platform.openai.com/");
+    return;
+  }
+
   let session;
   let stagehand;
 
   try {
-    console.log("Creating Steel session...");
+    console.log("\nCreating Steel session...");
 
     session = await client.sessions.create({
       // === Basic Options ===

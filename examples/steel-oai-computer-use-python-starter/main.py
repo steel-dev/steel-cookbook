@@ -14,6 +14,13 @@ from io import BytesIO
 
 load_dotenv(override=True)
 
+# Replace with your own API keys
+STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
+
+# Replace with your own task
+TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
 SYSTEM_PROMPT = """You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
 <CAPABILITIES>
@@ -751,14 +758,14 @@ def main():
     print("🚀 Steel + OpenAI Computer Use Assistant")
     print("=" * 60)
     
-    if not os.getenv("STEEL_API_KEY"):
-        print("❌ Error: STEEL_API_KEY environment variable is required")
-        print("Get your API key at: https://app.steel.dev/settings/api-keys")
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         return
     
-    if not os.getenv("OPENAI_API_KEY"):
-        print("❌ Error: OPENAI_API_KEY environment variable is required")
-        print("Get your API key at: https://platform.openai.com/")
+    if OPENAI_API_KEY == "your-openai-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+        print("   Get your API key at: https://platform.openai.com/")
         return
 
     task = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"

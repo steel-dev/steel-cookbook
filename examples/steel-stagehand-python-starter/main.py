@@ -8,8 +8,9 @@ from stagehand import StagehandConfig, Stagehand
 # Load environment variables
 load_dotenv()
 
-STEEL_API_KEY = os.getenv("STEEL_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Replace with your own API keys
+STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 # Define Pydantic models for structured data extraction
 class Story(BaseModel):
@@ -20,12 +21,25 @@ class Stories(BaseModel):
     stories: list[Story] = Field(..., description="List of top stories")
 
 async def main():
+    print("🚀 Steel + Stagehand Python Starter")
+    print("=" * 60)
+    
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+        return
+    
+    if OPENAI_API_KEY == "your-openai-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+        print("   Get your API key at: https://platform.openai.com/")
+        return
+
     session = None
     stagehand = None
     client = None
     
     try:
-        print("Creating Steel session...")
+        print("\nCreating Steel session...")
         
         # Initialize Steel client with the API key from environment variables
         client = Steel(steel_api_key=STEEL_API_KEY)

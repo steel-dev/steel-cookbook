@@ -7,7 +7,8 @@ from steel import Steel
 # Load environment variables from .env file
 load_dotenv()
 
-STEEL_API_KEY = os.getenv('STEEL_API_KEY')
+# Replace with your own API key
+STEEL_API_KEY = os.getenv('STEEL_API_KEY') or "your-steel-api-key-here"
 
 # Initialize Steel client with the API key from environment variables
 client = Steel(
@@ -15,6 +16,13 @@ client = Steel(
 )
 
 def main():
+    print("🚀 Steel + Playwright Python Starter")
+    print("=" * 60)
+    
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+        return
     session = None
     browser = None
 

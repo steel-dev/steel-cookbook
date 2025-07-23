@@ -11,6 +11,15 @@ import type {
 
 dotenv.config();
 
+// Replace with your own API keys
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+const ANTHROPIC_API_KEY =
+  process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+
+// Replace with your own task
+const TASK =
+  process.env.TASK || "Go to Wikipedia and search for machine learning";
+
 const SYSTEM_PROMPT = `You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
 <CAPABILITIES>
@@ -241,7 +250,7 @@ class SteelBrowser {
     startUrl: string = "https://www.google.com"
   ) {
     this.client = new Steel({
-      steelAPIKey: process.env.STEEL_API_KEY!,
+      steelAPIKey: STEEL_API_KEY,
       baseURL: process.env.STEEL_BASE_URL || "https://api.steel.dev",
     });
     this.dimensions = [width, height];
@@ -277,7 +286,7 @@ class SteelBrowser {
 
     const connectUrl =
       process.env.STEEL_CONNECT_URL || "wss://connect.steel.dev";
-    const cdpUrl = `${connectUrl}?apiKey=${process.env.STEEL_API_KEY}&sessionId=${this.session.id}`;
+    const cdpUrl = `${connectUrl}?apiKey=${STEEL_API_KEY}&sessionId=${this.session.id}`;
 
     this.browser = await chromium.connectOverCDP(cdpUrl, {
       timeout: 60000,
@@ -691,7 +700,7 @@ class ClaudeAgent {
     model: ModelName = "claude-3-7-sonnet-20250219"
   ) {
     this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
+      apiKey: ANTHROPIC_API_KEY,
     });
     this.computer = computer;
     this.model = model;
@@ -1074,20 +1083,23 @@ async function main(): Promise<void> {
   console.log("🚀 Steel + Claude Computer Use Assistant");
   console.log("=".repeat(60));
 
-  if (!process.env.STEEL_API_KEY) {
-    console.log("❌ Error: STEEL_API_KEY environment variable is required");
-    console.log("Get your API key at: https://app.steel.dev/settings/api-keys");
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+    );
     return;
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log("❌ Error: ANTHROPIC_API_KEY environment variable is required");
-    console.log("Get your API key at: https://console.anthropic.com/");
+  if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+    console.warn(
+      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+    );
+    console.warn("   Get your API key at: https://console.anthropic.com/");
     return;
   }
-
-  const task =
-    process.env.TASK || "Go to Wikipedia and search for machine learning";
 
   console.log("\nStarting Steel browser session...");
 
@@ -1102,7 +1114,7 @@ async function main(): Promise<void> {
     const startTime = Date.now();
 
     try {
-      const result = await agent.executeTask(task, true, false, 50);
+      const result = await agent.executeTask(TASK, true, false, 50);
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -1110,7 +1122,7 @@ async function main(): Promise<void> {
       console.log("🎉 TASK EXECUTION COMPLETED");
       console.log("=".repeat(60));
       console.log(`⏱️  Duration: ${duration} seconds`);
-      console.log(`🎯 Task: ${task}`);
+      console.log(`🎯 Task: ${TASK}`);
       console.log(`📋 Result:\n${result}`);
       console.log("=".repeat(60));
     } catch (error) {
