@@ -1,3 +1,8 @@
+"""
+AI-powered browser automation using browser-use library with Steel browsers.
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use-starter
+"""
+
 import os
 import time
 import asyncio

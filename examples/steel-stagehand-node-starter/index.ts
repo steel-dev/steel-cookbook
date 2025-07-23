@@ -1,3 +1,8 @@
+/*
+ * AI-powered browser automation using Stagehand with Steel browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-stagehand-node-starter
+ */
+
 import { Stagehand } from "@browserbasehq/stagehand";
 import Steel from "steel-sdk";
 import { z } from "zod";

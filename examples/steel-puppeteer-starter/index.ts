@@ -1,4 +1,7 @@
-// run `npm start` in the terminal
+/*
+ * Web automation using Puppeteer with Steel's cloud browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-puppeteer-starter
+ */
 
 import puppeteer from "puppeteer-core";
 import Steel from "steel-sdk";

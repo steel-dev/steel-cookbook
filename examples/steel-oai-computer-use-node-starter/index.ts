@@ -1,3 +1,8 @@
+/*
+ * OpenAI AI agent for autonomous web interactions with Steel browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-oai-computer-use-node-starter
+ */
+
 import * as dotenv from "dotenv";
 import { chromium } from "playwright";
 import type { Browser, Page } from "playwright";

@@ -1,3 +1,8 @@
+/*
+ * Managing and using stored credentials with Steel for automated authentication.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-credentials-starter
+ */
+
 import dotenv from "dotenv";
 import { setTimeout } from "node:timers/promises";
 import { writeFile } from "node:fs/promises";

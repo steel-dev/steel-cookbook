@@ -1,3 +1,8 @@
+/*
+ * Claude AI agent for autonomous web task execution with Steel browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-node-starter
+ */
+
 import * as dotenv from "dotenv";
 import { chromium } from "playwright";
 import type { Browser, Page } from "playwright";

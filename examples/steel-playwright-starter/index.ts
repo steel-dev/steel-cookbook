@@ -1,3 +1,8 @@
+/*
+ * Web automation using Playwright with Steel's cloud browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-playwright-starter
+ */
+
 import { chromium } from "playwright";
 import Steel from "steel-sdk";
 import dotenv from "dotenv";

@@ -1,3 +1,8 @@
+"""
+Claude AI agent for autonomous web task execution with Steel browsers.
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-python-starter
+"""
+
 import os
 import time
 import base64

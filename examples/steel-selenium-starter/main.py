@@ -1,3 +1,8 @@
+"""
+Web automation using Selenium with Steel's cloud browsers.
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-selenium-starter
+"""
+
 import os
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By

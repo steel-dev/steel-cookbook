@@ -1,3 +1,8 @@
+"""
+AI-powered browser automation using Stagehand with Steel browsers.
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-stagehand-python-starter
+"""
+
 import asyncio
 import os
 from dotenv import load_dotenv

@@ -1,3 +1,8 @@
+/*
+ * Web automation using Puppeteer with Steel's cloud browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-puppeteer-starter-js
+ */
+
 const puppeteer = require("puppeteer-core");
 const Steel = require("steel-sdk");
 const dotenv = require("dotenv");

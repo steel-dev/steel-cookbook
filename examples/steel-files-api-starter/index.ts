@@ -1,3 +1,8 @@
+/*
+ * File upload and download operations with Steel sessions.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-files-api-starter
+ */
+
 import dotenv from "dotenv";
 import fs from "fs";
 import { chromium } from "playwright";
