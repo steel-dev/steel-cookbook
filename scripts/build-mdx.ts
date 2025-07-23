@@ -3,6 +3,9 @@ import path from "path";
 import { compileMDX } from "../utils/compile-mdx";
 import { fileURLToPath } from "url";
 import { execSync, execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const exec = promisify(execFile);
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(directory, "..");
@@ -10,18 +13,33 @@ const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MDX_DIR = path.join(ROOT_DIR, "./mdx");
 const GROUPS_FILE = path.join(MDX_DIR, "groups.json");
 
-export function packageTemplate(srcDir: string, outFile: string) {
+// Uses git ls-files to filter out ignored files
+export async function packageTemplate(srcDir: string, outFile: string) {
+  const absSrc = path.resolve(srcDir);
   const absOut = path.resolve(outFile);
-  return fs.mkdir(path.dirname(absOut), { recursive: true }).then(
-    () =>
-      new Promise<void>((res, rej) =>
-        execFile(
-          "tar",
-          ["-czf", absOut, "-C", srcDir, "."],
-          (err) => (err ? rej(err) : res()),
-        ),
-      ),
-  );
+
+  await fs.mkdir(path.dirname(absOut), { recursive: true });
+
+  const { stdout: gitRoot } = await exec("git", ["rev-parse", "--show-toplevel"]);
+  const repoRoot = gitRoot.trim();
+
+  const { stdout } = await exec("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
+    cwd: repoRoot,
+  });
+
+  const files = stdout
+    .split("\0")
+    .filter(Boolean)
+    .map((file) => ({
+      abs: path.resolve(repoRoot, file),
+      relToSrc: path.relative(absSrc, path.resolve(repoRoot, file)),
+    }))
+    .filter(({ relToSrc }) => !relToSrc.startsWith("..") && !path.isAbsolute(relToSrc))
+    .map(({ relToSrc }) => relToSrc);
+
+  if (files.length === 0) throw new Error("No files to package");
+
+  await exec("tar", ["-czf", absOut, "-C", absSrc, ...files]);
 }
 
 async function build() {
