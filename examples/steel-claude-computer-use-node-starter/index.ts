@@ -251,7 +251,6 @@ class SteelBrowser {
   ) {
     this.client = new Steel({
       steelAPIKey: STEEL_API_KEY,
-      baseURL: process.env.STEEL_BASE_URL || "https://api.steel.dev",
     });
     this.dimensions = [width, height];
     this.proxy = proxy;
@@ -284,9 +283,7 @@ class SteelBrowser {
     console.log("Steel Session created successfully!");
     console.log(`View live session at: ${this.session.sessionViewerUrl}`);
 
-    const connectUrl =
-      process.env.STEEL_CONNECT_URL || "wss://connect.steel.dev";
-    const cdpUrl = `${connectUrl}?apiKey=${STEEL_API_KEY}&sessionId=${this.session.id}`;
+    const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
 
     this.browser = await chromium.connectOverCDP(cdpUrl, {
       timeout: 60000,
