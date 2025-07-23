@@ -63,7 +63,7 @@ async def main():
             model_api_key=OPENAI_API_KEY,
             # Connect to Steel session via CDP
             local_browser_launch_options={
-                "cdp_url": f"wss://connect.steel.dev?apiKey={STEEL_API_KEY}&sessionId={session.id}",
+                "cdp_url": f"{session.websocket_url}&apiKey={STEEL_API_KEY}",
             }
         )
         

@@ -220,7 +220,6 @@ class SteelBrowser:
     ):
         self.client = Steel(
             steel_api_key=STEEL_API_KEY,
-            base_url=os.getenv("STEEL_BASE_URL", "https://api.steel.dev")
         )
         self.dimensions = (width, height)
         self.proxy = proxy
@@ -257,7 +256,7 @@ class SteelBrowser:
 
         self._playwright = sync_playwright().start()
         browser = self._playwright.chromium.connect_over_cdp(
-            f"wss://connect.steel.dev?apiKey={STEEL_API_KEY}&sessionId={self.session.id}",
+            f"{self.session.websocket_url}&apiKey={STEEL_API_KEY}",
             timeout=60000
         )
         self._browser = browser

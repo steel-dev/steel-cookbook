@@ -50,6 +50,7 @@ def main():
             is_selenium=True,              # Enable Selenium mode (required)
             # session_timeout=1800000,     # Session timeout in ms (default: 5 mins)
         )
+        print(session)
 
         print(f"""Session created successfully with Session ID: {session.id}.
 You can view the session live at {session.session_viewer_url}

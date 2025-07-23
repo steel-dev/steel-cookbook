@@ -70,7 +70,7 @@ async function main() {
 
     // Connect Playwright to the Steel session
     browser = await chromium.connectOverCDP(
-      `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`
+      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
     );
 
     console.log("Connected to browser via Playwright");

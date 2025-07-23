@@ -59,7 +59,7 @@ async function main() {
     stagehand = new Stagehand({
       env: "LOCAL", // Using LOCAL env to connect to Steel session
       localBrowserLaunchOptions: {
-        cdpUrl: `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`,
+        cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
       },
       enableCaching: true,
       // OpenAI API key will be automatically picked up from OPENAI_API_KEY environment variable
