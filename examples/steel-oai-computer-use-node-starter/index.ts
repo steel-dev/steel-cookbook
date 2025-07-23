@@ -7,8 +7,7 @@ dotenv.config();
 
 // Replace with your own API keys
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
-const ANTHROPIC_API_KEY =
-  process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
 
 // Replace with your own task
 const TASK =
@@ -1010,11 +1009,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+  if (OPENAI_API_KEY === "your-openai-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
     );
-    console.warn("   Get your API key at: https://console.anthropic.com/");
+    console.warn("   Get your API key at: https://platform.openai.com/");
     return;
   }
 
