@@ -67,7 +67,9 @@ async function main() {
         cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
       },
       enableCaching: false,
-      // OpenAI API key will be automatically picked up from OPENAI_API_KEY environment variable
+      modelClientOptions: {
+        apiKey: OPENAI_API_KEY,
+      },
     });
 
     console.log("Initializing Stagehand...");

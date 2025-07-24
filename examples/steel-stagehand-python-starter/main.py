@@ -63,8 +63,8 @@ async def main():
         print(f"View session at \033[1;37m{session.session_viewer_url}\033[0m")
         
         config = StagehandConfig(
-            env="LOCAL",  # Using LOCAL env to connect to Steel session
-            model_name="gpt-4o-mini",  # or "gpt-4o" for better performance
+            env="LOCAL",
+            model_name="gpt-4.1-mini",
             model_api_key=OPENAI_API_KEY,
             # Connect to Steel session via CDP
             local_browser_launch_options={
