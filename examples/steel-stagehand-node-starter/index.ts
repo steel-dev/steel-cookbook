@@ -66,7 +66,7 @@ async function main() {
       localBrowserLaunchOptions: {
         cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
       },
-      enableCaching: true,
+      enableCaching: false,
       // OpenAI API key will be automatically picked up from OPENAI_API_KEY environment variable
     });
 
