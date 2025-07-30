@@ -86,7 +86,7 @@ async function main() {
 
     // Connect to new session
     browser = await chromium.connectOverCDP(
-      `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`
+      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
     );
 
     // Verify authentication transfer

@@ -49,7 +49,7 @@ async def main():
             f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
         )
 
-        cdp_url = f"wss://connect.steel.dev?apiKey={STEEL_API_KEY}&sessionId={session.id}"
+        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
         model = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=OPENAI_API_KEY)
         agent = Agent(task=TASK, llm=model, browser_session=BrowserSession(cdp_url=cdp_url))
