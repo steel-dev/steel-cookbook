@@ -1,6 +1,6 @@
 /*
  * Demonstrating how to persist authentication state across Steel sessions.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/reuse_auth_context_example
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-auth-context-starter
  */
 
 import { chromium, Page } from "playwright";

@@ -1,5 +1,5 @@
 {
-  "name": "reuse_auth_context_example",
+  "name": "steel-auth-context-starter",
   "version": "1.0.0",
   "description": "A starter project for reusing authentication across Steel sessions with Playwright",
   "main": "index.ts",
