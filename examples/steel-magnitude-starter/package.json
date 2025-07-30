@@ -1,0 +1,27 @@
+{
+  "name": "steel-magnitude-starter",
+  "version": "1.0.0",
+  "description": "Steel Browser with Magnitude",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "magnitude",
+    "browser-automation"
+  ],
+  "author": "Steel Dev",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "magnitude-core": "^0.2.27",
+    "playwright": "^1.50.0",
+    "steel-sdk": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}
