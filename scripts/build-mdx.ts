@@ -11,6 +11,7 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(directory, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MDX_DIR = path.join(ROOT_DIR, "./mdx");
+const ASSETS_DIR = path.join(ROOT_DIR, "./assets");
 const GROUPS_FILE = path.join(MDX_DIR, "groups.json");
 
 // Uses git ls-files to filter out ignored files
@@ -72,6 +73,8 @@ async function build() {
 
     const manifest: any = [];
 
+    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
+
     // 4. Loop over each MDX file and compile it
     for (const fileName of mdxFiles) {
       const filePath = path.join(MDX_DIR, fileName);
@@ -85,6 +88,29 @@ async function build() {
       const outputFolderName = path.basename(fileName, ".mdx");
       const exampleOutputDir = path.join(OUTPUT_DIR, outputFolderName);
       await fs.mkdir(exampleOutputDir, { recursive: true });
+
+      // Copy group-level assets if a groupId is present
+      if (meta.groupId) {
+        const groupAssetDir = path.join(ASSETS_DIR, meta.groupId as string);
+        try {
+          await fs.access(groupAssetDir); // Check if directory exists
+          console.log(`- Copying assets from ${groupAssetDir}...`);
+          await fs.cp(groupAssetDir, exampleOutputDir, { recursive: true });
+        } catch (error) {
+          // It's okay if the directory doesn't exist
+        }
+      }
+
+      // Copy example-specific assets, potentially overwriting group assets
+      const exampleAssetDir = path.join(ASSETS_DIR, meta.id as string);
+      try {
+        await fs.access(exampleAssetDir);
+        console.log(`- Copying assets from ${exampleAssetDir}...`);
+        await fs.cp(exampleAssetDir, exampleOutputDir, { recursive: true });
+      } catch (error) {
+        // It's okay if the directory doesn't exist
+      }
+
       await fs.writeFile(
         path.join(exampleOutputDir, "content.json"),
         content,
@@ -112,16 +138,34 @@ async function build() {
         (meta.id as string) + ".tar.gz",
       );
       await packageTemplate(template, output);
+      // Determine thumbnail URL
+      let thumbnail = undefined;
+      const exampleThumbnailPath = path.join(ASSETS_DIR, meta.id as string, "thumbnail.webp");
+      const groupThumbnailPath = meta.groupId ? path.join(ASSETS_DIR, meta.groupId as string, "thumbnail.webp") : undefined;
+      try {
+        await fs.access(exampleThumbnailPath);
+        thumbnail = `https://registry.steel-edge.net/${meta.id}/thumbnail.webp?v=${shortHash}`;
+      } catch (error) {
+        if (groupThumbnailPath) {
+          try {
+            await fs.access(groupThumbnailPath);
+            thumbnail = `https://registry.steel-edge.net/${meta.id}/thumbnail.webp?v=${shortHash}`;
+          } catch (e) {
+            // No thumbnail found
+          }
+        }
+      }
+
       const templateDirectory = path.relative(OUTPUT_DIR, output);
       manifest.push({
         slug: outputFolderName,
         ...meta,
         template: templateDirectory,
+        thumbnail,
       });
     }
 
     // <-- 3. Write the final manifest file with both groups and examples
-    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
     const manifestContents = {
       name: "Steel Registry",
       description: "A collection of examples for using Steel",

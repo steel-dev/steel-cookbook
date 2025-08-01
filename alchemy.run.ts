@@ -20,7 +20,8 @@ export const worker = await Worker("steel-code-registry-cdn", {
   url: true,
   domains: [{
     domainName: "registry.steel-edge.net",
-    zoneId: "3e3055ff3318da90f0bb40b8fa86ff9d"
+    zoneId: "3e3055ff3318da90f0bb40b8fa86ff9d",
+    adopt: true,
   }]
 });
 

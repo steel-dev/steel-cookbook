@@ -3,6 +3,7 @@ import type { worker } from "../alchemy.run.ts";
 const MANIFEST_KEY = "manifest.json";
 const VERSIONS_PREFIX = "versions/";
 const SCHEMAS_PREFIX = "/schemas/";
+const ALLOW_STALE_VERSIONS = true;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,21 @@ function getContentType(key: string): string {
   }
   if (key.endsWith(".gz")) {
     return "application/gzip";
+  }
+  if (key.endsWith(".png")) {
+    return "image/png";
+  }
+  if (key.endsWith(".jpg") || key.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (key.endsWith(".gif")) {
+    return "image/gif";
+  }
+  if (key.endsWith(".svg")) {
+    return "image/svg+xml";
+  }
+  if (key.endsWith(".webp")) {
+    return "image/webp";
   }
   return "application/octet-stream";
 }
@@ -55,7 +71,7 @@ async function handleRequest(
   }
 
   // Stale manifest validation
-  if (key === MANIFEST_KEY && version) {
+  if (key === MANIFEST_KEY && version && !ALLOW_STALE_VERSIONS) {
     const rootManifestObject = await env.BUCKET.get(MANIFEST_KEY);
     if (rootManifestObject === null) {
       return new Response("Root manifest not found in R2", { status: 404 });
