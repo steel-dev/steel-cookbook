@@ -41,6 +41,7 @@ const ROOT_DIR = path.join(directory, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MANIFEST_FILEPATH = path.join(OUTPUT_DIR, "./manifest.json");
 const VERSIONS_PREFIX = "versions/";
+const ENABLE_VERSION_CLEANUP = false;
 
 async function getFilesRecursively(dir: string): Promise<string[]> {
   const dirents = await fs.readdir(dir, { withFileTypes: true });
@@ -143,7 +144,11 @@ export async function main() {
   );
   console.log("  ✔ Root manifest updated.");
 
-  await cleanupOldVersions(newVersion);
+    if (ENABLE_VERSION_CLEANUP) {
+    await cleanupOldVersions(newVersion);
+  } else {
+    console.log("\nSkipping old version cleanup.");
+  }
 
   console.log("\n✅ Deployment complete!");
 }

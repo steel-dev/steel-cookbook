@@ -149,7 +149,7 @@ async function build() {
         if (groupThumbnailPath) {
           try {
             await fs.access(groupThumbnailPath);
-            thumbnail = `https://registry.steel-edge.net/${meta.groupId}/thumbnail.webp?v=${shortHash}`;
+            thumbnail = `https://registry.steel-edge.net/${meta.id}/thumbnail.webp?v=${shortHash}`;
           } catch (e) {
             // No thumbnail found
           }
