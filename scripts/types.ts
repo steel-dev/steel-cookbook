@@ -29,4 +29,6 @@ export interface ManifestExample {
   shorthand: string
   template: string
   groupId?: string
+  docs: string
+  thumbnail?: string
 }

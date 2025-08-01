@@ -73,6 +73,8 @@ async function build() {
 
     const manifest: any = [];
 
+    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
+
     // 4. Loop over each MDX file and compile it
     for (const fileName of mdxFiles) {
       const filePath = path.join(MDX_DIR, fileName);
@@ -136,16 +138,34 @@ async function build() {
         (meta.id as string) + ".tar.gz",
       );
       await packageTemplate(template, output);
+      // Determine thumbnail URL
+      let thumbnail = undefined;
+      const exampleThumbnailPath = path.join(ASSETS_DIR, meta.id as string, "thumbnail.webp");
+      const groupThumbnailPath = meta.groupId ? path.join(ASSETS_DIR, meta.groupId as string, "thumbnail.webp") : undefined;
+      try {
+        await fs.access(exampleThumbnailPath);
+        thumbnail = `https://registry.steel-edge.net/${meta.id}/thumbnail.webp?v=${shortHash}`;
+      } catch (error) {
+        if (groupThumbnailPath) {
+          try {
+            await fs.access(groupThumbnailPath);
+            thumbnail = `https://registry.steel-edge.net/${meta.groupId}/thumbnail.webp?v=${shortHash}`;
+          } catch (e) {
+            // No thumbnail found
+          }
+        }
+      }
+
       const templateDirectory = path.relative(OUTPUT_DIR, output);
       manifest.push({
         slug: outputFolderName,
         ...meta,
         template: templateDirectory,
+        thumbnail,
       });
     }
 
     // <-- 3. Write the final manifest file with both groups and examples
-    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
     const manifestContents = {
       name: "Steel Registry",
       description: "A collection of examples for using Steel",
