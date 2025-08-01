@@ -40,6 +40,7 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(directory, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MANIFEST_FILEPATH = path.join(OUTPUT_DIR, "./manifest.json");
+const MANIFEST_CSV_FILEPATH = path.join(OUTPUT_DIR, "./manifest.csv");
 const VERSIONS_PREFIX = "versions/";
 const ENABLE_VERSION_CLEANUP = false;
 
@@ -97,6 +98,8 @@ function getContentType(filePath: string) {
       return "image/svg+xml";
     case ".webp":
       return "image/webp";
+    case ".csv":
+      return "text/csv";
     default:
       return "application/octet-stream";
   }
@@ -143,6 +146,22 @@ export async function main() {
     }),
   );
   console.log("  ✔ Root manifest updated.");
+
+  console.log("\nUpdating root manifest.csv...");
+  try {
+    const manifestCsvContent = await fs.readFile(MANIFEST_CSV_FILEPATH, "utf-8");
+    await S3.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: "manifest.csv",
+        Body: manifestCsvContent,
+        ContentType: "text/csv",
+      }),
+    );
+    console.log("  ✔ Root manifest.csv updated.");
+  } catch (error) {
+    console.warn("  - Could not find manifest.csv, skipping upload.");
+  }
 
     if (ENABLE_VERSION_CLEANUP) {
     await cleanupOldVersions(newVersion);
