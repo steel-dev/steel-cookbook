@@ -97,7 +97,7 @@ async function generateCsv() {
                 escapeCsvField(row.title),
                 escapeCsvField(row.description),
                 escapeCsvField(row.thumbnail),
-                escapeCsvField(row.languages.join(";")),
+                escapeCsvField(row.languages.map(l => l[0].toUpperCase() + l.slice(1)).join(", ")),
                 escapeCsvField(row.docs),
             ].join(",");
         }).join("\n");
