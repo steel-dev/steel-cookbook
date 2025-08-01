@@ -11,6 +11,7 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(directory, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "./dist");
 const MDX_DIR = path.join(ROOT_DIR, "./mdx");
+const ASSETS_DIR = path.join(ROOT_DIR, "./assets");
 const GROUPS_FILE = path.join(MDX_DIR, "groups.json");
 
 // Uses git ls-files to filter out ignored files
@@ -85,6 +86,29 @@ async function build() {
       const outputFolderName = path.basename(fileName, ".mdx");
       const exampleOutputDir = path.join(OUTPUT_DIR, outputFolderName);
       await fs.mkdir(exampleOutputDir, { recursive: true });
+
+      // Copy group-level assets if a groupId is present
+      if (meta.groupId) {
+        const groupAssetDir = path.join(ASSETS_DIR, meta.groupId as string);
+        try {
+          await fs.access(groupAssetDir); // Check if directory exists
+          console.log(`- Copying assets from ${groupAssetDir}...`);
+          await fs.cp(groupAssetDir, exampleOutputDir, { recursive: true });
+        } catch (error) {
+          // It's okay if the directory doesn't exist
+        }
+      }
+
+      // Copy example-specific assets, potentially overwriting group assets
+      const exampleAssetDir = path.join(ASSETS_DIR, meta.id as string);
+      try {
+        await fs.access(exampleAssetDir);
+        console.log(`- Copying assets from ${exampleAssetDir}...`);
+        await fs.cp(exampleAssetDir, exampleOutputDir, { recursive: true });
+      } catch (error) {
+        // It's okay if the directory doesn't exist
+      }
+
       await fs.writeFile(
         path.join(exampleOutputDir, "content.json"),
         content,

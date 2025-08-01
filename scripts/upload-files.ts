@@ -85,6 +85,17 @@ function getContentType(filePath: string) {
       return "text/markdown; charset=utf-8";
     case ".gz":
       return "application/gzip";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".gif":
+      return "image/gif";
+    case ".svg":
+      return "image/svg+xml";
+    case ".webp":
+      return "image/webp";
     default:
       return "application/octet-stream";
   }

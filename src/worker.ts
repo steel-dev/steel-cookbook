@@ -23,6 +23,21 @@ function getContentType(key: string): string {
   if (key.endsWith(".gz")) {
     return "application/gzip";
   }
+  if (key.endsWith(".png")) {
+    return "image/png";
+  }
+  if (key.endsWith(".jpg") || key.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (key.endsWith(".gif")) {
+    return "image/gif";
+  }
+  if (key.endsWith(".svg")) {
+    return "image/svg+xml";
+  }
+  if (key.endsWith(".webp")) {
+    return "image/webp";
+  }
   return "application/octet-stream";
 }
 
