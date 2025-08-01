@@ -51,29 +51,36 @@
  */
 
 import { z } from "zod";
+import type { LanguageModel } from "ai";
 
 // Configuration interfaces
 export interface DeepResearchConfig {
-  steel: {
-    apiKey: string;
+  /**
+   * 🔧 REQUIRED: Direct AI provider to be used for all LLM calls when
+   * individual task-specific models are not supplied.
+   */
+  aiProvider: LanguageModel;
+
+  /**
+   * 🎛️  ADVANCED: Task-specific models.  Any model left undefined will fall
+   * back to `aiProvider` above.
+   */
+  models?: {
+    planner?: LanguageModel;
+    evaluator?: LanguageModel; // THE BRAIN
+    writer?: LanguageModel;
+    summary?: LanguageModel;
   };
-  ai: {
-    provider: {
-      name: "openai" | "anthropic" | "together";
-      apiKey: string;
-      model: string;
-    };
-    writer: {
-      name: "openai" | "anthropic" | "together";
-      apiKey: string;
-      model: string;
-    };
-  };
-  search: {
-    maxDepth: number;
-    maxBreadth: number;
-    timeout: number;
-    retryAttempts: number;
+
+  /** 🔑 REQUIRED – Steel scraping API key */
+  steelApiKey: string;
+
+  /** ✅ PRESERVED – Step 8 research configuration  */
+  research?: {
+    maxSources?: number; // Default 60 – memory limit
+    summaryTokens?: number; // Default 500 – tokens per summary
+    timeout?: number; // Default 30000ms – Steel/network timeout
+    retryAttempts?: number; // Default 3 – Steel retry attempts
   };
 }
 
@@ -81,7 +88,6 @@ export interface DeepResearchConfig {
 export interface SubQuery {
   id: string;
   query: string;
-  category?: string;
 }
 
 // Free-form research plan (strategic thinking step)
@@ -133,6 +139,15 @@ export interface SearchResult {
   metadata?: Record<string, any>;
 }
 
+// NEW: RefinedContent interface as per PRD Component E
+export interface RefinedContent {
+  title: string;
+  url: string;
+  summary: string; // ≤ summaryTokens (default 500)
+  rawLength: number; // Original content length before summarization
+  scrapedAt: Date;
+}
+
 export interface SERPResult {
   results: SearchResult[];
   totalResults: number;
@@ -181,9 +196,11 @@ export interface ResearchDirection {
 
 export interface CompletenessAssessment {
   coverage: number;
+  confidence: number; // NEW: Confidence in findings quality (0-1)
   knowledgeGaps: string[];
   hasEnoughInfo: boolean;
-  recommendedAction: "continue" | "refine" | "synthesize";
+  recommendedAction: "continue" | "synthesize"; // Simplified for THE BRAIN architecture
+  reasoning: string; // NEW: Detailed reasoning for the recommendation
 }
 
 export interface ResearchEvaluation {
@@ -237,18 +254,26 @@ export interface ResearchOptions {
   timeout?: number;
   includeImages?: boolean;
   humanInTheLoop?: boolean;
+  followUpDialogue?: import("ai").CoreMessage[]; // Optional AI SDK message list for query clarification
+  maxSources?: number; // Maximum accumulated sources before termination (default 60)
+  summaryTokens?: number; // Maximum tokens per summary (default 500)
 }
 
 export interface SERPOptions {
   timeout?: number;
   maxResults?: number;
   includeSnippets?: boolean;
+  summaryTokens?: number; // Default 500 - max tokens for LLM summarization
+  streaming?: boolean; // Enable streaming for real-time summarization updates
+  scrapedUrls?: Set<string>; // NEW: URLs already scraped across research iterations (for deduplication)
 }
 
 export interface ExtractionOptions {
   timeout?: number;
   includeImages?: boolean;
   includeMarkdown?: boolean;
+  summaryTokens?: number; // Default 500 - max tokens for LLM summarization
+  streaming?: boolean; // Enable streaming for real-time summarization updates
 }
 
 // Event interfaces
@@ -405,7 +430,6 @@ export interface ResearchUpdate {
 export const SubQuerySchema = z.object({
   id: z.string(),
   query: z.string(),
-  category: z.string().optional(),
 });
 
 export const FreeFormResearchPlanSchema = z.object({
@@ -451,6 +475,15 @@ export const SearchResultSchema = z.object({
   relevanceScore: z.number().min(0).max(1),
   timestamp: z.date(),
   metadata: z.record(z.any()).optional(),
+});
+
+// NEW: RefinedContent schema
+export const RefinedContentSchema = z.object({
+  title: z.string(),
+  url: z.string(),
+  summary: z.string(),
+  rawLength: z.number(),
+  scrapedAt: z.date(),
 });
 
 export const ResearchOptionsSchema = z.object({
@@ -560,14 +593,6 @@ export const isRefinementDecision = (obj: any): obj is RefinementDecision => {
 };
 
 // Default values
-export const DEFAULT_RESEARCH_OPTIONS: Required<ResearchOptions> = {
-  depth: 2,
-  breadth: 3,
-  timeout: 30000,
-  includeImages: false,
-  humanInTheLoop: false,
-};
-
 export const DEFAULT_SEARCH_STRATEGY: SearchStrategy = {
   maxDepth: 3,
   maxBreadth: 5,

@@ -6,61 +6,75 @@
  * discovered sources. It uses Steel's web scraping capabilities to gather information
  * from the internet, handling both search engine results and direct page content extraction.
  *
+ * NEW ARCHITECTURE (BUILD_PLAN Step 3):
+ * - Returns RefinedContent[] instead of SearchResult[]
+ * - Integrates LLM summarization with configurable summaryTokens (default 500)
+ * - Supports streaming for real-time updates
+ * - Uses centralized prompts from prompts.ts
+ * - Leverages serpUtils for better URL extraction
+ *
  * INPUTS:
  * - query: String - Search query to execute
- * - url: String - (for extraction) URL to scrape content from
- * - options: SERPOptions/ExtractionOptions - Configuration for search/extraction
+ * - options: SERPOptions - Configuration including summaryTokens and streaming
  *
  * OUTPUTS:
- * - SERPResult: Contains SearchResult[] with extracted content from search results
- * - SearchResult: Individual search result with URL, title, content, and metadata
- * - PageContent: Extracted content from individual web pages
+ * - RefinedContent[]: Array of summarized content objects with metadata
  *
  * POSITION IN RESEARCH FLOW:
  * 1. **SEARCH EXECUTION** (After QueryPlanner):
  *    - Receives sub-queries from research plan
  *    - Executes Google searches via Steel
- *    - Extracts URLs from search results
+ *    - Extracts URLs from search results using serpUtils
  *    - Scrapes content from discovered pages
+ *    - Summarizes content using LLM with configurable token limits
  *
- * 2. **CONTENT EXTRACTION** (Throughout research):
+ * 2. **CONTENT REFINEMENT** (Throughout research):
  *    - Processes web pages to extract clean content
+ *    - Summarizes content for evaluation and decision-making
  *    - Handles multiple formats (markdown, readability)
  *    - Manages rate limiting and error handling
- *    - Provides structured data for evaluation
+ *    - Provides structured RefinedContent for ContentEvaluator
  *
  * KEY FEATURES:
- * - Google search result parsing and URL extraction
+ * - Google search result parsing and URL extraction via serpUtils
  * - Multi-format content extraction (markdown, readability)
+ * - LLM-powered summarization with streaming support
  * - Parallel scraping with rate limiting
  * - Robust error handling and fallback mechanisms
  * - Content filtering and quality assessment
  * - Real-time progress events and tool call tracking
- * - Metadata enrichment and source attribution
+ * - Configurable summarization token limits
  *
  * TECHNICAL IMPLEMENTATION:
  * - Uses Steel SDK for web scraping
- * - Implements multiple URL extraction strategies
+ * - Integrates centralized prompts for LLM summarization
+ * - Implements serpUtils for URL extraction
  * - Handles various content formats and encodings
  * - Manages concurrent requests with throttling
  * - Provides comprehensive error reporting
+ * - Supports streaming for real-time user feedback
  *
  * USAGE EXAMPLE:
  * ```typescript
- * const searcher = new SearchAgent(steelClient, eventEmitter);
- * const results = await searcher.searchSERP("AI in healthcare", { maxResults: 5 });
- * // Returns: SERPResult with 5 SearchResult objects containing extracted content
+ * const searcher = new SearchAgent(providerManager, eventEmitter);
+ * const results = await searcher.searchAndSummarize("AI in healthcare", {
+ *   summaryTokens: 500,
+ *   streaming: true,
+ *   maxResults: 5
+ * });
+ * // Returns: RefinedContent[] with 5 summarized objects
  * ```
  */
 
-import { SteelClient } from "../providers/providers";
-import { ProviderManager } from "../providers/providers";
+import Steel from "steel-sdk";
+import { generateText } from "ai";
 import {
   SearchResult,
   SERPResult,
   PageContent,
   SERPOptions,
   ExtractionOptions,
+  RefinedContent,
   ToolCallEvent,
   ToolResultEvent,
   DeepResearchEvent,
@@ -69,25 +83,272 @@ import { EventFactory } from "../core/events";
 import { BaseAgent } from "../core/BaseAgent";
 import { EventEmitter } from "events";
 import { logger } from "../utils/logger";
+import { prompts } from "../prompts/prompts";
+import {
+  extractSearchUrls,
+  filterUrls,
+  validateUrl,
+  URLExtractionOptions,
+  sortByDiversity,
+} from "../utils/serpUtils";
 
 export class SearchAgent extends BaseAgent {
-  private readonly steelClient: SteelClient;
+  private readonly steelClient: Steel;
+  private readonly retryAttempts: number;
+  private readonly timeout: number;
 
-  constructor(providerManager: ProviderManager, parentEmitter: EventEmitter) {
-    super(providerManager, parentEmitter);
-    this.steelClient = providerManager.getSteelClient();
+  constructor(
+    models: {
+      planner: any;
+      evaluator: any;
+      writer: any;
+      summary: any;
+    },
+    parentEmitter: EventEmitter,
+    steelApiKey: string,
+    retryAttempts: number = 3,
+    timeout: number = 30000
+  ) {
+    super(models, parentEmitter);
+
+    // Initialize Steel client with API key
+    this.steelClient = new Steel({
+      steelAPIKey: steelApiKey,
+    });
+    this.retryAttempts = retryAttempts;
+    this.timeout = timeout;
   }
 
   /**
-   * Execute a search query and return structured results
+   * Retry a scrape operation with exponential backoff
+   * Implements 3 attempts with delays: 1s, 2s, 4s
+   */
+  private async scrapeWithRetry(
+    url: string,
+    params: any,
+    context: string = "scrape"
+  ): Promise<any> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+      try {
+        const result = await this.steelClient.scrape({
+          url,
+          ...params,
+        });
+
+        // Success on attempt > 1, log the recovery
+        if (attempt > 1) {
+          logger.debug(`${context} succeeded on attempt ${attempt} for ${url}`);
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // If this is the last attempt, don't wait
+        if (attempt === this.retryAttempts) {
+          logger.warn(
+            `${context} failed after ${this.retryAttempts} attempts for ${url}: ${lastError.message}`
+          );
+          throw lastError;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delayMs = Math.pow(2, attempt - 1) * 1000;
+        logger.debug(
+          `${context} attempt ${attempt} failed for ${url}, retrying in ${delayMs}ms...`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    // This should never be reached, but TypeScript needs it
+    throw (
+      lastError ||
+      new Error(`Scraping failed after ${this.retryAttempts} attempts`)
+    );
+  }
+
+  /**
+   * NEW: Execute search and return refined content with LLM summarization
    *
-   * This is the main entry point for search operations. It performs a multi-step process:
+   * This is the main entry point for the new research architecture. It performs:
+   * 1. Searches Google via Steel to get search results page
+   * 2. Extracts URLs from the search results using serpUtils
+   * 3. Scrapes content from each discovered URL
+   * 4. Summarizes content using LLM with configurable token limits
+   * 5. Returns RefinedContent[] for evaluation
+   *
+   * Features:
+   * - Configurable summaryTokens (default 500)
+   * - Streaming support for real-time updates
+   * - Robust error handling with fallbacks
+   * - Parallel processing with rate limiting
+   */
+  async searchAndSummarize(
+    query: string,
+    options: SERPOptions = {}
+  ): Promise<RefinedContent[]> {
+    const startTime = Date.now();
+    const sessionId = this.getCurrentSessionId();
+    const summaryTokens = options.summaryTokens || 500;
+    const streaming = options.streaming || false;
+
+    const toolCallEvent = EventFactory.createToolCallStart(
+      sessionId,
+      "search", // Changed from "search-and-summarize" to match interface
+      {
+        query,
+        metadata: {
+          summaryTokens,
+          streaming,
+          maxResults: options.maxResults || 5,
+          ...options,
+        },
+      }
+    );
+    this.emit("tool-call", toolCallEvent);
+    const toolCallId = toolCallEvent.toolCallId;
+
+    try {
+      // Step 1: Get search results URLs from Google
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(
+        query
+      )}`;
+
+      const serpResponse = await this.scrapeWithRetry(
+        searchUrl,
+        {
+          format: ["markdown", "readability"],
+          delay: 1000, // 1 second delay to avoid being flagged
+        },
+        "SERP search"
+      );
+
+      // Step 2: Extract URLs using serpUtils
+      const targetResults = options.maxResults || 5;
+      const urlOptions: URLExtractionOptions = {
+        maxResults: targetResults * 3, // Extract 3x more URLs to account for potential duplicates
+        excludeYouTube: true, // Skip YouTube for text research
+        excludeGoogleServices: true,
+      };
+
+      const allSearchUrls = extractSearchUrls(
+        serpResponse,
+        targetResults * 3, // Extract more URLs initially
+        urlOptions
+      );
+
+      if (allSearchUrls.length === 0) {
+        logger.warn("No URLs found in search results");
+        return [];
+      }
+
+      // Step 2.5: URL Deduplication - Filter out already scraped URLs
+      const scrapedUrls = options.scrapedUrls || new Set<string>();
+      // Ensure downstream functions can mutate and persist this set
+      if (!options.scrapedUrls) {
+        options.scrapedUrls = scrapedUrls;
+      }
+      const uniqueUrls = allSearchUrls.filter((url) => !scrapedUrls.has(url));
+
+      // Log deduplication metrics
+      const duplicateCount = allSearchUrls.length - uniqueUrls.length;
+      if (duplicateCount > 0) {
+        logger.debug(
+          `URL Deduplication: Filtered out ${duplicateCount} duplicate URLs from ${allSearchUrls.length} total URLs`
+        );
+        logger.debug(
+          `Duplicate URLs: ${allSearchUrls
+            .filter((url) => scrapedUrls.has(url))
+            .join(", ")}`
+        );
+      }
+
+      // Check if we have enough unique URLs for meaningful scraping
+      if (uniqueUrls.length === 0) {
+        logger.warn(
+          `No unique URLs to scrape - all ${allSearchUrls.length} URLs already processed`
+        );
+        return [];
+      }
+
+      if (uniqueUrls.length < (options.maxResults || 5) / 2) {
+        logger.warn(
+          `Limited unique URLs available: ${uniqueUrls.length} unique out of ${allSearchUrls.length} found`
+        );
+      }
+
+      // Use the deduplicated URLs for scraping, limited to target count
+      const searchUrls = uniqueUrls.slice(0, targetResults);
+
+      // Step 3: Scrape and summarize content from URLs
+      const refinedContent = await this.scrapeAndSummarizeUrls(
+        searchUrls,
+        query,
+        summaryTokens,
+        streaming,
+        options
+      );
+
+      const searchTime = Date.now() - startTime;
+
+      // Emit successful result with metrics
+      const toolResultEvent = EventFactory.createToolCallEnd(
+        sessionId,
+        toolCallId,
+        "search", // Changed from "search-and-summarize" to match interface
+        true,
+        {
+          data: refinedContent,
+          resultCount: refinedContent.length,
+          metadata: {
+            searchTime,
+            urlsFound: allSearchUrls.length,
+            uniqueUrlsFound: searchUrls.length,
+            duplicatesFiltered: duplicateCount,
+            summaryTokens,
+            streaming,
+            deduplicationEnabled: options.scrapedUrls !== undefined,
+          },
+        },
+        undefined,
+        new Date(startTime)
+      );
+      this.emit("tool-result", toolResultEvent);
+
+      return refinedContent;
+    } catch (error) {
+      // Emit error result for debugging
+      const toolErrorEvent = EventFactory.createToolCallEnd(
+        sessionId,
+        toolCallId,
+        "search", // Changed from "search-and-summarize" to match interface
+        false,
+        undefined,
+        error instanceof Error ? error.message : String(error),
+        new Date(startTime)
+      );
+      this.emit("tool-result", toolErrorEvent);
+
+      throw error;
+    }
+  }
+
+  /**
+   * LEGACY: Execute a search query and return structured results
+   *
+   * This is the original entry point for search operations. It performs a multi-step process:
    * 1. Searches Google via Steel to get search results page
    * 2. Extracts URLs from the search results
    * 3. Scrapes content from each discovered URL
    * 4. Structures the results for evaluation
    *
    * The method handles various failure modes and provides comprehensive error reporting.
+   *
+   * @deprecated Use searchAndSummarize() for new architecture
    */
   async searchSERP(
     query: string,
@@ -112,16 +373,54 @@ export class SearchAgent extends BaseAgent {
         query
       )}`;
 
-      const serpResponse = await this.steelClient.scrape(searchUrl, {
-        format: ["markdown"],
-        timeout: options.timeout || 10000,
-      });
+      const serpResponse = await this.scrapeWithRetry(
+        searchUrl,
+        {
+          format: ["markdown", "readability"],
+          delay: 1000, // 1 second delay to avoid being flagged
+        },
+        "SERP search"
+      );
 
       // Step 2: Parse URLs from search results using multiple extraction strategies
-      const searchUrls = this.extractSearchUrls(
+      const targetResults = options.maxResults || 5;
+      const allSearchUrls = this.extractSearchUrls(
         serpResponse,
-        options.maxResults || 5
+        targetResults * 3 // Extract more URLs initially to account for duplicates
       );
+
+      // Step 2.5: URL Deduplication - Filter out already scraped URLs
+      const scrapedUrls = options.scrapedUrls || new Set<string>();
+      // Ensure downstream functions can mutate and persist this set
+      if (!options.scrapedUrls) {
+        options.scrapedUrls = scrapedUrls;
+      }
+      const uniqueUrls = allSearchUrls.filter((url) => !scrapedUrls.has(url));
+
+      // Log deduplication metrics
+      const duplicateCount = allSearchUrls.length - uniqueUrls.length;
+      if (duplicateCount > 0) {
+        logger.debug(
+          `URL Deduplication (legacy searchSERP): Filtered out ${duplicateCount} duplicate URLs from ${allSearchUrls.length} total URLs`
+        );
+      }
+
+      // Check if we have enough unique URLs for meaningful scraping
+      if (uniqueUrls.length === 0) {
+        logger.warn(
+          `No unique URLs to scrape - all ${allSearchUrls.length} URLs already processed`
+        );
+        // Return empty result
+        return {
+          results: [],
+          totalResults: 0,
+          searchTime: Date.now() - startTime,
+          query,
+        };
+      }
+
+      // Use the deduplicated URLs for scraping, limited to target count
+      const searchUrls = uniqueUrls.slice(0, targetResults);
 
       // Step 3: Scrape content from top search results concurrently
       const searchResults = await this.scrapeSearchResults(
@@ -150,7 +449,10 @@ export class SearchAgent extends BaseAgent {
           resultCount: searchResults.length,
           metadata: {
             searchTime,
-            urlsFound: searchUrls.length,
+            urlsFound: allSearchUrls.length,
+            uniqueUrlsFound: searchUrls.length,
+            duplicatesFiltered: duplicateCount,
+            deduplicationEnabled: options.scrapedUrls !== undefined,
           },
         },
         undefined,
@@ -201,24 +503,26 @@ export class SearchAgent extends BaseAgent {
 
     try {
       // Use Steel to scrape the page with appropriate format
-      const result = await this.steelClient.scrape(url, {
-        format: options.includeMarkdown ? ["markdown"] : ["readability"],
-        timeout: options.timeout || 10000,
-      });
+      const result = await this.scrapeWithRetry(
+        url,
+        {
+          format: ["readability", "markdown"],
+          delay: 500, // Shorter delay for individual pages
+        },
+        "page content"
+      );
 
-      // Handle different Steel API response formats
+      // Handle Steel API response format
       const contentText =
         typeof result.content === "string"
           ? result.content
-          : typeof result.markdown === "string"
-          ? result.markdown
-          : JSON.stringify(result.content || result.markdown || result);
+          : JSON.stringify(result.content || result);
 
       const pageContent: PageContent = {
         url,
         title: this.extractTitle(contentText) || "Untitled",
         content: contentText,
-        markdown: result.markdown || contentText,
+        markdown: contentText,
         images: options.includeImages ? this.extractImages(contentText) : [],
         metadata: {
           scrapedAt: new Date(),
@@ -266,7 +570,7 @@ export class SearchAgent extends BaseAgent {
   }
 
   /**
-   * Extract URLs from Google search results
+   * LEGACY: Extract URLs from Google search results
    *
    * This method implements multiple strategies for extracting URLs from search results:
    * 1. Markdown link extraction
@@ -274,156 +578,195 @@ export class SearchAgent extends BaseAgent {
    * 3. Plain URL pattern matching
    *
    * It filters out Google internal URLs, ads, and other non-content URLs.
+   *
+   * @deprecated Use extractSearchUrls from serpUtils for new architecture
    */
   private extractSearchUrls(serpResponse: any, maxResults: number): string[] {
-    // Handle different Steel API response formats
-    const content =
-      typeof serpResponse.content === "string"
-        ? serpResponse.content
-        : typeof serpResponse.markdown === "string"
-        ? serpResponse.markdown
-        : JSON.stringify(serpResponse);
+    // Use the new serpUtils for consistency
+    const urlOptions: URLExtractionOptions = {
+      maxResults,
+      excludeYouTube: true,
+      excludeGoogleServices: true,
+    };
 
-    const urls: string[] = [];
-
-    logger.debug("🔍 SERP Response sample:", content.substring(0, 500));
-
-    // Try multiple extraction methods
-
-    // Method 1: Markdown links - most reliable for Steel's markdown format
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let match;
-
-    while (
-      (match = linkRegex.exec(content)) !== null &&
-      urls.length < maxResults
-    ) {
-      const url = match[2];
-
-      // Skip Google internal URLs, ads, and other non-content URLs
-      if (
-        url &&
-        !url.includes("google.com") &&
-        !url.includes("googleadservices.com") &&
-        !url.includes("googlesyndication.com") &&
-        !url.includes("youtube.com/watch") && // Skip YouTube for now
-        url.startsWith("http") &&
-        !url.includes("webcache.googleusercontent.com") &&
-        !url.includes("/search?") // Skip search URLs
-      ) {
-        urls.push(url);
-        logger.debug(`📄 Found URL: ${url}`);
-      }
-    }
-
-    // Method 2: Look for URLs in href attributes if structured data
-    const hrefRegex = /href="([^"]+)"/g;
-    while (
-      (match = hrefRegex.exec(content)) !== null &&
-      urls.length < maxResults
-    ) {
-      const url = match[1];
-
-      if (
-        url &&
-        !url.includes("google.com") &&
-        !url.includes("googleadservices.com") &&
-        !url.includes("googlesyndication.com") &&
-        url.startsWith("http") &&
-        !urls.includes(url) // Don't add duplicates
-      ) {
-        urls.push(url);
-        logger.debug(`🔗 Found href URL: ${url}`);
-      }
-    }
-
-    // Method 3: Look for plain HTTP URLs as fallback
-    const urlRegex = /https?:\/\/[^\s<>"]+/g;
-    while (
-      (match = urlRegex.exec(content)) !== null &&
-      urls.length < maxResults
-    ) {
-      const url = match[0];
-
-      if (
-        url &&
-        !url.includes("google.com") &&
-        !url.includes("googleadservices.com") &&
-        !url.includes("googlesyndication.com") &&
-        !urls.includes(url) // Don't add duplicates
-      ) {
-        urls.push(url);
-        logger.debug(`🌐 Found plain URL: ${url}`);
-      }
-    }
-
-    logger.debug(`📊 Total URLs found: ${urls.length}`);
-
-    return urls.slice(0, maxResults);
+    return extractSearchUrls(serpResponse, maxResults, urlOptions);
   }
 
   /**
-   * Scrape content from multiple URLs concurrently
+   * NEW: Scrape content from URLs and summarize with LLM
+   *
+   * This method manages the complete pipeline from URL scraping to LLM summarization:
+   * 1. Scrapes content from multiple URLs concurrently
+   * 2. Summarizes each page using LLM with configurable token limits
+   * 3. Handles streaming for real-time updates
+   * 4. Returns RefinedContent[] with metadata
+   *
+   * Features:
+   * - Rate limiting to avoid overwhelming target sites
+   * - Robust error handling with fallbacks
+   * - Streaming support for real-time summarization
+   * - Configurable summarization token limits
+   */
+  private async scrapeAndSummarizeUrls(
+    urls: string[],
+    query: string,
+    summaryTokens: number,
+    streaming: boolean,
+    options: SERPOptions
+  ): Promise<RefinedContent[]> {
+    // Ensure we have a Set available to record attempted URLs for future deduplication
+    const scrapedUrlsSet = options.scrapedUrls;
+
+    // Process URLs concurrently with rate limiting
+    const scrapingPromises = urls.map(
+      async (url, index): Promise<RefinedContent | null> => {
+        try {
+          // Add delay to avoid overwhelming target sites
+          await new Promise((resolve) => setTimeout(resolve, index * 500));
+
+          // Step 1: Scrape the page content
+          const pageContent = await this.extractPageContent(url, {
+            includeMarkdown: true,
+            timeout: options.timeout || 10000,
+          });
+
+          // Step 2: Summarize content using LLM
+          const summary = await this.summarizeContent(
+            pageContent.content,
+            query,
+            summaryTokens,
+            streaming
+          );
+
+          // Record successful scrape
+          scrapedUrlsSet?.add(url);
+
+          // Step 3: Create RefinedContent object
+          const refinedContent: RefinedContent = {
+            title: pageContent.title,
+            url,
+            summary,
+            rawLength: pageContent.content.length,
+            scrapedAt: new Date(),
+          };
+
+          return refinedContent;
+        } catch (error) {
+          logger.warn(`Failed to scrape and summarize ${url}:`, error);
+
+          // Record failed attempt so we skip it next time
+          scrapedUrlsSet?.add(url);
+
+          // Discard this URL by returning null – it will be filtered out
+          return null;
+        }
+      }
+    );
+
+    const scrapedResults = await Promise.all(scrapingPromises);
+    // Filter out any null results (failed scrapes)
+    return scrapedResults.filter((r): r is RefinedContent => r !== null);
+  }
+
+  /**
+   * Summarize content using LLM with centralized prompts
+   *
+   * This method uses the centralized prompts module and provider helpers
+   * to generate concise summaries of web content for research purposes.
+   */
+  private async summarizeContent(
+    content: string,
+    query: string,
+    summaryTokens: number,
+    streaming: boolean
+  ): Promise<string> {
+    try {
+      // Use centralized prompt generation
+      const summaryPrompt = prompts.buildSummaryPrompt(
+        content,
+        query,
+        summaryTokens
+      );
+
+      // Get appropriate LLM provider
+      const llm = this.getLLM("summary");
+
+      // Generate summary using AI SDK generateText directly
+      const { text } = await generateText({
+        model: llm,
+        prompt: summaryPrompt,
+        maxOutputTokens: summaryTokens,
+        temperature: 0.1,
+      });
+
+      return text;
+    } catch (error) {
+      logger.warn("Failed to generate LLM summary:", error);
+
+      // Fallback to truncated content if LLM fails
+      const truncated = content.substring(0, summaryTokens * 3); // Rough token estimation
+      return `${truncated}${truncated.length < content.length ? "..." : ""}`;
+    }
+  }
+
+  /**
+   * LEGACY: Scrape content from multiple URLs concurrently
    *
    * This method manages concurrent scraping with rate limiting to avoid overwhelming
    * target sites. It handles individual failures gracefully while maximizing successful
    * content extraction.
+   *
+   * @deprecated Use scrapeAndSummarizeUrls() for new architecture
    */
   private async scrapeSearchResults(
     urls: string[],
     query: string,
     options: SERPOptions
   ): Promise<SearchResult[]> {
-    const results: SearchResult[] = [];
+    const scrapedUrlsSet = options.scrapedUrls;
 
     // Scrape each URL concurrently with throttling to avoid overwhelming sites
-    const scrapingPromises = urls.map(async (url, index) => {
-      try {
-        // Add a small delay to avoid overwhelming the target sites
-        await new Promise((resolve) => setTimeout(resolve, index * 500));
+    const scrapingPromises = urls.map(
+      async (url, index): Promise<SearchResult | null> => {
+        try {
+          // Add a small delay to avoid overwhelming the target sites
+          await new Promise((resolve) => setTimeout(resolve, index * 500));
 
-        const pageContent = await this.extractPageContent(url, {
-          includeMarkdown: true,
-          timeout: options.timeout || 10000,
-        });
+          const pageContent = await this.extractPageContent(url, {
+            includeMarkdown: true,
+            timeout: options.timeout || 10000,
+          });
 
-        return {
-          id: `search-${Date.now()}-${index}`,
-          query,
-          url,
-          title: pageContent.title,
-          content: pageContent.content,
-          summary: pageContent.content.substring(0, 300) + "...",
-          relevanceScore: 0.8 - index * 0.1, // Higher score for earlier results
-          timestamp: new Date(),
-          metadata: {
-            source: "web-scrape",
-            scrapedAt: new Date(),
-            contentLength: pageContent.content.length,
-          },
-        };
-      } catch (error) {
-        // If scraping fails, return a minimal result to maintain flow
-        logger.warn(`Failed to scrape ${url}:`, error);
-        return {
-          id: `search-failed-${Date.now()}-${index}`,
-          query,
-          url,
-          title: `Failed to scrape: ${url}`,
-          content: `Error scraping content from ${url}`,
-          summary: "Content could not be retrieved",
-          relevanceScore: 0.1,
-          timestamp: new Date(),
-          metadata: {
-            source: "web-scrape",
-            error: error instanceof Error ? error.message : String(error),
-          },
-        };
+          // Record successful scrape
+          scrapedUrlsSet?.add(url);
+
+          return {
+            id: `search-${Date.now()}-${index}`,
+            query,
+            url,
+            title: pageContent.title,
+            content: pageContent.content,
+            summary: pageContent.content.substring(0, 300) + "...",
+            relevanceScore: 0.8 - index * 0.1, // Higher score for earlier results
+            timestamp: new Date(),
+            metadata: {
+              source: "web-scrape",
+              scrapedAt: new Date(),
+              contentLength: pageContent.content.length,
+            },
+          };
+        } catch (error) {
+          // If scraping fails, log and record the URL but do not include it in results
+          logger.warn(`Failed to scrape ${url}:`, error);
+          scrapedUrlsSet?.add(url);
+          return null;
+        }
       }
-    });
+    );
 
     const scrapedResults = await Promise.all(scrapingPromises);
-    return scrapedResults;
+    // Remove null entries caused by failed scrapes
+    return scrapedResults.filter((r): r is SearchResult => r !== null);
   }
 
   /**

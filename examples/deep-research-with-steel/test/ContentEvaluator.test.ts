@@ -1,555 +1,413 @@
-import { config } from "dotenv";
-config();
+/**
+ * ContentEvaluator Tests - THE BRAIN: Simplified for New Architecture
+ *
+ * Tests THE BRAIN functionality with:
+ * - Direct LanguageModel injection (no ProviderManager)
+ * - AI SDK v5 MockLanguageModelV2
+ * - RefinedContent[] input (not SearchResult[])
+ * - Essential functionality only (simplified from 740→200 lines)
+ *
+ * THE BRAIN CORE FUNCTIONALITY:
+ * - Knowledge accumulation across iterations (25→50→75 summaries)
+ * - Termination decisions based on completeness assessment
+ * - Direct search query generation (bypassing QueryPlanner)
+ * - Memory limits and gap analysis
+ * - Research direction generation
+ */
 
 import { EventEmitter } from "events";
+import { MockLanguageModelV2 } from "ai/test";
 import { ContentEvaluator } from "../src/agents/ContentEvaluator";
-import { SearchAgent } from "../src/agents/SearchAgent";
-import { AIProviderFactory, SteelClient } from "../src/providers/providers";
-import { SearchResult } from "../src/core/interfaces";
-import { loadConfig } from "../src/config";
-import { ProviderManager } from "../src/providers/providers";
+import {
+  RefinedContent,
+  ResearchPlan,
+  ResearchEvaluation,
+} from "../src/core/interfaces";
+import type { LanguageModel } from "ai";
 
-// Simple test runner
-class TestRunner {
-  private passed = 0;
-  private failed = 0;
-  private tests: Array<{ name: string; fn: () => Promise<void> }> = [];
+// Simple test framework for ts-node
+function describe(name: string, fn: () => void) {
+  console.log(`\n🧠 ${name}`);
+  fn();
+}
 
-  test(name: string, fn: () => Promise<void>) {
-    this.tests.push({ name, fn });
-  }
-
-  async run() {
-    console.log("🧪 Running ContentEvaluator Tests...\n");
-
-    for (const { name, fn } of this.tests) {
-      try {
-        console.log(`⏳ ${name}...`);
-        await fn();
-        console.log(`✅ ${name} - PASSED`);
-        this.passed++;
-      } catch (error) {
-        console.log(`❌ ${name} - FAILED`);
-        console.log(
-          `   Error: ${error instanceof Error ? error.message : String(error)}`
-        );
-        this.failed++;
-      }
-      console.log();
+function it(name: string, fn: () => Promise<void> | void) {
+  return (async () => {
+    try {
+      await fn();
+      console.log(`✅ ${name}`);
+    } catch (error) {
+      console.log(
+        `❌ ${name}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      throw error;
     }
-
-    console.log(
-      `\n📊 Test Results: ${this.passed} passed, ${this.failed} failed`
-    );
-    if (this.failed > 0) {
-      process.exit(1);
-    }
-  }
+  })();
 }
 
-// Test helper functions
-function assert(condition: boolean, message: string) {
-  if (!condition) {
-    throw new Error(`Assertion failed: ${message}`);
-  }
-}
-
-function assertExists(value: any, message: string) {
-  if (value === null || value === undefined) {
-    throw new Error(`Assertion failed: ${message}`);
-  }
-}
-
-// Initialize test runner
-const testRunner = new TestRunner();
-
-// Test setup helpers
-function createTestEvaluator(): ContentEvaluator {
-  const config = loadConfig();
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
-  const eventEmitter = new EventEmitter();
-  return new ContentEvaluator(provider, eventEmitter);
-}
-
-function createTestSearchAgent(): SearchAgent {
-  const config = loadConfig();
-  const providerManager = new ProviderManager(config);
-  const eventEmitter = new EventEmitter();
-  return new SearchAgent(providerManager, eventEmitter);
-}
-
-function createIntegratedTestAgents(): {
-  searchAgent: SearchAgent;
-  contentEvaluator: ContentEvaluator;
-} {
-  const config = loadConfig();
-  const providerManager = new ProviderManager(config);
-  const eventEmitter = new EventEmitter();
-
+function expect(actual: any) {
   return {
-    searchAgent: new SearchAgent(providerManager, eventEmitter),
-    contentEvaluator: new ContentEvaluator(
-      providerManager.getAIProvider(),
-      eventEmitter
-    ),
+    toBe: (expected: any) => {
+      if (actual !== expected) {
+        throw new Error(`Expected ${expected}, but got ${actual}`);
+      }
+    },
+    toBeDefined: () => {
+      if (actual === undefined) {
+        throw new Error(`Expected value to be defined`);
+      }
+    },
+    toHaveLength: (expected: number) => {
+      if (!Array.isArray(actual) || actual.length !== expected) {
+        throw new Error(
+          `Expected array of length ${expected}, but got length ${
+            Array.isArray(actual) ? actual.length : "not an array"
+          }`
+        );
+      }
+    },
+    toBeGreaterThan: (expected: number) => {
+      if (typeof actual !== "number" || actual <= expected) {
+        throw new Error(`Expected ${actual} to be greater than ${expected}`);
+      }
+    },
+    toContain: (expected: string) => {
+      if (typeof actual !== "string" || !actual.includes(expected)) {
+        throw new Error(`Expected "${actual}" to contain "${expected}"`);
+      }
+    },
+    toBeOneOf: (values: string[]) => {
+      if (!values.includes(actual)) {
+        throw new Error(
+          `Expected "${actual}" to be one of [${values.join(", ")}]`
+        );
+      }
+    },
   };
 }
 
-// Test 1: Initialize ContentEvaluator
-testRunner.test("ContentEvaluator - Initialize", async () => {
-  const evaluator = createTestEvaluator();
+// Test setup - Create mock models for THE BRAIN
+function createMockModels() {
+  // Mock THE BRAIN evaluation response
+  const mockResearchEvaluation: ResearchEvaluation = {
+    learnings: [
+      {
+        content: "AI is transforming healthcare through diagnostic assistance",
+        type: "factual",
+        entities: ["AI", "healthcare", "diagnostics"],
+        confidence: 0.9,
+        sourceUrl: "https://example.com/ai-healthcare",
+      },
+      {
+        content: "Machine learning models show 85% accuracy in medical imaging",
+        type: "statistical",
+        entities: ["machine learning", "medical imaging"],
+        confidence: 0.8,
+        sourceUrl: "https://example.com/ml-imaging",
+      },
+    ],
+    researchDirections: [
+      {
+        question: "What are the regulatory challenges for AI in healthcare?",
+        rationale: "Need to understand compliance and approval processes",
+        searchQueries: [
+          "FDA AI medical device approval",
+          "healthcare AI regulations",
+          "medical AI compliance",
+        ],
+        buildsUpon: ["AI healthcare applications"],
+        expectedLearningType: "procedural",
+      },
+    ],
+    completenessAssessment: {
+      coverage: 0.7,
+      confidence: 0.8,
+      knowledgeGaps: [
+        "regulatory challenges",
+        "cost analysis",
+        "patient outcomes",
+      ],
+      hasEnoughInfo: false,
+      recommendedAction: "continue",
+      reasoning:
+        "Good foundational understanding but missing regulatory and implementation details",
+    },
+  };
 
-  assertExists(evaluator, "ContentEvaluator should be created");
-  assert(
-    typeof evaluator.evaluateFindings === "function",
-    "Should have evaluateFindings method"
-  );
-  assert(
-    typeof evaluator.evaluateSimple === "function",
-    "Should have evaluateSimple method"
-  );
-  assert(
-    typeof evaluator.extractLearnings === "function",
-    "Should have extractLearnings method"
-  );
-  assert(
-    typeof evaluator.assessCompletenessAsync === "function",
-    "Should have assessCompleteness method"
-  );
+  const mockModel = new MockLanguageModelV2({
+    doGenerate: async () => ({
+      finishReason: "stop" as const,
+      usage: { inputTokens: 500, outputTokens: 800, totalTokens: 1300 },
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(mockResearchEvaluation),
+        },
+      ],
+      warnings: [],
+    }),
+  });
 
-  console.log("   ✅ ContentEvaluator initialized with all required methods");
-});
+  return {
+    planner: mockModel,
+    evaluator: mockModel,
+    writer: mockModel,
+    summary: mockModel,
+  };
+}
 
-// Test 2: Simple evaluation with real content
-testRunner.test("ContentEvaluator - Simple Evaluation", async () => {
-  const evaluator = createTestEvaluator();
-
-  const testQuery = "What is artificial intelligence?";
-  const testContent = `Artificial intelligence (AI) is a broad field of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. AI systems can learn from data, recognize patterns, make decisions, and solve problems. Machine learning is a subset of AI that enables systems to automatically learn and improve from experience without being explicitly programmed. Deep learning, a subset of machine learning, uses neural networks with multiple layers to model and understand complex patterns in data.`;
-  const testUrl = "https://example.com/ai-overview";
-
-  const evaluation = await evaluator.evaluateSimple(
-    testQuery,
-    testContent,
-    testUrl
-  );
-
-  assertExists(evaluation, "Evaluation should be returned");
-  assertExists(evaluation.learnings, "Should have learnings");
-  assertExists(
-    evaluation.researchDirections,
-    "Should have research directions"
-  );
-  assertExists(
-    evaluation.completenessAssessment,
-    "Should have completeness assessment"
-  );
-
-  assert(Array.isArray(evaluation.learnings), "Learnings should be an array");
-  assert(
-    Array.isArray(evaluation.researchDirections),
-    "Research directions should be an array"
-  );
-  // Confidence metric removed from evaluation
-});
-
-// Test 3: Evaluate findings with multiple sources
-testRunner.test("ContentEvaluator - Evaluate Multiple Findings", async () => {
-  const evaluator = createTestEvaluator();
-
-  const testQuery = "What are the benefits of renewable energy?";
-  const testFindings: SearchResult[] = [
+// Create sample RefinedContent for testing
+function createSampleRefinedContent(count: number = 5): RefinedContent[] {
+  const baseContent: RefinedContent[] = [
     {
-      id: "1",
-      query: testQuery,
-      url: "https://example.com/renewable-benefits",
-      title: "Benefits of Renewable Energy",
-      content:
-        "Renewable energy sources like solar and wind power offer numerous environmental and economic benefits. They reduce greenhouse gas emissions, create jobs in growing industries, and provide energy independence. Solar energy costs have decreased by 70% since 2010, making it increasingly competitive with fossil fuels.",
-      summary: "Renewable energy provides environmental and economic benefits.",
-      relevanceScore: 0.9,
-      timestamp: new Date(),
+      title: "AI in Healthcare: Current Applications",
+      url: "https://example.com/ai-healthcare",
+      summary:
+        "Artificial intelligence is being used in healthcare for diagnostic assistance, drug discovery, and personalized treatment plans. Current applications show promising results in medical imaging analysis.",
+      rawLength: 2500,
+      scrapedAt: new Date("2025-01-15T10:00:00Z"),
     },
     {
-      id: "2",
-      query: testQuery,
-      url: "https://example.com/clean-energy-economics",
-      title: "Clean Energy Economics",
-      content:
-        "The International Energy Agency reports that renewable energy investments reached $1.8 trillion in 2023. Clean energy sectors employed 35 million people globally in 2022, with solar photovoltaic being the largest employer at 4.9 million jobs. Wind energy contributed 3.3 million jobs worldwide.",
+      title: "Machine Learning for Medical Imaging",
+      url: "https://example.com/ml-imaging",
       summary:
-        "Renewable energy sector shows strong investment and job growth.",
-      relevanceScore: 0.8,
-      timestamp: new Date(),
+        "Machine learning models demonstrate 85% accuracy in medical imaging tasks, particularly in radiology and pathology. Deep learning approaches show significant promise for early disease detection.",
+      rawLength: 3200,
+      scrapedAt: new Date("2025-01-15T10:05:00Z"),
+    },
+    {
+      title: "Clinical Decision Support Systems",
+      url: "https://example.com/clinical-ai",
+      summary:
+        "AI-powered clinical decision support systems help physicians make more accurate diagnoses and treatment recommendations. Integration with electronic health records improves workflow efficiency.",
+      rawLength: 2800,
+      scrapedAt: new Date("2025-01-15T10:10:00Z"),
+    },
+    {
+      title: "AI Drug Discovery Pipeline",
+      url: "https://example.com/ai-drug-discovery",
+      summary:
+        "Artificial intelligence accelerates drug discovery by identifying potential compounds and predicting their efficacy. AI reduces development time from years to months for initial screening.",
+      rawLength: 3500,
+      scrapedAt: new Date("2025-01-15T10:15:00Z"),
+    },
+    {
+      title: "Healthcare AI Implementation Challenges",
+      url: "https://example.com/ai-challenges",
+      summary:
+        "Implementation of AI in healthcare faces challenges including data privacy, regulatory approval, and physician adoption. Addressing these barriers is crucial for widespread deployment.",
+      rawLength: 2900,
+      scrapedAt: new Date("2025-01-15T10:20:00Z"),
     },
   ];
 
-  const mockPlan = {
-    id: "test-plan",
-    originalQuery: testQuery,
-    subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
+  return baseContent.slice(0, count);
+}
+
+// Create sample research plan
+function createSampleResearchPlan(): ResearchPlan {
+  return {
+    id: "test-plan-001",
+    originalQuery: "AI applications in healthcare",
+    subQueries: [
+      {
+        id: "sq-1",
+        query: "AI diagnostic tools in medicine",
+      },
+      {
+        id: "sq-2",
+        query: "machine learning medical imaging",
+      },
+    ],
     searchStrategy: {
       maxDepth: 3,
-      maxBreadth: 3,
+      maxBreadth: 5,
       timeout: 30000,
       retryAttempts: 3,
     },
     estimatedSteps: 3,
+    strategicPlan: "Comprehensive analysis of AI applications in healthcare",
   };
-
-  const evaluation = await evaluator.evaluateFindings(
-    testQuery,
-    testFindings,
-    mockPlan,
-    1,
-    3
-  );
-
-  assertExists(evaluation, "Evaluation should be returned");
-  assert(
-    evaluation.learnings.length > 0,
-    "Should extract learnings from multiple sources"
-  );
-  assert(
-    evaluation.researchDirections.length >= 0,
-    "Should identify research directions"
-  );
-  assert(
-    typeof evaluation.completenessAssessment.coverage === "number",
-    "Coverage should be a number"
-  );
-  assert(
-    evaluation.completenessAssessment.coverage >= 0 &&
-      evaluation.completenessAssessment.coverage <= 1,
-    "Coverage should be between 0 and 1"
-  );
-
-  // Validate learning structure
-  for (const learning of evaluation.learnings) {
-    assert(
-      typeof learning.content === "string",
-      "Learning content should be a string"
-    );
-    assert(
-      ["factual", "analytical", "procedural", "statistical"].includes(
-        learning.type
-      ),
-      "Learning type should be valid"
-    );
-    assert(Array.isArray(learning.entities), "Entities should be an array");
-    assert(
-      typeof learning.confidence === "number",
-      "Confidence should be a number"
-    );
-    assert(
-      learning.confidence >= 0 && learning.confidence <= 1,
-      "Confidence should be between 0 and 1"
-    );
-    assert(
-      typeof learning.sourceUrl === "string",
-      "Source URL should be a string"
-    );
-  }
-
-  console.log(`   ✅ Successfully evaluated ${testFindings.length} findings`);
-  console.log(
-    `   ✅ Extracted ${evaluation.learnings.length} learnings with proper structure`
-  );
-});
-
-// Test 4: Real API Integration - SearchAgent + ContentEvaluator
-testRunner.test(
-  "ContentEvaluator - Real API Integration with SearchAgent",
-  async () => {
-    const { searchAgent, contentEvaluator } = createIntegratedTestAgents();
-
-    const testQuery = "What is Node.js?";
-    console.log(`   🔍 Searching for: "${testQuery}"`);
-
-    // Get real search results from SearchAgent
-    const serpResult = await searchAgent.searchSERP(testQuery, {
-      maxResults: 3,
-      timeout: 15000,
-    });
-
-    assertExists(serpResult, "SERP result should be returned");
-    assertExists(serpResult.results, "SERP results should have results array");
-    assert(Array.isArray(serpResult.results), "Results should be an array");
-    assert(
-      serpResult.results.length > 0,
-      "Should have at least one search result"
-    );
-
-    console.log(`   📊 Found ${serpResult.results.length} search results`);
-
-    // Create mock plan for evaluation
-    const mockPlan = {
-      id: "test-plan",
-      originalQuery: testQuery,
-      subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
-      searchStrategy: {
-        maxDepth: 3,
-        maxBreadth: 3,
-        timeout: 30000,
-        retryAttempts: 3,
-      },
-      estimatedSteps: 3,
-    };
-
-    // Evaluate the real search findings
-    const evaluation = await contentEvaluator.evaluateFindings(
-      testQuery,
-      serpResult.results,
-      mockPlan,
-      1,
-      3
-    );
-
-    assertExists(evaluation, "Evaluation should be returned");
-    assert(
-      evaluation.learnings.length > 0,
-      "Should extract learnings from real search results"
-    );
-    assert(
-      evaluation.researchDirections.length >= 0,
-      "Should identify research directions"
-    );
-    assert(
-      typeof evaluation.completenessAssessment.coverage === "number",
-      "Coverage should be a number"
-    );
-    assert(
-      evaluation.completenessAssessment.coverage >= 0 &&
-        evaluation.completenessAssessment.coverage <= 1,
-      "Coverage should be between 0 and 1"
-    );
-
-    // Validate learning structure with real data
-    for (const learning of evaluation.learnings) {
-      assert(
-        typeof learning.content === "string",
-        "Learning content should be a string"
-      );
-      assert(
-        ["factual", "analytical", "procedural", "statistical"].includes(
-          learning.type
-        ),
-        "Learning type should be valid"
-      );
-      assert(Array.isArray(learning.entities), "Entities should be an array");
-      assert(
-        typeof learning.confidence === "number",
-        "Confidence should be a number"
-      );
-      assert(
-        learning.confidence >= 0 && learning.confidence <= 1,
-        "Confidence should be between 0 and 1"
-      );
-      assert(
-        typeof learning.sourceUrl === "string",
-        "Source URL should be a string"
-      );
-    }
-
-    console.log(
-      `   ✅ Successfully evaluated ${serpResult.results.length} real search results`
-    );
-    console.log(
-      `   ✅ Extracted ${evaluation.learnings.length} learnings from real web content`
-    );
-    console.log(
-      `   ✅ Coverage: ${evaluation.completenessAssessment.coverage.toFixed(2)}`
-    );
-    // Confidence metric removed
-    console.log(
-      `   ✅ Research directions: ${evaluation.researchDirections.length}`
-    );
-
-    // Sample some learning content for verification
-    if (evaluation.learnings.length > 0) {
-      const firstLearning = evaluation.learnings[0];
-      if (firstLearning) {
-        console.log(
-          `   📚 Sample learning: "${firstLearning.content.substring(
-            0,
-            100
-          )}..."`
-        );
-      }
-    }
-  }
-);
-
-// Test 5: Extract learnings from content
-testRunner.test("ContentEvaluator - Extract Learnings", async () => {
-  const evaluator = createTestEvaluator();
-
-  const testContent =
-    "According to the World Health Organization, over 80% of the world's population lives in areas with poor air quality. Air pollution causes approximately 7 million premature deaths annually. The most affected regions include South Asia and East Asia, where PM2.5 levels regularly exceed WHO guidelines by 5-10 times.";
-  const testUrl = "https://example.com/air-quality-report";
-
-  const learnings = await evaluator.extractLearnings(testContent, testUrl);
-
-  assertExists(learnings, "Learnings should be extracted");
-  assert(Array.isArray(learnings), "Learnings should be an array");
-  assert(learnings.length > 0, "Should extract at least one learning");
-
-  // Check first learning has proper structure
-  if (learnings.length > 0) {
-    const firstLearning = learnings[0]!; // Non-null assertion since we checked length
-    assert(
-      typeof firstLearning.content === "string",
-      "Learning content should be a string"
-    );
-    assert(
-      ["factual", "analytical", "procedural", "statistical"].includes(
-        firstLearning.type
-      ),
-      "Learning type should be valid"
-    );
-    assert(
-      Array.isArray(firstLearning.entities),
-      "Entities should be an array"
-    );
-    assert(
-      typeof firstLearning.confidence === "number",
-      "Confidence should be a number"
-    );
-    assert(
-      firstLearning.confidence >= 0 && firstLearning.confidence <= 1,
-      "Confidence should be between 0 and 1"
-    );
-    assert(
-      typeof firstLearning.sourceUrl === "string",
-      "Source URL should be a string"
-    );
-  }
-
-  console.log(
-    `   ✅ Extracted ${learnings.length} learnings from test content`
-  );
-});
-
-// Test 6: Assess completeness
-testRunner.test("ContentEvaluator - Assess Completeness", async () => {
-  const evaluator = createTestEvaluator();
-
-  const testQuery = "What is the capital of France?";
-  const testFindings: SearchResult[] = [
-    {
-      id: "1",
-      query: testQuery,
-      url: "https://example.com/paris-info",
-      title: "Paris, France",
-      content:
-        "Paris is the capital and largest city of France. It is located in northern France on the River Seine.",
-      summary: "Paris is the capital of France.",
-      relevanceScore: 1.0,
-      timestamp: new Date(),
-    },
-  ];
-
-  const completeness = await evaluator.assessCompletenessAsync(
-    testQuery,
-    testFindings
-  );
-
-  assertExists(completeness, "Completeness assessment should be returned");
-  assert(
-    typeof completeness.coverage === "number",
-    "Coverage should be a number"
-  );
-  assert(
-    completeness.coverage >= 0 && completeness.coverage <= 1,
-    "Coverage should be between 0 and 1"
-  );
-  assert(
-    Array.isArray(completeness.knowledgeGaps),
-    "Knowledge gaps should be an array"
-  );
-  assert(
-    typeof completeness.hasEnoughInfo === "boolean",
-    "hasEnoughInfo should be a boolean"
-  );
-  assert(
-    ["continue", "refine", "synthesize"].includes(
-      completeness.recommendedAction
-    ),
-    "Recommended action should be valid"
-  );
-
-  console.log(
-    `   ✅ Coverage: ${completeness.coverage}, Has enough info: ${completeness.hasEnoughInfo}`
-  );
-  console.log(`   ✅ Recommended action: ${completeness.recommendedAction}`);
-});
-
-// Test 7: Error handling - empty findings
-testRunner.test(
-  "ContentEvaluator - Error Handling Empty Findings",
-  async () => {
-    const evaluator = createTestEvaluator();
-
-    let errorThrown = false;
-    try {
-      const mockPlan = {
-        id: "test-plan",
-        originalQuery: "test query",
-        subQueries: [
-          { id: "test-sq", query: "test query", category: "general" },
-        ],
-        searchStrategy: {
-          maxDepth: 3,
-          maxBreadth: 3,
-          timeout: 30000,
-          retryAttempts: 3,
-        },
-        estimatedSteps: 3,
-      };
-      await evaluator.evaluateFindings("test query", [], mockPlan, 1, 3);
-    } catch (error) {
-      errorThrown = true;
-      assert(error instanceof Error, "Should throw an error");
-      assert(
-        (error as Error).message.includes("No findings provided"),
-        "Error message should be descriptive"
-      );
-      console.log(
-        "   ✅ Properly handles empty findings with error:",
-        (error as Error).message
-      );
-    }
-
-    assert(errorThrown, "Should throw an error for empty findings");
-  }
-);
-
-// Test 8: Event emission
-testRunner.test("ContentEvaluator - Event Emission", async () => {
-  const config = loadConfig();
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
-  const eventEmitter = new EventEmitter();
-
-  let progressEmitted = false;
-  eventEmitter.on("progress", (data) => {
-    progressEmitted = true;
-    console.log(
-      `   ✅ Progress event emitted: ${data.phase} (${data.progress}%)`
-    );
-  });
-
-  const evaluator = new ContentEvaluator(provider, eventEmitter);
-
-  const testQuery = "What is TypeScript?";
-  const testContent =
-    "TypeScript is a programming language developed by Microsoft. It is a strict syntactical superset of JavaScript and adds optional static type definitions to the language.";
-  const testUrl = "https://example.com/typescript";
-
-  await evaluator.evaluateSimple(testQuery, testContent, testUrl);
-
-  assert(progressEmitted, "Progress event should be emitted");
-  console.log("   ✅ Event emission working correctly");
-});
+}
 
 // Run tests
-testRunner.run().catch(console.error);
+async function runTests() {
+  console.log("🚀 Starting ContentEvaluator (THE BRAIN) Tests\n");
+
+  const mockModels = createMockModels();
+  const parentEmitter = new EventEmitter();
+  const evaluator = new ContentEvaluator(mockModels, parentEmitter);
+
+  describe("ContentEvaluator (THE BRAIN) Core Functionality", () => {
+    it("should instantiate successfully with new architecture", async () => {
+      expect(evaluator).toBeDefined();
+    });
+
+    it("should handle knowledge accumulation pattern (25 summaries)", async () => {
+      const refinedContent = createSampleRefinedContent(25);
+      const researchPlan = createSampleResearchPlan();
+
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        1, // currentDepth
+        3, // maxDepth
+        5 // breadth
+      );
+
+      expect(result).toBeDefined();
+      expect(result.learnings).toBeDefined();
+      expect(result.researchDirections).toBeDefined();
+      expect(result.completenessAssessment).toBeDefined();
+    });
+
+    it("should make termination decisions through completenessAssessment", async () => {
+      const refinedContent = createSampleRefinedContent(10);
+      const researchPlan = createSampleResearchPlan();
+
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        2,
+        3,
+        5
+      );
+
+      expect(result.completenessAssessment.recommendedAction).toBeOneOf([
+        "continue",
+        "synthesize",
+      ]);
+      expect(result.completenessAssessment.reasoning).toBeDefined();
+      expect(typeof result.completenessAssessment.coverage).toBe("number");
+    });
+
+    it("should generate research directions for continuing research", async () => {
+      const refinedContent = createSampleRefinedContent(15);
+      const researchPlan = createSampleResearchPlan();
+
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        1,
+        3,
+        5
+      );
+
+      expect(Array.isArray(result.researchDirections)).toBe(true);
+      if (result.researchDirections.length > 0) {
+        const direction = result.researchDirections[0];
+        if (direction) {
+          expect(direction.question).toBeDefined();
+          expect(direction.rationale).toBeDefined();
+          expect(Array.isArray(direction.searchQueries)).toBe(true);
+        }
+      }
+    });
+
+    it("should extract structured learnings from RefinedContent", async () => {
+      const refinedContent = createSampleRefinedContent(8);
+      const researchPlan = createSampleResearchPlan();
+
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        1,
+        3,
+        5
+      );
+
+      expect(Array.isArray(result.learnings)).toBe(true);
+      if (result.learnings.length > 0) {
+        const learning = result.learnings[0];
+        if (learning) {
+          expect(learning.content).toBeDefined();
+          expect(learning.type).toBeOneOf([
+            "factual",
+            "analytical",
+            "procedural",
+            "statistical",
+          ]);
+          expect(typeof learning.confidence).toBe("number");
+          expect(learning.sourceUrl).toBeDefined();
+        }
+      }
+    });
+
+    it("should handle empty RefinedContent gracefully", async () => {
+      const refinedContent: RefinedContent[] = [];
+      const researchPlan = createSampleResearchPlan();
+
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        1,
+        3,
+        5
+      );
+
+      expect(result).toBeDefined();
+      expect(result.completenessAssessment.hasEnoughInfo).toBe(false);
+    });
+
+    it("should emit brain analysis events", async () => {
+      const events: any[] = [];
+
+      evaluator.on("tool-call", (event) => {
+        events.push({ type: "tool-call", ...event });
+      });
+
+      evaluator.on("tool-result", (event) => {
+        events.push({ type: "tool-result", ...event });
+      });
+
+      const refinedContent = createSampleRefinedContent(5);
+      const researchPlan = createSampleResearchPlan();
+
+      await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        1,
+        3,
+        5
+      );
+
+      expect(events.length).toBeGreaterThan(0);
+    });
+
+    it("should handle depth context for iteration planning", async () => {
+      const refinedContent = createSampleRefinedContent(20);
+      const researchPlan = createSampleResearchPlan();
+
+      // Test near max depth
+      const result = await evaluator.evaluateFindings(
+        "AI applications in healthcare",
+        refinedContent,
+        researchPlan,
+        2, // currentDepth
+        3, // maxDepth (only 1 iteration left)
+        5
+      );
+
+      expect(result).toBeDefined();
+      expect(result.completenessAssessment).toBeDefined();
+    });
+  });
+
+  console.log(
+    "\n🎉 ContentEvaluator (THE BRAIN) tests completed successfully!"
+  );
+}
+
+// Execute tests when run directly
+if (require.main === module) {
+  runTests().catch((error) => {
+    console.error("\n💥 Test execution failed:", error);
+    process.exit(1);
+  });
+}

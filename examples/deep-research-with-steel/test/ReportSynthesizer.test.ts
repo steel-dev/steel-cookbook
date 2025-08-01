@@ -5,9 +5,8 @@ import { EventEmitter } from "events";
 import { ReportSynthesizer } from "../src/agents/ReportSynthesizer";
 import { SearchAgent } from "../src/agents/SearchAgent";
 import { ContentEvaluator } from "../src/agents/ContentEvaluator";
-import { AIProviderFactory, SteelClient } from "../src/providers/providers";
-import { SearchResult, Learning } from "../src/core/interfaces";
-import { loadConfig } from "../src/config";
+import { RefinedContent } from "../src/core/interfaces";
+import { openai } from "@ai-sdk/openai";
 
 // Simple test runner
 class TestRunner {
@@ -65,108 +64,89 @@ const testRunner = new TestRunner();
 
 // Test setup helpers
 function createTestSynthesizer(): ReportSynthesizer {
-  const config = loadConfig();
-  const writerProvider = AIProviderFactory.createProvider(config.ai.writer);
+  // Create mock models for testing - using openai if available, otherwise null for mock mode
+  const models = {
+    planner: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    evaluator: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    writer: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    summary: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+  };
   const eventEmitter = new EventEmitter();
-  return new ReportSynthesizer(writerProvider, eventEmitter);
+  return new ReportSynthesizer(models, eventEmitter);
 }
 
 function createTestSearchAgent(): SearchAgent {
-  const config = loadConfig();
-  const steelClient = new SteelClient(config.steel.apiKey);
+  // Create mock models for testing
+  const models = {
+    planner: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    evaluator: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    writer: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    summary: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+  };
   const eventEmitter = new EventEmitter();
-  return new SearchAgent(steelClient, eventEmitter);
+  const steelApiKey = process.env.STEEL_API_KEY || "mock-steel-key";
+  const retryAttempts = 3;
+  const timeout = 30000;
+  return new SearchAgent(
+    models,
+    eventEmitter,
+    steelApiKey,
+    retryAttempts,
+    timeout
+  );
 }
 
 function createTestContentEvaluator(): ContentEvaluator {
-  const config = loadConfig();
-  const provider = AIProviderFactory.createProvider(config.ai.provider);
+  // Create mock models for testing
+  const models = {
+    planner: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    evaluator: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    writer: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    summary: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+  };
   const eventEmitter = new EventEmitter();
-  return new ContentEvaluator(provider, eventEmitter);
+  return new ContentEvaluator(models, eventEmitter);
 }
 
-// Mock data generators
-function createMockFindings(): SearchResult[] {
+// Mock data generators - UPDATED for new architecture
+function createMockRefinedContent(): RefinedContent[] {
   return [
     {
-      id: "1",
-      query: "What is artificial intelligence?",
+      title: "AI Overview - Understanding Artificial Intelligence",
       url: "https://example.com/ai-overview",
-      title: "AI Overview",
-      content:
-        "Artificial intelligence (AI) is a broad field of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. AI systems can learn from data, recognize patterns, make decisions, and solve problems.",
       summary:
-        "AI is about building smart machines that can perform human-like tasks.",
-      relevanceScore: 0.9,
-      timestamp: new Date(),
+        "Artificial intelligence (AI) is a broad field of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. AI systems can learn from data, recognize patterns, make decisions, and solve problems. The field encompasses machine learning, natural language processing, computer vision, and robotics.",
+      rawLength: 3200,
+      scrapedAt: new Date("2023-12-01T10:00:00Z"),
     },
     {
-      id: "2",
-      query: "What is artificial intelligence?",
+      title: "Machine Learning Fundamentals",
       url: "https://example.com/machine-learning",
-      title: "Machine Learning Basics",
-      content:
-        "Machine learning is a subset of AI that enables systems to automatically learn and improve from experience without being explicitly programmed. Deep learning, a subset of machine learning, uses neural networks with multiple layers to model complex patterns.",
       summary:
-        "Machine learning allows systems to learn automatically from data.",
-      relevanceScore: 0.8,
-      timestamp: new Date(),
+        "Machine learning is a subset of AI that enables automatic learning from data without explicit programming. It includes supervised learning (classification, regression), unsupervised learning (clustering, dimensionality reduction), and reinforcement learning. Popular algorithms include neural networks, decision trees, and support vector machines.",
+      rawLength: 2800,
+      scrapedAt: new Date("2023-12-01T10:15:00Z"),
     },
     {
-      id: "3",
-      query: "What is artificial intelligence?",
+      title: "AI Market Statistics and Growth Projections",
       url: "https://example.com/ai-statistics",
-      title: "AI Market Statistics",
-      content:
-        "The global AI market is expected to reach $1.8 trillion by 2030, growing at a CAGR of 37.3% from 2023 to 2030. Currently, 35% of companies are using AI in their business operations, while 42% are exploring AI implementation.",
       summary:
-        "AI market shows strong growth with increasing business adoption.",
-      relevanceScore: 0.7,
-      timestamp: new Date(),
+        "The global AI market is expected to reach $1.8 trillion by 2030, growing at 37.3% CAGR from 2023-2030. Major drivers include increased data availability, improved computing power, and cloud adoption. Leading sectors include healthcare, finance, automotive, and retail. Investment in AI startups reached $66.8 billion in 2022.",
+      rawLength: 2400,
+      scrapedAt: new Date("2023-12-01T10:30:00Z"),
+    },
+    {
+      title: "AI Implementation Best Practices",
+      url: "https://example.com/ai-implementation",
+      summary:
+        "Successful AI implementation requires careful data preparation, model selection, validation, and monitoring. Key steps include defining clear objectives, ensuring data quality, selecting appropriate algorithms, testing thoroughly, and establishing ongoing monitoring systems. Common challenges include data bias, model drift, and integration complexity.",
+      rawLength: 3600,
+      scrapedAt: new Date("2023-12-01T10:45:00Z"),
     },
   ];
 }
 
-function createMockLearnings(): Learning[] {
-  return [
-    {
-      content:
-        "Artificial intelligence is a broad field of computer science focused on creating smart machines that can perform human-like tasks.",
-      type: "factual",
-      entities: [
-        "artificial intelligence",
-        "computer science",
-        "smart machines",
-      ],
-      confidence: 0.9,
-      sourceUrl: "https://example.com/ai-overview",
-    },
-    {
-      content:
-        "Machine learning is a subset of AI that enables automatic learning from data without explicit programming.",
-      type: "analytical",
-      entities: ["machine learning", "AI", "data"],
-      confidence: 0.8,
-      sourceUrl: "https://example.com/machine-learning",
-    },
-    {
-      content:
-        "The global AI market is expected to reach $1.8 trillion by 2030, growing at 37.3% CAGR from 2023-2030.",
-      type: "statistical",
-      entities: ["AI market", "$1.8 trillion", "2030", "37.3% CAGR"],
-      confidence: 0.85,
-      sourceUrl: "https://example.com/ai-statistics",
-    },
-    {
-      content:
-        "35% of companies are currently using AI in business operations, while 42% are exploring AI implementation.",
-      type: "statistical",
-      entities: ["35%", "42%", "companies", "AI implementation"],
-      confidence: 0.8,
-      sourceUrl: "https://example.com/ai-statistics",
-    },
-  ];
-}
+// Remove duplicate function - use createMockRefinedContent() instead
 
 // Test 1: Initialize ReportSynthesizer
 testRunner.test("ReportSynthesizer - Initialize", async () => {
@@ -186,15 +166,10 @@ testRunner.test(
   "ReportSynthesizer - Generate Report with Mock Data",
   async () => {
     const synthesizer = createTestSynthesizer();
-    const mockFindings = createMockFindings();
-    const mockLearnings = createMockLearnings();
+    const mockFindings = createMockRefinedContent();
     const testQuery = "What is artificial intelligence?";
 
-    const report = await synthesizer.generateReport(
-      mockFindings,
-      testQuery,
-      mockLearnings
-    );
+    const report = await synthesizer.generateReport(mockFindings, testQuery);
 
     assertExists(report, "Report should be generated");
     assertExists(report.id, "Report should have an ID");
@@ -248,58 +223,13 @@ testRunner.test(
   }
 );
 
-// Test 3: Test different learning types organization
-testRunner.test("ReportSynthesizer - Learning Types Organization", async () => {
+// Test 3: Test report generation with diverse content sources
+testRunner.test("ReportSynthesizer - Diverse Content Sources", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockFindings = createMockFindings();
+  const mockFindings = createMockRefinedContent();
   const testQuery = "What is artificial intelligence?";
 
-  // Create learnings with specific types
-  const diverseLearnings: Learning[] = [
-    {
-      content: "AI was first coined as a term in 1956 by John McCarthy.",
-      type: "factual",
-      entities: ["AI", "1956", "John McCarthy"],
-      confidence: 0.9,
-      sourceUrl: "https://example.com/ai-history",
-    },
-    {
-      content:
-        "The effectiveness of AI depends on the quality and quantity of training data.",
-      type: "analytical",
-      entities: ["AI", "training data", "quality", "quantity"],
-      confidence: 0.8,
-      sourceUrl: "https://example.com/ai-analysis",
-    },
-    {
-      content:
-        "To implement AI, first collect data, then preprocess it, train models, and deploy them.",
-      type: "procedural",
-      entities: [
-        "AI implementation",
-        "data collection",
-        "preprocessing",
-        "training",
-        "deployment",
-      ],
-      confidence: 0.7,
-      sourceUrl: "https://example.com/ai-implementation",
-    },
-    {
-      content:
-        "AI models achieve 95% accuracy on ImageNet classification tasks.",
-      type: "statistical",
-      entities: ["AI models", "95% accuracy", "ImageNet", "classification"],
-      confidence: 0.85,
-      sourceUrl: "https://example.com/ai-performance",
-    },
-  ];
-
-  const report = await synthesizer.generateReport(
-    mockFindings,
-    testQuery,
-    diverseLearnings
-  );
+  const report = await synthesizer.generateReport(mockFindings, testQuery);
 
   assertExists(report, "Report should be generated");
   assert(
@@ -316,7 +246,7 @@ testRunner.test("ReportSynthesizer - Learning Types Organization", async () => {
   );
 
   console.log(
-    `   ✅ Successfully organized ${diverseLearnings.length} diverse learning types`
+    `   ✅ Successfully organized ${mockFindings.length} diverse content sources`
   );
   console.log(
     `   ✅ Generated comprehensive report with ${report.content.length} characters`
@@ -332,54 +262,25 @@ testRunner.test("ReportSynthesizer - Real API Integration", async () => {
   const testQuery = "What is TypeScript?";
   console.log(`   🔍 Searching for: "${testQuery}"`);
 
-  // Get real search results
-  const serpResult = await searchAgent.searchSERP(testQuery, {
+  // Get real search results using NEW API
+  const refinedContent = await searchAgent.searchAndSummarize(testQuery, {
     maxResults: 2,
     timeout: 15000,
+    summaryTokens: 300,
   });
 
-  assertExists(serpResult, "SERP result should be returned");
-  assert(serpResult.results.length > 0, "Should have search results");
-  console.log(`   📊 Found ${serpResult.results.length} search results`);
+  assertExists(refinedContent, "Refined content should be returned");
+  assert(refinedContent.length > 0, "Should have refined content");
+  console.log(`   📊 Found ${refinedContent.length} refined content pieces`);
 
-  // Get real learnings from evaluation
-  const mockPlan = {
-    id: "test-plan",
-    originalQuery: testQuery,
-    subQueries: [{ id: "test-sq", query: testQuery, category: "general" }],
-    searchStrategy: {
-      maxDepth: 2,
-      maxBreadth: 3,
-      timeout: 30000,
-      retryAttempts: 3,
-    },
-    estimatedSteps: 3,
-  };
-
-  const evaluation = await contentEvaluator.evaluateFindings(
-    testQuery,
-    serpResult.results,
-    mockPlan,
-    1,
-    2
-  );
-
-  assertExists(evaluation, "Evaluation should be returned");
-  assert(evaluation.learnings.length > 0, "Should have learnings");
-  console.log(`   📚 Extracted ${evaluation.learnings.length} learnings`);
-
-  // Generate real report
-  const report = await synthesizer.generateReport(
-    serpResult.results,
-    testQuery,
-    evaluation.learnings
-  );
+  // Generate real report using NEW API (only 2 parameters)
+  const report = await synthesizer.generateReport(refinedContent, testQuery);
 
   assertExists(report, "Report should be generated");
   assert(report.content.length > 300, "Real report should be substantial");
   assert(
-    report.citations.length === serpResult.results.length,
-    "Citations should match search results"
+    report.citations.length === refinedContent.length,
+    "Citations should match refined content"
   );
   assert(
     report.executiveSummary.length > 50,
@@ -398,11 +299,10 @@ testRunner.test("ReportSynthesizer - Real API Integration", async () => {
 // Test 5: Error handling - no findings
 testRunner.test("ReportSynthesizer - Error Handling No Findings", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockLearnings = createMockLearnings();
 
   let errorThrown = false;
   try {
-    await synthesizer.generateReport([], "test query", mockLearnings);
+    await synthesizer.generateReport([], "test query");
   } catch (error) {
     errorThrown = true;
     assert(error instanceof Error, "Should throw an error");
@@ -422,12 +322,11 @@ testRunner.test("ReportSynthesizer - Error Handling No Findings", async () => {
 // Test 6: Error handling - no query
 testRunner.test("ReportSynthesizer - Error Handling No Query", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockFindings = createMockFindings();
-  const mockLearnings = createMockLearnings();
+  const mockFindings = createMockRefinedContent();
 
   let errorThrown = false;
   try {
-    await synthesizer.generateReport(mockFindings, "", mockLearnings);
+    await synthesizer.generateReport(mockFindings, "");
   } catch (error) {
     errorThrown = true;
     assert(error instanceof Error, "Should throw an error");
@@ -447,16 +346,17 @@ testRunner.test("ReportSynthesizer - Error Handling No Query", async () => {
 // Test 7: Error handling - no learnings
 testRunner.test("ReportSynthesizer - Error Handling No Learnings", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockFindings = createMockFindings();
+  const mockFindings = createMockRefinedContent();
 
   let errorThrown = false;
   try {
-    await synthesizer.generateReport(mockFindings, "test query", []);
+    // Test with empty findings array to trigger error
+    await synthesizer.generateReport([], "test query");
   } catch (error) {
     errorThrown = true;
     assert(error instanceof Error, "Should throw an error");
     assert(
-      (error as Error).message.includes("No learnings provided"),
+      (error as Error).message.includes("No filtered summaries provided"),
       "Error message should be descriptive"
     );
     console.log(
@@ -470,8 +370,13 @@ testRunner.test("ReportSynthesizer - Error Handling No Learnings", async () => {
 
 // Test 8: Event emission
 testRunner.test("ReportSynthesizer - Event Emission", async () => {
-  const config = loadConfig();
-  const writerProvider = AIProviderFactory.createProvider(config.ai.writer);
+  // Create mock models for testing
+  const models = {
+    planner: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    evaluator: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    writer: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+    summary: process.env.OPENAI_API_KEY ? openai("gpt-4o-mini") : null,
+  };
   const eventEmitter = new EventEmitter();
 
   let progressEmitted = false;
@@ -496,14 +401,12 @@ testRunner.test("ReportSynthesizer - Event Emission", async () => {
     }
   });
 
-  const synthesizer = new ReportSynthesizer(writerProvider, eventEmitter);
-  const mockFindings = createMockFindings();
-  const mockLearnings = createMockLearnings();
+  const synthesizer = new ReportSynthesizer(models, eventEmitter);
+  const mockFindings = createMockRefinedContent();
 
   await synthesizer.generateReport(
     mockFindings,
-    "What is artificial intelligence?",
-    mockLearnings
+    "What is artificial intelligence?"
   );
 
   assert(progressEmitted, "Progress events should be emitted");
@@ -522,13 +425,11 @@ testRunner.test("ReportSynthesizer - Event Emission", async () => {
 // Test 9: Citation generation
 testRunner.test("ReportSynthesizer - Citation Generation", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockFindings = createMockFindings();
-  const mockLearnings = createMockLearnings();
+  const mockFindings = createMockRefinedContent();
 
   const report = await synthesizer.generateReport(
     mockFindings,
-    "What is artificial intelligence?",
-    mockLearnings
+    "What is artificial intelligence?"
   );
 
   assertExists(report.citations, "Citations should exist");
@@ -576,13 +477,11 @@ testRunner.test("ReportSynthesizer - Citation Generation", async () => {
 // Test 10: Report structure validation
 testRunner.test("ReportSynthesizer - Report Structure Validation", async () => {
   const synthesizer = createTestSynthesizer();
-  const mockFindings = createMockFindings();
-  const mockLearnings = createMockLearnings();
+  const mockFindings = createMockRefinedContent();
 
   const report = await synthesizer.generateReport(
     mockFindings,
-    "What is artificial intelligence?",
-    mockLearnings
+    "What is artificial intelligence?"
   );
 
   // Validate report structure

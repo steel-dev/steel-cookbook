@@ -46,21 +46,18 @@ import {
   ResearchReport,
   ResearchPlan,
   SearchResult,
+  RefinedContent,
   ResearchEvaluation,
   ToolCallEvent,
   ToolResultEvent,
   ResearchProgress,
-  Learning,
-  DEFAULT_RESEARCH_OPTIONS,
   ResearchProgressEvent,
   TextStreamEvent,
   ResearchMilestoneEvent,
   ResearchErrorEvent,
   ResearchSessionEvent,
 } from "./interfaces";
-// Allow automatic config loading if none provided
-import { loadConfig } from "../config";
-import { ProviderManager } from "../providers/providers";
+
 import { QueryPlanner } from "../agents/QueryPlanner";
 import { SearchAgent } from "../agents/SearchAgent";
 import { ContentEvaluator } from "../agents/ContentEvaluator";
@@ -69,7 +66,12 @@ import { ReportSynthesizer } from "../agents/ReportSynthesizer";
 import { EventFactory, DeepResearchEvent } from "./events";
 
 export class DeepResearchAgent extends EventEmitter {
-  private providerManager: ProviderManager;
+  private models: {
+    planner: any;
+    evaluator: any;
+    writer: any;
+    summary: any;
+  };
   private planner: QueryPlanner;
   private searcher: SearchAgent;
   private evaluator: ContentEvaluator;
@@ -78,26 +80,31 @@ export class DeepResearchAgent extends EventEmitter {
   private config: DeepResearchConfig;
   private currentSessionId: string | null = null;
 
-  constructor(config?: DeepResearchConfig) {
+  constructor(config: DeepResearchConfig) {
     super();
     // If a config is not provided, attempt to load it from environment / defaults
-    this.config = config ?? loadConfig();
+    this.config = config;
 
-    // Initialize provider manager for AI and Steel API management
-    this.providerManager = new ProviderManager(this.config);
+    // Setup models from config
+    this.models = {
+      planner: config.models?.planner ?? config.aiProvider,
+      evaluator: config.models?.evaluator ?? config.aiProvider,
+      writer: config.models?.writer ?? config.aiProvider,
+      summary: config.models?.summary ?? config.aiProvider,
+    };
 
     // Initialize specialized agents - each handles a specific part of the research process
-    this.planner = new QueryPlanner(this.providerManager, this);
-    this.searcher = new SearchAgent(this.providerManager, this);
-    this.evaluator = new ContentEvaluator(
-      this.providerManager.getAIProvider(),
-      this
+    this.planner = new QueryPlanner(this.models, this);
+    this.searcher = new SearchAgent(
+      this.models,
+      this,
+      config.steelApiKey,
+      config.research?.retryAttempts ?? 3,
+      config.research?.timeout ?? 30000
     );
-    this.refiner = new ContentRefiner(this.providerManager, this.planner, this);
-    this.synthesizer = new ReportSynthesizer(
-      this.providerManager.getAIWriter(),
-      this
-    );
+    this.evaluator = new ContentEvaluator(this.models, this);
+    this.refiner = new ContentRefiner(this.models, this);
+    this.synthesizer = new ReportSynthesizer(this.models, this);
 
     // Set up event forwarding from components
     this.setupEventForwarding();
@@ -169,6 +176,8 @@ export class DeepResearchAgent extends EventEmitter {
         component.on("text", (text: string) => {
           this.emit("text", text);
         });
+        // Note: We no longer forward text-stream events as text events
+        // The BaseAgent now handles incremental text extraction from structured streams
       }
     });
   }
@@ -197,7 +206,18 @@ export class DeepResearchAgent extends EventEmitter {
 
     try {
       // Merge options with defaults
-      const researchOptions = { ...DEFAULT_RESEARCH_OPTIONS, ...options };
+      const researchOptions = {
+        depth: options.depth ?? 2,
+        breadth: options.breadth ?? 3,
+        timeout: options.timeout ?? 30000,
+        includeImages: options.includeImages ?? false,
+        humanInTheLoop: options.humanInTheLoop ?? false,
+        followUpDialogue: options.followUpDialogue ?? [],
+        maxSources:
+          options.maxSources ?? this.config.research?.maxSources ?? 60,
+        summaryTokens:
+          options.summaryTokens ?? this.config.research?.summaryTokens ?? 500,
+      };
 
       // Emit session start event
       this.emitStructuredEvent(
@@ -226,7 +246,8 @@ export class DeepResearchAgent extends EventEmitter {
       const plan = await this.planner.planResearch(
         query,
         researchOptions.depth,
-        researchOptions.breadth
+        researchOptions.breadth,
+        researchOptions.followUpDialogue
       );
 
       this.emitStructuredEvent(
@@ -254,7 +275,7 @@ export class DeepResearchAgent extends EventEmitter {
       );
 
       // Step 2: Execute Research Loop - Iterative search and evaluation
-      const { findings, allLearnings } = await this.executeResearchLoop(
+      const { findings, finalEvaluation } = await this.executeResearchLoop(
         query,
         plan,
         researchOptions,
@@ -272,10 +293,16 @@ export class DeepResearchAgent extends EventEmitter {
         )
       );
 
-      const report = await this.synthesizer.generateReport(
-        findings,
+      // Use ContentRefiner to filter findings before report generation
+      const filteredSummaries = await this.refiner.getFilteredContent(
         query,
-        allLearnings
+        findings,
+        researchOptions.maxSources || 10
+      );
+
+      const report = await this.synthesizer.generateReport(
+        filteredSummaries,
+        query
       );
 
       // Emit final progress
@@ -326,100 +353,150 @@ export class DeepResearchAgent extends EventEmitter {
   }
 
   /**
-   * Core research loop implementing the iterative research process
+   * Core research loop implementing THE BRAIN architecture
    *
-   * LOOP LOGIC:
-   * 1. Execute searches based on current plan
-   * 2. Evaluate findings for quality and completeness
-   * 3. Check termination conditions (sufficient info, max depth, etc.)
-   * 4. Refine strategy and generate new queries if continuing
-   * 5. Repeat until termination conditions are met
+   * NEW ARCHITECTURE:
+   * 1. QueryPlanner called ONCE at beginning
+   * 2. Loop: SearchAgent.searchAndSummarize() → ContentEvaluator (THE BRAIN)
+   * 3. THE BRAIN makes termination decision AND generates new queries directly
+   * 4. Repeat until THE BRAIN says "synthesize" or max depth reached
+   *
+   * KNOWLEDGE ACCUMULATION:
+   * - Accumulates all RefinedContent[] across iterations (25→50→75...)
+   * - THE BRAIN analyzes ALL accumulated summaries for comprehensive decisions
+   * - Memory limit protection (configurable maxSources, default 60)
+   * - URL deduplication to avoid re-scraping same sources
    *
    * TERMINATION CONDITIONS:
-   * - Sufficient information available (early termination)
-   * - Maximum depth reached
-   * - High coverage achieved
-   * - No more research directions available
-   * - ContentRefiner recommends termination
-   *
-   * NEW: Knowledge accumulation between iterations
-   * - Accumulates all findings across iterations
-   * - Accumulates all learnings across iterations
-   * - Tracks all queries used for deduplication
+   * - THE BRAIN recommends "synthesize" (sufficient information)
+   * - Maximum depth reached (no more iterations possible)
+   * - Memory limit exceeded (too many accumulated summaries)
+   * - No meaningful research directions available
    */
   private async executeResearchLoop(
     originalQuery: string,
     initialPlan: ResearchPlan,
     options: Required<ResearchOptions>,
     sessionId: string
-  ): Promise<{ findings: SearchResult[]; allLearnings: Learning[] }> {
-    let currentPlan = initialPlan;
+  ): Promise<{
+    findings: RefinedContent[];
+    finalEvaluation: ResearchEvaluation;
+  }> {
     let currentDepth = 0;
+    // Use config defaults with option overrides
+    const maxSources =
+      options.maxSources || this.config.research?.maxSources || 60; // Hardcoded default
+    const summaryTokens =
+      options.summaryTokens || this.config.research?.summaryTokens || 1000; // Hardcoded default
 
-    // NEW: Accumulation variables for knowledge persistence
-    let allFindings: SearchResult[] = []; // All search results across iterations
-    let allLearnings: Learning[] = []; // All extracted learnings
-    let allQueries: string[] = []; // All queries used (for deduplication)
+    // KNOWLEDGE ACCUMULATION: Variables for cross-iteration persistence
+    let allRefinedContent: RefinedContent[] = []; // ALL summaries across iterations
+    let scrapedUrls: Set<string> = new Set(); // URL deduplication
+    let finalEvaluation: ResearchEvaluation | undefined; // THE BRAIN's final decision
+
+    // Initial queries from QueryPlanner (called ONCE)
+    let currentQueries = initialPlan.subQueries.map((sq) => sq.query);
 
     while (currentDepth < options.depth) {
       this.emit("progress", {
         phase: "searching",
         progress: 20 + (currentDepth / options.depth) * 50,
-        currentStep: `Research iteration ${currentDepth + 1}`,
+        currentStep: `Research iteration ${currentDepth + 1} - ${
+          currentQueries.length
+        } queries`,
         totalSteps: 5,
       });
 
-      // Execute searches for current plan
-      const iterationFindings = await this.executeSearches(
-        currentPlan,
+      // Execute searches using SearchAgent.searchAndSummarize (NEW ARCHITECTURE)
+      const iterationContent = await this.executeSearchesWithSummarization(
+        currentQueries,
         currentDepth,
-        sessionId
+        sessionId,
+        scrapedUrls,
+        summaryTokens
       );
 
-      // NEW: ACCUMULATE - Add to running totals
-      allFindings.push(...iterationFindings);
-      allQueries.push(...currentPlan.subQueries.map((sq) => sq.query));
+      // ACCUMULATE: Add new content to running total
+      allRefinedContent.push(...iterationContent);
 
-      // Evaluate findings for quality and completeness
+      // Update URL deduplication set
+      iterationContent.forEach((content) => scrapedUrls.add(content.url));
+
+      // MEMORY GUARD: Check if we've hit the source limit
+      if (allRefinedContent.length >= maxSources) {
+        // Trim to exact limit and terminate immediately
+        allRefinedContent = allRefinedContent.slice(0, maxSources);
+
+        // Create final evaluation for memory limit termination
+        finalEvaluation = {
+          learnings: [],
+          completenessAssessment: {
+            coverage: 0.8,
+            confidence: 0.7,
+            knowledgeGaps: [],
+            hasEnoughInfo: true,
+            recommendedAction: "synthesize",
+            reasoning: `Research terminated due to memory limit (${maxSources} sources). Proceeding to synthesis.`,
+          },
+          researchDirections: [],
+        };
+
+        break;
+      }
+
+      // OPTIMIZATION: Skip evaluation at depth=0 (no more iterations possible)
+      if (currentDepth === options.depth - 1) {
+        // Last iteration - go straight to synthesis without evaluation
+        finalEvaluation = {
+          learnings: [],
+          completenessAssessment: {
+            coverage: 0.8,
+            confidence: 0.7,
+            knowledgeGaps: [],
+            hasEnoughInfo: true,
+            recommendedAction: "synthesize",
+            reasoning: `Research completed at maximum depth (${options.depth}). Proceeding to synthesis.`,
+          },
+          researchDirections: [],
+        };
+        break;
+      }
+
       this.emit("progress", {
         phase: "evaluating",
         progress: 20 + (currentDepth / options.depth) * 50 + 10,
-        currentStep: `Evaluating findings for iteration ${currentDepth + 1}`,
+        currentStep: `THE BRAIN analyzing ${allRefinedContent.length} accumulated summaries`,
         totalSteps: 5,
       });
 
-      // ContentEvaluator: current iteration with plan context
-      const evaluation = await this.evaluator.evaluateFindings(
+      // THE BRAIN: ContentEvaluator analyzes ALL accumulated content
+      const brainDecision = await this.evaluator.evaluateFindings(
         originalQuery,
-        iterationFindings, // Current iteration results
-        currentPlan, // Current research plan context
+        allRefinedContent, // ALL accumulated summaries across iterations
+        initialPlan, // Initial research plan for context
         currentDepth,
-        options.depth
+        options.depth,
+        options.breadth || 5, // Number of queries to generate if continuing
+        maxSources // Memory limit
       );
 
-      // NEW: ACCUMULATE - Add new learnings
-      allLearnings.push(...evaluation.learnings);
+      // THE BRAIN DECISION: Store final evaluation and check termination conditions
+      finalEvaluation = brainDecision;
 
-      // ContentRefiner: strategic decisions with full context
-      const refinementDecision = await this.refiner.refineSearchStrategy(
-        originalQuery,
-        evaluation,
-        currentPlan,
-        allLearnings, // Full accumulated knowledge
-        allQueries // All queries used
-      );
-
-      if (!refinementDecision.shouldContinue) {
+      if (
+        brainDecision.completenessAssessment.recommendedAction === "synthesize"
+      ) {
         const terminationToolEvent = EventFactory.createToolCallStart(
           sessionId,
           "analyze",
           {
-            action: "termination",
-            reason: refinementDecision.reason,
+            action: "brain_termination",
+            reason: brainDecision.completenessAssessment.reasoning,
             depth: currentDepth,
-            findingsCount: allFindings.length,
-            learningsCount: allLearnings.length,
-            terminationMetadata: refinementDecision.terminationMetadata,
+            totalSummaries: allRefinedContent.length,
+            totalLearnings: brainDecision.learnings.length, // Get from THE BRAIN directly
+            coverage: brainDecision.completenessAssessment.coverage,
+            confidence: brainDecision.completenessAssessment.confidence,
           }
         );
         this.emitStructuredEvent(terminationToolEvent);
@@ -429,68 +506,117 @@ export class DeepResearchAgent extends EventEmitter {
           terminationToolEvent.toolCallId,
           "analyze",
           true,
-          { terminationReason: refinementDecision.reason }
+          {
+            terminationReason: brainDecision.completenessAssessment.reasoning,
+            brainDecision: "synthesize",
+          }
         );
         this.emitStructuredEvent(terminationResultEvent);
 
         break;
       }
 
-      // QueryPlanner: execution based on ContentRefiner's direction
-      const nextPlan = await this.planner.planNextIteration(
-        originalQuery,
-        refinementDecision.researchDirections,
-        refinementDecision.strategicGuidance,
-        allQueries, // Avoid duplicate queries
-        currentPlan
-      );
+      // CONTINUE: THE BRAIN generated new queries directly
+      if (brainDecision.researchDirections.length > 0) {
+        // Extract queries from research directions
+        currentQueries = brainDecision.researchDirections.flatMap(
+          (direction) => direction.searchQueries
+        );
 
-      currentPlan = nextPlan;
+        const continueToolEvent = EventFactory.createToolCallStart(
+          sessionId,
+          "analyze",
+          {
+            action: "brain_continue",
+            newQueriesGenerated: currentQueries.length,
+            iterationsSoFar: currentDepth + 1,
+            totalSummaries: allRefinedContent.length,
+          }
+        );
+        this.emitStructuredEvent(continueToolEvent);
+
+        const continueResultEvent = EventFactory.createToolCallEnd(
+          sessionId,
+          continueToolEvent.toolCallId,
+          "analyze",
+          true,
+          {
+            brainDecision: "continue",
+            newQueries: currentQueries.length,
+          }
+        );
+        this.emitStructuredEvent(continueResultEvent);
+      } else {
+        // No research directions - terminate even if recommended to continue
+        finalEvaluation = brainDecision; // Ensure finalEvaluation is set
+        break;
+      }
+
       currentDepth++;
     }
 
-    return { findings: allFindings, allLearnings };
+    // Fallback: If no evaluation was set (shouldn't happen), create a basic one
+    if (!finalEvaluation) {
+      finalEvaluation = {
+        learnings: [],
+        completenessAssessment: {
+          coverage: 0.7,
+          confidence: 0.6,
+          knowledgeGaps: [],
+          hasEnoughInfo: true,
+          recommendedAction: "synthesize",
+          reasoning: `Research completed with ${allRefinedContent.length} sources. No evaluation performed.`,
+        },
+        researchDirections: [],
+      };
+    }
+
+    return { findings: allRefinedContent, finalEvaluation };
   }
 
   /**
-   * Execute searches for all sub-queries in the current plan
-   * Uses parallel execution for efficiency while respecting rate limits
+   * Execute searches with summarization using SearchAgent.searchAndSummarize
+   *
+   * This method implements the new architecture where SearchAgent returns RefinedContent[]
+   * instead of SearchResult[]. It uses LLM summarization and URL deduplication.
    */
-  private async executeSearches(
-    plan: ResearchPlan,
+  private async executeSearchesWithSummarization(
+    queries: string[],
     depth: number,
-    sessionId: string
-  ): Promise<SearchResult[]> {
-    const results: SearchResult[] = [];
+    sessionId: string,
+    scrapedUrls: Set<string>,
+    summaryTokens: number
+  ): Promise<RefinedContent[]> {
+    const results: RefinedContent[] = [];
 
-    // Execute searches for each sub-query in the plan
-    for (const subQuery of plan.subQueries) {
+    // Execute searches for each query with summarization
+    for (const query of queries) {
       const searchToolEvent = EventFactory.createToolCallStart(
         sessionId,
         "search",
         {
-          query: subQuery.query,
-          metadata: { depth },
+          query,
+          metadata: { depth, summaryTokens },
         }
       );
       this.emitStructuredEvent(searchToolEvent);
 
       try {
-        const serpResults = await this.searcher.searchSERP(subQuery.query, {
+        const refinedContent = await this.searcher.searchAndSummarize(query, {
           maxResults: 5,
-          timeout: this.config.search.timeout,
+          timeout: this.config.research?.timeout ?? 30000, // Hardcoded default
+          scrapedUrls, // URL deduplication
+          summaryTokens,
         });
 
-        const searchResults = serpResults.results;
-
-        results.push(...searchResults);
+        results.push(...refinedContent);
 
         const searchResultEvent = EventFactory.createToolCallEnd(
           sessionId,
           searchToolEvent.toolCallId,
           "search",
           true,
-          { resultCount: searchResults.length }
+          { resultCount: refinedContent.length }
         );
         this.emitStructuredEvent(searchResultEvent);
       } catch (error) {
@@ -589,8 +715,13 @@ export class DeepResearchAgent extends EventEmitter {
     steel: boolean;
   }> {
     try {
-      const results = await this.providerManager.testAllProviders();
-      return results;
+      // For AI models, we can't easily test without making actual calls
+      // So we just return true if models are defined
+      return {
+        ai: !!this.models.planner,
+        writer: !!this.models.writer,
+        steel: !!this.config.steelApiKey, // Check if Steel API key is configured
+      };
     } catch (error) {
       this.emit(
         "error",

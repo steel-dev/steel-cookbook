@@ -3,352 +3,260 @@
  *
  * OVERVIEW:
  * The ReportSynthesizer is the final component in the research pipeline, responsible for
- * transforming accumulated research findings and learnings into a comprehensive, well-structured
- * report. It synthesizes information from multiple sources into a coherent narrative with
- * proper citations and professional formatting.
+ * transforming filtered research summaries into a comprehensive, well-structured
+ * report using structured AI generation. It generates both the executive summary and
+ * main report content simultaneously in a structured format.
+ *
+ * CORRECT ARCHITECTURE FLOW:
+ * THE BRAIN (ContentEvaluator) → ContentRefiner → ReportSynthesizer
+ * - THE BRAIN decides when research is complete
+ * - ContentRefiner filters/ranks RefinedContent[] and returns filtered list
+ * - ReportSynthesizer generates structured report from filtered RefinedContent[] only
  *
  * INPUTS:
- * - findings: SearchResult[] - All search results from research iterations
+ * - filteredSummaries: RefinedContent[] - Filtered summaries from ContentRefiner
  * - query: String - The original research question
- * - learnings: Learning[] - Structured learnings extracted by ContentEvaluator
  *
  * OUTPUTS:
  * - ResearchReport: Comprehensive report with:
- *   - Executive Summary
- *   - Structured content with inline citations
+ *   - Executive Summary (generated structurally)
+ *   - Report Content (generated structurally)
  *   - Citation list with source attribution
  *   - Metadata about the research process
  *
  * POSITION IN RESEARCH FLOW:
  * 1. **FINAL SYNTHESIS** (End of research pipeline):
- *    - Receives all accumulated findings and learnings
- *    - Organizes information by learning type and relevance
- *    - Generates comprehensive report with proper structure
- *    - Provides streaming text output for real-time feedback
+ *    - Receives filtered summaries from ContentRefiner
+ *    - Generates comprehensive report using centralized reportPrompt with structured output
+ *    - Provides streaming structured output for real-time feedback
  *
  * 2. **CONTENT ORGANIZATION**:
- *    - Categorizes learnings by type (factual, analytical, statistical, procedural)
- *    - Creates logical flow and narrative structure
+ *    - Uses AI to synthesize filtered summaries into coherent narrative
  *    - Implements proper citation formatting
- *    - Generates executive summary and conclusions
+ *    - Generates executive summary and main content simultaneously
  *
  * KEY FEATURES:
- * - Streaming text generation for real-time output
- * - Structured content organization by learning type
+ * - Structured generation for executive summary and report content
  * - Professional report formatting with citations
- * - Executive summary extraction
  * - Comprehensive metadata generation
  * - Source attribution and bibliography
- * - Configurable AI model for writing style
+ * - Uses centralized reportPrompt from prompts module
+ * - Real-time streaming of structured data
  *
  * REPORT STRUCTURE:
- * 1. Executive Summary (2-3 paragraphs)
- * 2. Key Findings (organized by theme)
- * 3. Detailed Analysis (with inline citations)
- * 4. Statistical Summary (if applicable)
- * 5. Conclusion
- * 6. References/Bibliography
+ * 1. Executive Summary (generated separately)
+ * 2. Report Content with:
+ *    - Background & Context
+ *    - Key Findings (organized by theme)
+ *    - Detailed Analysis (with inline citations)
+ *    - Conclusions & Recommendations
+ *    - References/Bibliography
  *
  * TECHNICAL FEATURES:
- * - Streaming text generation with AI SDK
- * - Intelligent content organization
+ * - Structured output generation with AI SDK
  * - Citation management and formatting
  * - Metadata enrichment
  * - Source diversity analysis
+ * - Streaming structured data support
  *
  * USAGE EXAMPLE:
  * ```typescript
  * const synthesizer = new ReportSynthesizer(writerProvider, eventEmitter);
- * synthesizer.on('text', (chunk) => process.stdout.write(chunk));
- * const report = await synthesizer.generateReport(findings, query, learnings);
+ * const report = await synthesizer.generateReport(filteredSummaries, query);
  * // Returns: ResearchReport with structured content and citations
  * ```
  */
 
-import { streamText } from "ai";
 import { EventEmitter } from "events";
-import {
-  SearchResult,
-  Learning,
-  ResearchReport,
-  Citation,
-} from "../core/interfaces";
+import { z } from "zod";
+import { RefinedContent, ResearchReport, Citation } from "../core/interfaces";
+import { prompts } from "../prompts/prompts";
+import { BaseAgent } from "../core/BaseAgent";
+import { EventFactory } from "../core/events";
 
-export class ReportSynthesizer {
-  private writerProvider: any;
-  private eventEmitter: EventEmitter;
+// Zod schema for structured report generation
+const StructuredReportSchema = z.object({
+  executiveSummary: z
+    .string()
+    .describe(
+      "3-4 paragraph executive summary highlighting key findings, implications, and conclusions"
+    ),
+  reportContent: z
+    .string()
+    .describe(
+      "Complete research report with Background & Context, Key Findings, Analysis & Insights, Conclusions & Recommendations, and References sections. Use Markdown formatting with proper headings, lists, and structure. Include inline citations using [1], [2] format."
+    ),
+});
 
-  constructor(writerProvider: any, eventEmitter: EventEmitter) {
-    this.writerProvider = writerProvider;
-    this.eventEmitter = eventEmitter;
+type StructuredReportOutput = z.infer<typeof StructuredReportSchema>;
+
+export class ReportSynthesizer extends BaseAgent {
+  constructor(
+    models: {
+      planner: any;
+      evaluator: any;
+      writer: any;
+      summary: any;
+    },
+    parentEmitter: EventEmitter
+  ) {
+    super(models, parentEmitter);
   }
 
   /**
-   * Generate a comprehensive research report from findings and learnings
+   * Generate a comprehensive research report from filtered summaries using structured output
    *
-   * This is the main synthesis method that transforms all accumulated research
-   * into a well-structured, professional report. It organizes information by
-   * learning type and generates streaming text output for real-time feedback.
+   * This is the main synthesis method that transforms filtered research summaries
+   * into a well-structured, professional report. It uses the centralized reportPrompt
+   * and generates structured output with both executive summary and report content.
+   *
+   * CORRECT ARCHITECTURE: Works with filtered RefinedContent[] from ContentRefiner,
+   * NOT learnings from THE BRAIN.
    *
    * PROCESS FLOW:
    * 1. Input validation and preprocessing
-   * 2. Learning categorization and organization
-   * 3. Prompt construction with structured content
-   * 4. Streaming text generation with AI
-   * 5. Content post-processing and metadata generation
-   * 6. Citation and reference management
+   * 2. Report prompt construction using centralized prompts
+   * 3. Structured generation with AI (executive summary + report content)
+   * 4. Content post-processing and metadata generation
+   * 5. Citation and reference management
    *
-   * The method streams text updates in real-time while building the complete report.
+   * The method generates structured output for both executive summary and report content.
    */
   async generateReport(
-    findings: SearchResult[],
-    query: string,
-    learnings: Learning[]
+    filteredSummaries: RefinedContent[], // NEW: Filtered summaries from ContentRefiner
+    query: string
   ): Promise<ResearchReport> {
-    this.eventEmitter.emit("progress", {
-      phase: "synthesizing",
-      progress: 90,
-    });
+    const sessionId = this.getCurrentSessionId();
+    const startTime = Date.now();
 
-    // Validate required inputs
-    if (!findings || findings.length === 0) {
-      throw new Error("No findings provided for report generation");
-    }
-
-    if (!query || query.trim() === "") {
-      throw new Error("No query provided for report generation");
-    }
-
-    if (!learnings || learnings.length === 0) {
-      throw new Error("No learnings provided for report generation");
-    }
-
-    // Organize learnings by type for better report structure
-    const factualLearnings = learnings.filter((l) => l.type === "factual");
-    const analyticalLearnings = learnings.filter(
-      (l) => l.type === "analytical"
-    );
-    const statisticalLearnings = learnings.filter(
-      (l) => l.type === "statistical"
-    );
-    const proceduralLearnings = learnings.filter(
-      (l) => l.type === "procedural"
-    );
-
-    // Create the comprehensive prompt for AI report generation
-    const prompt = this.buildReportPrompt(
-      query,
-      factualLearnings,
-      analyticalLearnings,
-      statisticalLearnings,
-      proceduralLearnings,
-      findings
-    );
-
-    // Stream the report generation with real-time text updates
-    const stream = await streamText({
-      model: this.writerProvider,
-      prompt,
-      maxTokens: 3000,
-      temperature: 0.7,
-    });
-
-    let content = "";
-    for await (const delta of stream.textStream) {
-      content += delta;
-      // Stream text updates to listeners for real-time feedback
-      this.eventEmitter.emit("text", delta);
-    }
-
-    // Extract key components and generate metadata
-    const executiveSummary = this.extractExecutiveSummary(content);
-    const citations = this.generateCitations(findings);
-
-    const report: ResearchReport = {
-      id: this.generateReportId(),
-      query,
-      executiveSummary,
-      content,
-      citations,
-      metadata: {
-        generatedAt: new Date(),
-        sourceCount: findings.length,
-        model: this.getModelName(),
-        researchDepth: this.calculateResearchDepth(findings),
-      },
-    };
-
-    this.eventEmitter.emit("progress", {
-      phase: "synthesizing",
-      progress: 100,
-    });
-
-    return report;
-  }
-
-  /**
-   * Build the comprehensive report generation prompt
-   *
-   * This method constructs a detailed prompt that guides the AI to generate
-   * a well-structured report. It organizes learnings by type and provides
-   * clear formatting instructions.
-   *
-   * PROMPT STRUCTURE:
-   * 1. Context and query
-   * 2. Organized learnings by type
-   * 3. Source list for citations
-   * 4. Detailed formatting requirements
-   * 5. Professional writing guidelines
-   */
-  private buildReportPrompt(
-    query: string,
-    factualLearnings: Learning[],
-    analyticalLearnings: Learning[],
-    statisticalLearnings: Learning[],
-    proceduralLearnings: Learning[],
-    findings: SearchResult[]
-  ): string {
-    // Build sections based on available learning types
-    const factualSection =
-      factualLearnings.length > 0
-        ? `FACTUAL FINDINGS:
-${factualLearnings
-  .map((l, i) => `[${i + 1}] ${l.content} (Source: ${l.sourceUrl})`)
-  .join("\n")}`
-        : "";
-
-    const analyticalSection =
-      analyticalLearnings.length > 0
-        ? `ANALYTICAL INSIGHTS:
-${analyticalLearnings
-  .map((l, i) => `[${i + 1}] ${l.content} (Source: ${l.sourceUrl})`)
-  .join("\n")}`
-        : "";
-
-    const statisticalSection =
-      statisticalLearnings.length > 0
-        ? `STATISTICAL DATA:
-${statisticalLearnings
-  .map((l, i) => `[${i + 1}] ${l.content} (Source: ${l.sourceUrl})`)
-  .join("\n")}`
-        : "";
-
-    const proceduralSection =
-      proceduralLearnings.length > 0
-        ? `PROCEDURAL INFORMATION:
-${proceduralLearnings
-  .map((l, i) => `[${i + 1}] ${l.content} (Source: ${l.sourceUrl})`)
-  .join("\n")}`
-        : "";
-
-    const sourcesSection = `ALL SOURCES:
-${findings
-  .map((f, i) => `[${i + 1}] ${f.url} - ${f.title || "Untitled"}`)
-  .join("\n")}`;
-
-    return `Write a comprehensive research report for: "${query}"
-
-Use these structured learnings from research:
-
-${factualSection}
-
-${analyticalSection}
-
-${statisticalSection}
-
-${proceduralSection}
-
-${sourcesSection}
-
-Format Requirements:
-- Executive Summary (2-3 paragraphs)
-- Key Findings (organized by theme)
-- Detailed Analysis with inline citations [1], [2], etc.
-- Statistical Summary (if applicable)
-- Conclusion
-- References section
-
-Guidelines:
-- Use professional, analytical tone
-- Ensure all major learnings are included
-- Provide specific citations using [1], [2] format
-- Include relevant statistics and data points
-- Synthesize information rather than just listing facts
-- Draw meaningful conclusions from the research
-
-The report should be comprehensive but well-structured and readable.`;
-  }
-
-  /**
-   * Extract executive summary from the generated report
-   *
-   * This method identifies and extracts the executive summary section from
-   * the generated report content. It handles various formatting styles and
-   * provides fallback extraction methods.
-   *
-   * EXTRACTION STRATEGIES:
-   * 1. Look for explicit "Executive Summary" section
-   * 2. Extract first few paragraphs as fallback
-   * 3. Provide default message if extraction fails
-   */
-  private extractExecutiveSummary(content: string): string {
-    // Extract the executive summary section
-    const lines = content.split("\n");
-    const summaryStart = lines.findIndex((line) =>
-      line.toLowerCase().includes("executive summary")
-    );
-
-    if (summaryStart === -1) {
-      // If no explicit executive summary section, try to extract first few paragraphs
-      const nonEmptyLines = lines.filter((line) => line.trim() !== "");
-      if (nonEmptyLines.length >= 3) {
-        return nonEmptyLines.slice(0, 3).join("\n").trim();
+    // Emit tool call start for report generation
+    const toolCallEvent = EventFactory.createToolCallStart(
+      sessionId,
+      "analyze",
+      {
+        action: "report_synthesis",
+        query,
+        metadata: {
+          sourceCount: filteredSummaries.length,
+          totalContentLength: filteredSummaries.reduce(
+            (sum, s) => sum + s.summary.length,
+            0
+          ),
+        },
       }
-      return "Executive summary not found in the generated report.";
+    );
+    this.emit("tool-call", toolCallEvent);
+    const toolCallId = toolCallEvent.toolCallId;
+
+    try {
+      // Validate required inputs
+      if (!filteredSummaries || filteredSummaries.length === 0) {
+        throw new Error("No filtered summaries provided for report generation");
+      }
+
+      if (!query || query.trim() === "") {
+        throw new Error("No query provided for report generation");
+      }
+
+      // Use centralized reportPrompt for consistent report generation
+      const prompt = prompts.reportPrompt(query, filteredSummaries);
+
+      console.log(" =================================");
+      console.log(" =REPORT PROMPT");
+      console.log(prompt);
+      console.log(" =================================");
+
+      // Generate structured report with executive summary and content using BaseAgent helper
+      const structuredOutput =
+        await this.generateStructured<StructuredReportOutput>(
+          prompt,
+          StructuredReportSchema,
+          "writer",
+          {
+            maxTokens: 10000, // Increased for more comprehensive reports
+            temperature: 0.3,
+            streaming: true, // Enable streaming for real-time updates
+          }
+        );
+
+      // Generate citations from filtered summaries
+      const citations = this.generateCitations(filteredSummaries);
+
+      const report: ResearchReport = {
+        id: this.generateReportId(),
+        query,
+        executiveSummary: structuredOutput.executiveSummary,
+        content: structuredOutput.reportContent,
+        citations,
+        metadata: {
+          generatedAt: new Date(),
+          sourceCount: filteredSummaries.length,
+          model: this.getModelName(),
+          researchDepth: this.calculateResearchDepth(filteredSummaries),
+        },
+      };
+
+      // Emit successful tool result
+      const toolResultEvent = EventFactory.createToolCallEnd(
+        sessionId,
+        toolCallId,
+        "synthesize",
+        true,
+        {
+          reportId: report.id,
+          citationCount: report.citations.length,
+          contentLength: report.content.length,
+          executiveSummaryLength: report.executiveSummary.length,
+          researchDepth: report.metadata.researchDepth,
+        },
+        undefined,
+        new Date(startTime)
+      );
+      this.emit("tool-result", toolResultEvent);
+
+      return report;
+    } catch (error) {
+      // Emit error result
+      const toolErrorEvent = EventFactory.createToolCallEnd(
+        sessionId,
+        toolCallId,
+        "synthesize",
+        false,
+        undefined,
+        error instanceof Error ? error.message : String(error),
+        new Date(startTime)
+      );
+      this.emit("tool-result", toolErrorEvent);
+
+      throw error;
     }
-
-    // Find the end of the executive summary section
-    const summaryEnd = lines.findIndex(
-      (line, i) =>
-        i > summaryStart && line.trim() !== "" && line.startsWith("#")
-    );
-
-    const summaryLines = lines.slice(
-      summaryStart + 1,
-      summaryEnd === -1 ? Math.min(summaryStart + 10, lines.length) : summaryEnd
-    );
-
-    return summaryLines
-      .filter((line) => line.trim() !== "")
-      .join("\n")
-      .trim();
   }
 
   /**
-   * Generate citation objects from search results
+   * Generate citation objects from refined content
    *
    * This method creates properly formatted citations for all sources used
    * in the research, with sequential numbering and relevant quotes where available.
+   *
+   * NEW ARCHITECTURE: Works with RefinedContent[] which always has summary data.
    *
    * CITATION FORMAT:
    * - Sequential numbering [1], [2], [3]...
    * - URL and title for each source
    * - Access date for web sources
-   * - Relevant quote/summary when available
+   * - Relevant quote/summary from summarized content
    */
-  private generateCitations(findings: SearchResult[]): Citation[] {
+  private generateCitations(findings: RefinedContent[]): Citation[] {
     return findings.map((finding, index) => {
       const citation: Citation = {
         id: (index + 1).toString(),
         url: finding.url,
-        title: finding.title || "Untitled",
-        accessDate: new Date(),
+        title: finding.title,
+        accessDate: finding.scrapedAt, // Use actual scrape date instead of citation generation date
       };
 
-      // Add relevant quote if summary is available
-      if (finding.summary) {
-        citation.relevantQuote = finding.summary;
-      }
+      // RefinedContent always has summary data
+      citation.relevantQuote = finding.summary;
 
       return citation;
     });
@@ -371,11 +279,16 @@ The report should be comprehensive but well-structured and readable.`;
    * report metadata. Useful for tracking which model generated the report.
    */
   private getModelName(): string {
-    // Try to extract model name from the provider
-    if (this.writerProvider && this.writerProvider.modelId) {
-      return this.writerProvider.modelId;
+    try {
+      // Get the writer provider and extract model name
+      const writerProvider = this.getLLM("writer");
+      if (writerProvider && writerProvider.modelId) {
+        return writerProvider.modelId;
+      }
+      return "ai-writer-model";
+    } catch (error) {
+      return "unknown";
     }
-    return "unknown";
   }
 
   /**
@@ -385,12 +298,14 @@ The report should be comprehensive but well-structured and readable.`;
    * to estimate the research depth. More diverse sources indicate
    * deeper research coverage.
    *
+   * NEW ARCHITECTURE: Works with RefinedContent[] from summarized research.
+   *
    * DEPTH CALCULATION:
    * - Counts unique domains/sources
    * - Higher domain diversity = higher depth score
    * - Provides insight into research breadth
    */
-  private calculateResearchDepth(findings: SearchResult[]): number {
+  private calculateResearchDepth(findings: RefinedContent[]): number {
     // Calculate research depth based on number of sources and their diversity
     const uniqueDomains = new Set(
       findings.map((f) => {

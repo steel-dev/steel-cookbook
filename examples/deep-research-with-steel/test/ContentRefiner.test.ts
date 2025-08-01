@@ -156,7 +156,6 @@ function createMockResearchPlan(originalQuery: string): ResearchPlan {
       {
         id: "sq-1",
         query: "Test sub-query",
-        category: "general",
       },
     ],
     searchStrategy: {

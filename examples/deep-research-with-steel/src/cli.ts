@@ -5,6 +5,7 @@
  * Inspired by Charm's design philosophy
  */
 
+import { config } from "dotenv";
 import { program } from "commander";
 import chalk from "chalk";
 import ora from "ora";
@@ -12,9 +13,12 @@ import inquirer from "inquirer";
 import boxen from "boxen";
 import gradient from "gradient-string";
 import figures from "figures";
-import { loadConfig } from "./config";
 import { DeepResearchAgent } from "./core/DeepResearchAgent";
 import { ResearchOptions } from "./core/interfaces";
+import { openai } from "@ai-sdk/openai";
+
+// Load environment variables
+config();
 
 // CLI Theme
 const theme = {
@@ -419,8 +423,26 @@ async function executeResearch(
   breadth: number
 ): Promise<void> {
   try {
-    const config = loadConfig();
-    const agent = new DeepResearchAgent(config);
+    const steelApiKey = process.env.STEEL_API_KEY;
+    if (!steelApiKey) {
+      throw new Error("STEEL_API_KEY environment variable is required");
+    }
+
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      throw new Error("OPENAI_API_KEY environment variable is required");
+    }
+
+    const agent = new DeepResearchAgent({
+      steelApiKey,
+      aiProvider: openai("gpt-4o-mini"),
+      research: {
+        timeout: 30000,
+        maxSources: 60,
+        summaryTokens: 500,
+        retryAttempts: 3,
+      },
+    });
 
     setupProgressDisplay(agent);
 
