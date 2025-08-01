@@ -19,6 +19,7 @@
         "build": "unbuild",
         "typecheck": "tsc --noEmit",
         "registry:build": "tsx scripts/build-mdx.ts",
+        "registry:csv": "tsx scripts/generate-csv.ts",
         "registry:publish": "tsx scripts/upload-files.ts",
         "prepublishOnly": "npm run build"
     },
