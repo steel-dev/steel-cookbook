@@ -5,9 +5,368 @@ accentColor: "blue"
 category: "AI_AUTOMATION"
 stack: "nodejs"
 description: "A starter project demonstrating how to use Steel with Stagehand in Node.js & TypeScript for AI-powered browser automations."
-flags: ["cli", "playground"]
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-stagehand-node-starter"
 groupId: "stagehand-starter"
 language: "typescript"
 shorthand: "stagehand"
 ---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Build intelligent browser automation with Steel's cloud browsers and Stagehand's AI-powered framework. Stagehand uses natural language instructions to interact with web pages, extract data with schemas, and perform complex actions autonomously.
+  </Intro>
+
+  <Step number={1} title="Optional: Create a new directory & environment">
+    Set up a new TypeScript project with the necessary configuration.
+    ```bash
+    mkdir steel-stagehand && \
+    cd steel-stagehand && \
+    npm init -y && \
+    npm install -D typescript @types/node ts-node && \
+    npx tsc --init && \
+    npm pkg set scripts.start="ts-node index.ts" && \
+    touch index.ts .env
+    ```
+  </Step>
+
+  <Step number={2} title="Install Required Packages">
+    Install the necessary dependencies for Steel, Stagehand, and schema validation.
+
+    ```bash
+    npm install @browserbasehq/stagehand steel-sdk zod dotenv
+    ```
+  </Step>
+
+  <Step number={3} title="Set Up Environment Variables">
+    Create a `.env` file with your API keys.
+
+    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    STEEL_API_KEY=YOUR_STEEL_API_KEY
+    OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
+  </Step>
+
+  <Step number={4} title="Create Data Schema">
+    Define Zod schemas for structured data extraction from web pages.
+
+    ```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    import { Stagehand } from "@browserbasehq/stagehand";
+    import Steel from "steel-sdk";
+    import { z } from "zod";
+    import dotenv from "dotenv";
+
+    dotenv.config();
+
+    const STEEL_API_KEY = process.env.STEEL_API_KEY || "YOUR_STEEL_API_KEY";
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "YOUR_OPENAI_API_KEY";
+
+    // Initialize Steel client with the API key from environment variables
+    const client = new Steel({
+      steelAPIKey: STEEL_API_KEY,
+    });
+
+    // Define schema for structured data extraction
+    const storiesSchema = z.object({
+      stories: z.array(
+        z.object({
+          title: z.string(),
+          rank: z.number(),
+        })
+      ),
+    });
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
+  </Step>
+
+  <Step number={5} title="Create Steel Session">
+    Initialize a Steel browser session for Stagehand to connect to.
+
+    ```typescript showLineNumbers{22} filename="index.ts"
+    async function main() {
+      console.log("🚀 Steel + Stagehand Node Starter");
+      console.log("=".repeat(60));
+
+      if (STEEL_API_KEY === "YOUR_STEEL_API_KEY") {
+        console.warn("⚠️  WARNING: Please replace 'YOUR_STEEL_API_KEY' with your actual Steel API key");
+        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+        return;
+      }
+
+      if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY") {
+        console.warn("⚠️  WARNING: Please replace 'YOUR_OPENAI_API_KEY' with your actual OpenAI API key");
+        console.warn("   Get your API key at: https://platform.openai.com/");
+        return;
+      }
+
+      let session;
+      let stagehand;
+
+      try {
+        console.log("\nCreating Steel session...");
+
+        session = await client.sessions.create();
+
+        console.log(`Steel Session created!`);
+        console.log(`View session at ${session.sessionViewerUrl}`);
+    ```
+  </Step>
+
+  <Step number={6} title="Configure Stagehand">
+    Set up Stagehand configuration to connect to your Steel session via CDP.
+
+    ```typescript showLineNumbers{48} filename="index.ts"
+        stagehand = new Stagehand({
+          env: "LOCAL", // Using LOCAL env to connect to Steel session
+          localBrowserLaunchOptions: {
+            cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+          },
+          enableCaching: false,
+          modelClientOptions: {
+            apiKey: OPENAI_API_KEY,
+          },
+        });
+
+        console.log("Initializing Stagehand...");
+        await stagehand.init();
+
+        console.log("Connected to browser via Stagehand");
+    ```
+  </Step>
+
+  <Step number={7} title="Navigate and Extract Data">
+    Use Stagehand's AI-powered methods to navigate pages and extract structured data.
+
+    ```typescript showLineNumbers{64} filename="index.ts"
+        console.log("Navigating to Hacker News...");
+        await stagehand.page.goto("https://news.ycombinator.com");
+
+        console.log("Extracting top stories using AI...");
+
+        const stories = await stagehand.page.extract({
+          instruction: "extract the titles of the first 5 stories on the page",
+          schema: storiesSchema,
+        });
+
+        console.log("\nTop 5 Hacker News Stories:");
+        stories.stories?.forEach((story: any, index: number) => {
+          console.log(`${index + 1}. ${story.title}`);
+        });
+    ```
+  </Step>
+
+  <Step number={8} title="Perform AI Actions">
+    Use Stagehand's natural language actions to interact with web elements.
+
+    ```typescript showLineNumbers{78} filename="index.ts"
+        console.log("\nLooking for search functionality...");
+
+        try {
+          await stagehand.page.act(
+            "find and click on the search link or button if it exists"
+          );
+          console.log("Found search functionality!");
+
+          await stagehand.page.act("type 'AI' in the search box");
+          console.log("Typed 'AI' in search box");
+        } catch (error) {
+          console.log("No search functionality found or accessible");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        console.log("\nAutomation completed successfully!");
+    ```
+  </Step>
+
+  <Step number={9} title="Clean Up Resources">
+    Properly close Stagehand and release the Steel session when done.
+
+    ```typescript showLineNumbers{96} filename="index.ts"
+      } catch (error) {
+        console.error("Error during automation:", error);
+      } finally {
+        if (stagehand) {
+          console.log("Closing Stagehand...");
+          try {
+            await stagehand.close();
+          } catch (error) {
+            console.error("Error closing Stagehand:", error);
+          }
+        }
+
+        if (session) {
+          console.log("Releasing Steel session...");
+          try {
+            await client.sessions.release(session.id);
+            console.log("Steel session released successfully");
+          } catch (error) {
+            console.error("Error releasing session:", error);
+          }
+        }
+      }
+    }
+
+    main().catch((error) => {
+      console.error("Unhandled error:", error);
+      process.exit(1);
+    });
+    ```
+  </Step>
+
+  <Step number={10} title="Run Your Automation">
+    Execute your script to start the AI-powered browser automation.
+
+    ```bash
+    npm run start
+    ```
+
+    Your Stagehand automation will:
+    - Connect to Steel's cloud browser
+    - Navigate to websites using natural language
+    - Extract structured data using AI and schemas
+    - Perform actions described in plain English
+    - Observe page elements intelligently
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete AI-powered browser automation using Stagehand with Steel.
+    ```typescript showLineNumbers filename="index.ts"
+    /*
+     * AI-powered browser automation using Stagehand with Steel browsers.
+     */
+
+    import { Stagehand } from "@browserbasehq/stagehand";
+    import Steel from "steel-sdk";
+    import { z } from "zod";
+    import dotenv from "dotenv";
+
+    dotenv.config();
+
+    const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
+
+    // Initialize Steel client with the API key from environment variables
+    const client = new Steel({
+      steelAPIKey: STEEL_API_KEY,
+    });
+
+    // Define schema for structured data extraction
+    const storiesSchema = z.object({
+      stories: z.array(
+        z.object({
+          title: z.string(),
+          rank: z.number(),
+        })
+      ),
+    });
+
+    async function main() {
+      console.log("🚀 Steel + Stagehand Node Starter");
+      console.log("=".repeat(60));
+
+      if (STEEL_API_KEY === "your-steel-api-key-here") {
+        console.warn("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key");
+        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+        return;
+      }
+
+      if (OPENAI_API_KEY === "your-openai-api-key-here") {
+        console.warn("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key");
+        console.warn("   Get your API key at: https://platform.openai.com/");
+        return;
+      }
+
+      let session;
+      let stagehand;
+
+      try {
+        console.log("\nCreating Steel session...");
+
+        session = await client.sessions.create();
+
+        console.log(`Steel Session created!`);
+        console.log(`View session at ${session.sessionViewerUrl}`);
+
+        stagehand = new Stagehand({
+          env: "LOCAL", // Using LOCAL env to connect to Steel session
+          localBrowserLaunchOptions: {
+            cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+          },
+          enableCaching: false,
+          modelClientOptions: {
+            apiKey: OPENAI_API_KEY,
+          },
+        });
+
+        console.log("Initializing Stagehand...");
+        await stagehand.init();
+
+        console.log("Connected to browser via Stagehand");
+
+        console.log("Navigating to Hacker News...");
+        await stagehand.page.goto("https://news.ycombinator.com");
+
+        console.log("Extracting top stories using AI...");
+
+        const stories = await stagehand.page.extract({
+          instruction: "extract the titles of the first 5 stories on the page",
+          schema: storiesSchema,
+        });
+
+        console.log("\nTop 5 Hacker News Stories:");
+        stories.stories?.forEach((story: any, index: number) => {
+          console.log(`${index + 1}. ${story.title}`);
+        });
+
+        console.log("\nLooking for search functionality...");
+
+        try {
+          await stagehand.page.act(
+            "find and click on the search link or button if it exists"
+          );
+          console.log("Found search functionality!");
+
+          await stagehand.page.act("type 'AI' in the search box");
+          console.log("Typed 'AI' in search box");
+        } catch (error) {
+          console.log("No search functionality found or accessible");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        console.log("\nAutomation completed successfully!");
+      } catch (error) {
+        console.error("Error during automation:", error);
+      } finally {
+        if (stagehand) {
+          console.log("Closing Stagehand...");
+          try {
+            await stagehand.close();
+          } catch (error) {
+            console.error("Error closing Stagehand:", error);
+          }
+        }
+
+        if (session) {
+          console.log("Releasing Steel session...");
+          try {
+            await client.sessions.release(session.id);
+            console.log("Steel session released successfully");
+          } catch (error) {
+            console.error("Error releasing session:", error);
+          }
+        }
+      }
+    }
+
+    main().catch((error) => {
+      console.error("Unhandled error:", error);
+      process.exit(1);
+    });
+    ```
+  </FullCodeExample>
+</Guide>

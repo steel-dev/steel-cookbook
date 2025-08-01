@@ -5,9 +5,647 @@ accentColor: "blue"
 category: "AI_AGENTS"
 stack: "python"
 description: "A starter project for integrating Steel with OpenAI's Computer Use Assistant API to create a browser automation agent."
-flags: ["cli", "playground"]
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-oai-computer-use-python-starter"
 groupId: "oai-computer-use"
 language: "python"
 shorthand: "oai-cua-py"
 ---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Create powerful autonomous AI agents that can see, think, and interact with websites using Steel's cloud browsers and OpenAI's Computer Use API. The agent can take screenshots, click elements, type text, and complete complex web tasks independently.
+  </Intro>
+
+  <Step number={1} title="Install Required Packages">
+    Install the necessary dependencies for Steel, OpenAI Computer Use, Playwright, and image processing.
+
+    ```bash
+    pip install playwright requests steel-sdk python-dotenv pillow
+    ```
+  </Step>
+
+  <Step number={2} title="Set Up Environment Variables">
+    Create a `.env` file with your API keys and task configuration.
+
+    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    STEEL_API_KEY=YOUR_STEEL_API_KEY
+    OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+    TASK="Go to Wikipedia and search for machine learning"
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
+  </Step>
+
+  <Step number={3} title="Create the Steel Browser Session">
+    Initialize a Steel browser session with OpenAI Computer Use capabilities.
+
+    ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    import os
+    import time
+    import base64
+    import json
+    import requests
+    from typing import List, Dict
+    from dotenv import load_dotenv
+    from playwright.sync_api import sync_playwright
+    from steel import Steel
+    from PIL import Image
+    from io import BytesIO
+
+    load_dotenv(override=True)
+
+    # Load environment variables
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "YOUR_STEEL_API_KEY"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "YOUR_OPENAI_API_KEY"
+    TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
+    class SteelBrowser:
+        def __init__(self, width=1024, height=768):
+            self.client = Steel(steel_api_key=STEEL_API_KEY)
+            self.dimensions = (width, height)
+            self.session = None
+            self._playwright = None
+            self._browser = None
+            self._page = None
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
+  </Step>
+
+  <Step number={4} title="Implement Browser Context Manager">
+    Create context manager methods for proper resource management and browser setup.
+
+    ```python showLineNumbers{26} filename="main.py"
+        def __enter__(self):
+            width, height = self.dimensions
+            session_params = {
+                "use_proxy": False,
+                "solve_captcha": False,
+                "api_timeout": 900000,
+                "block_ads": True,
+                "dimensions": {"width": width, "height": height}
+            }
+            self.session = self.client.sessions.create(**session_params)
+
+            print("Steel Session created successfully!")
+            print(f"View live session at: {self.session.session_viewer_url}")
+
+            self._playwright = sync_playwright().start()
+            browser = self._playwright.chromium.connect_over_cdp(
+                f"{self.session.websocket_url}&apiKey={STEEL_API_KEY}",
+                timeout=60000
+            )
+            self._browser = browser
+            self._page = browser.contexts[0].pages[0]
+            self._page.set_viewport_size({"width": width, "height": height})
+            self._page.goto("https://www.google.com")
+            
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._page:
+                self._page.close()
+            if self._browser:
+                self._browser.close()
+            if self._playwright:
+                self._playwright.stop()
+            if self.session:
+                print("Releasing Steel session...")
+                self.client.sessions.release(self.session.id)
+    ```
+  </Step>
+
+  <Step number={5} title="Implement Computer Actions">
+    Add methods for taking screenshots and executing computer actions that OpenAI can use.
+
+    ```python showLineNumbers{60} filename="main.py"
+        def screenshot(self) -> str:
+            width, height = self.dimensions
+            png_bytes = self._page.screenshot(
+                full_page=False,
+                clip={"x": 0, "y": 0, "width": width, "height": height}
+            )
+            return base64.b64encode(png_bytes).decode("utf-8")
+
+        def click(self, x: int, y: int, button: str = "left") -> None:
+            if button == "left":
+                self._page.mouse.click(x, y)
+            elif button == "right":
+                self._page.mouse.click(x, y, button="right")
+            elif button == "back":
+                self._page.go_back()
+            elif button == "forward":
+                self._page.go_forward()
+
+        def type(self, text: str) -> None:
+            self._page.keyboard.type(text)
+
+        def scroll(self, x: int, y: int, scroll_x: int, scroll_y: int) -> None:
+            self._page.mouse.move(x, y)
+            self._page.evaluate(f"window.scrollBy({scroll_x}, {scroll_y})")
+
+        def goto(self, url: str) -> None:
+            try:
+                self._page.goto(url)
+            except Exception as e:
+                print(f"Error navigating to {url}: {e}")
+
+        def get_current_url(self) -> str:
+            return self._page.url if self._page else ""
+    ```
+  </Step>
+
+  <Step number={6} title="Create OpenAI API Helper">
+    Implement the OpenAI API client for computer use interactions.
+
+    ```python showLineNumbers{87} filename="main.py"
+    def create_response(**kwargs):
+        url = "https://api.openai.com/v1/responses"
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        openai_org = os.getenv("OPENAI_ORG")
+        if openai_org:
+            headers["Openai-Organization"] = openai_org
+
+        response = requests.post(url, headers=headers, json=kwargs)
+
+        if response.status_code != 200:
+            print(f"Error: {response.status_code} {response.text}")
+            raise Exception(f"OpenAI API Error: {response.status_code}")
+
+        return response.json()
+
+    class Agent:
+        def __init__(self, model: str = "computer-use-preview", computer: SteelBrowser = None):
+            self.model = model
+            self.computer = computer
+            self.tools = []
+            
+            if computer:
+                width, height = computer.dimensions
+                self.tools.append({
+                    "type": "computer-preview",
+                    "display_width": width,
+                    "display_height": height,
+                    "environment": "browser",
+                })
+
+                # Add goto function for direct navigation
+                self.tools.append({
+                    "type": "function",
+                    "name": "goto",
+                    "description": "Navigate directly to a specific URL.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "url": {"type": "string", "description": "URL to navigate to"}
+                        },
+                        "required": ["url"],
+                    },
+                })
+    ```
+  </Step>
+
+  <Step number={7} title="Implement Action Handling">
+    Add methods to handle computer actions and function calls from OpenAI.
+
+    ```python showLineNumbers{123} filename="main.py"
+        def handle_item(self, item):
+            if item["type"] == "message":
+                print(item["content"][0]["text"])
+                
+            elif item["type"] == "function_call":
+                name, args = item["name"], json.loads(item["arguments"])
+                print(f"{name}({args})")
+                
+                if hasattr(self.computer, name):
+                    method = getattr(self.computer, name)
+                    method(**args)
+                
+                return [{
+                    "type": "function_call_output",
+                    "call_id": item["call_id"],
+                    "output": "success",
+                }]
+                
+            elif item["type"] == "computer_call":
+                action = item["action"]
+                action_type = action["type"]
+                action_args = {k: v for k, v in action.items() if k != "type"}
+                
+                print(f"{action_type}({action_args})")
+                
+                method = getattr(self.computer, action_type)
+                method(**action_args)
+                
+                screenshot_base64 = self.computer.screenshot()
+                
+                return [{
+                    "type": "computer_call_output",
+                    "call_id": item["call_id"],
+                    "output": {
+                        "type": "input_image",
+                        "image_url": f"data:image/png;base64,{screenshot_base64}",
+                        "current_url": self.computer.get_current_url()
+                    },
+                }]
+            
+            return []
+    ```
+  </Step>
+
+  <Step number={8} title="Implement Task Execution">
+    Create the main task execution loop that coordinates with OpenAI.
+
+    ```python showLineNumbers{158} filename="main.py"
+        def execute_task(self, task: str, max_iterations: int = 50) -> str:
+            system_prompt = """You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+            You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:"."""
+
+            input_items = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": task},
+            ]
+
+            new_items = []
+            iterations = 0
+
+            print(f"🎯 Executing task: {task}")
+            print("=" * 60)
+
+            while iterations < max_iterations:
+                iterations += 1
+
+                try:
+                    response = create_response(
+                        model=self.model,
+                        input=input_items + new_items,
+                        tools=self.tools,
+                        truncation="auto",
+                    )
+
+                    if "output" not in response:
+                        raise ValueError("No output from model")
+
+                    new_items += response["output"]
+                    
+                    for item in response["output"]:
+                        if item.get("type") == "message":
+                            if "TASK_COMPLETED:" in item["content"][0]["text"]:
+                                return item["content"][0]["text"]
+                        new_items += self.handle_item(item)
+
+                except Exception as error:
+                    print(f"❌ Error during task execution: {error}")
+                    return f"Task failed: {error}"
+
+            return "Task execution completed (max iterations reached)"
+    ```
+  </Step>
+
+  <Step number={9} title="Create the Main Function">
+    Implement the main execution function that brings everything together.
+
+    ```python showLineNumbers{195} filename="main.py"
+    def main():
+        print("🚀 Steel + OpenAI Computer Use Assistant")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "YOUR_STEEL_API_KEY":
+            print("⚠️  WARNING: Please set your STEEL_API_KEY in the .env file")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if OPENAI_API_KEY == "YOUR_OPENAI_API_KEY":
+            print("⚠️  WARNING: Please set your OPENAI_API_KEY in the .env file")
+            print("   Get your API key at: https://platform.openai.com/")
+            return
+
+        print("\nStarting Steel browser session...")
+
+        try:
+            with SteelBrowser() as computer:
+                print("✅ Steel browser session started!")
+                
+                agent = Agent(model="computer-use-preview", computer=computer)
+                
+                start_time = time.time()
+                result = agent.execute_task(TASK, max_iterations=50)
+                duration = f"{(time.time() - start_time):.1f}"
+                
+                print("\n" + "=" * 60)
+                print("🎉 TASK EXECUTION COMPLETED")
+                print("=" * 60)
+                print(f"⏱️  Duration: {duration} seconds")
+                print(f"🎯 Task: {TASK}")
+                print(f"📋 Result:\n{result}")
+                print("=" * 60)
+
+        except Exception as e:
+            print(f"❌ Failed to start Steel browser: {e}")
+            print("Please check your API keys and internet connection.")
+
+    if __name__ == "__main__":
+        main()
+    ```
+  </Step>
+
+  <Step number={10} title="Run Your AI Agent">
+    Execute your script to start the autonomous AI agent that can interact with websites.
+
+    ```bash
+    python main.py
+    ```
+
+    Your OpenAI agent will:
+    - Take screenshots to see the current state
+    - Analyze what's on screen using vision
+    - Make decisions about what actions to take
+    - Click, type, scroll, and navigate autonomously
+    - Complete complex multi-step tasks
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete autonomous browser agent using OpenAI's Computer Use API with Steel.
+    ```python showLineNumbers filename="main.py"
+    """
+    OpenAI AI agent for autonomous web interactions with Steel browsers.
+    """
+
+    import os
+    import time
+    import base64
+    import json
+    import requests
+    from typing import List, Dict
+    from dotenv import load_dotenv
+    from playwright.sync_api import sync_playwright
+    from steel import Steel
+    from PIL import Image
+    from io import BytesIO
+
+    load_dotenv(override=True)
+
+    # Environment variables
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
+    TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
+    def create_response(**kwargs):
+        url = "https://api.openai.com/v1/responses"
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(url, headers=headers, json=kwargs)
+
+        if response.status_code != 200:
+            print(f"Error: {response.status_code} {response.text}")
+            raise Exception(f"OpenAI API Error: {response.status_code}")
+
+        return response.json()
+
+    class SteelBrowser:
+        def __init__(self, width=1024, height=768):
+            self.client = Steel(steel_api_key=STEEL_API_KEY)
+            self.dimensions = (width, height)
+            self.session = None
+            self._playwright = None
+            self._browser = None
+            self._page = None
+
+        def __enter__(self):
+            width, height = self.dimensions
+            session_params = {
+                "use_proxy": False,
+                "solve_captcha": False,
+                "api_timeout": 900000,
+                "block_ads": True,
+                "dimensions": {"width": width, "height": height}
+            }
+            self.session = self.client.sessions.create(**session_params)
+
+            print("Steel Session created successfully!")
+            print(f"View live session at: {self.session.session_viewer_url}")
+
+            self._playwright = sync_playwright().start()
+            browser = self._playwright.chromium.connect_over_cdp(
+                f"{self.session.websocket_url}&apiKey={STEEL_API_KEY}",
+                timeout=60000
+            )
+            self._browser = browser
+            self._page = browser.contexts[0].pages[0]
+            self._page.set_viewport_size({"width": width, "height": height})
+            self._page.goto("https://www.google.com")
+            
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._page:
+                self._page.close()
+            if self._browser:
+                self._browser.close()
+            if self._playwright:
+                self._playwright.stop()
+            if self.session:
+                print("Releasing Steel session...")
+                self.client.sessions.release(self.session.id)
+                print(f"Session completed. View replay at {self.session.session_viewer_url}")
+
+        def screenshot(self) -> str:
+            width, height = self.dimensions
+            png_bytes = self._page.screenshot(
+                full_page=False,
+                clip={"x": 0, "y": 0, "width": width, "height": height}
+            )
+            return base64.b64encode(png_bytes).decode("utf-8")
+
+        def click(self, x: int, y: int, button: str = "left") -> None:
+            if button == "left":
+                self._page.mouse.click(x, y)
+            elif button == "right":
+                self._page.mouse.click(x, y, button="right")
+            elif button == "back":
+                self._page.go_back()
+            elif button == "forward":
+                self._page.go_forward()
+
+        def type(self, text: str) -> None:
+            self._page.keyboard.type(text)
+
+        def scroll(self, x: int, y: int, scroll_x: int, scroll_y: int) -> None:
+            self._page.mouse.move(x, y)
+            self._page.evaluate(f"window.scrollBy({scroll_x}, {scroll_y})")
+
+        def goto(self, url: str) -> None:
+            try:
+                self._page.goto(url)
+            except Exception as e:
+                print(f"Error navigating to {url}: {e}")
+
+        def get_current_url(self) -> str:
+            return self._page.url if self._page else ""
+
+    class Agent:
+        def __init__(self, model: str = "computer-use-preview", computer: SteelBrowser = None):
+            self.model = model
+            self.computer = computer
+            self.tools = []
+            
+            if computer:
+                width, height = computer.dimensions
+                self.tools.append({
+                    "type": "computer-preview",
+                    "display_width": width,
+                    "display_height": height,
+                    "environment": "browser",
+                })
+
+                self.tools.append({
+                    "type": "function",
+                    "name": "goto",
+                    "description": "Navigate directly to a specific URL.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "url": {"type": "string", "description": "URL to navigate to"}
+                        },
+                        "required": ["url"],
+                    },
+                })
+
+        def handle_item(self, item):
+            if item["type"] == "message":
+                print(item["content"][0]["text"])
+                
+            elif item["type"] == "function_call":
+                name, args = item["name"], json.loads(item["arguments"])
+                print(f"{name}({args})")
+                
+                if hasattr(self.computer, name):
+                    method = getattr(self.computer, name)
+                    method(**args)
+                
+                return [{
+                    "type": "function_call_output",
+                    "call_id": item["call_id"],
+                    "output": "success",
+                }]
+                
+            elif item["type"] == "computer_call":
+                action = item["action"]
+                action_type = action["type"]
+                action_args = {k: v for k, v in action.items() if k != "type"}
+                
+                print(f"{action_type}({action_args})")
+                
+                method = getattr(self.computer, action_type)
+                method(**action_args)
+                
+                screenshot_base64 = self.computer.screenshot()
+                
+                return [{
+                    "type": "computer_call_output",
+                    "call_id": item["call_id"],
+                    "output": {
+                        "type": "input_image",
+                        "image_url": f"data:image/png;base64,{screenshot_base64}",
+                        "current_url": self.computer.get_current_url()
+                    },
+                }]
+            
+            return []
+
+        def execute_task(self, task: str, max_iterations: int = 50) -> str:
+            system_prompt = """You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+            You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:"."""
+
+            input_items = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": task},
+            ]
+
+            new_items = []
+            iterations = 0
+
+            print(f"🎯 Executing task: {task}")
+            print("=" * 60)
+
+            while iterations < max_iterations:
+                iterations += 1
+
+                try:
+                    response = create_response(
+                        model=self.model,
+                        input=input_items + new_items,
+                        tools=self.tools,
+                        truncation="auto",
+                    )
+
+                    if "output" not in response:
+                        raise ValueError("No output from model")
+
+                    new_items += response["output"]
+                    
+                    for item in response["output"]:
+                        if item.get("type") == "message":
+                            if "TASK_COMPLETED:" in item["content"][0]["text"]:
+                                return item["content"][0]["text"]
+                        new_items += self.handle_item(item)
+
+                except Exception as error:
+                    print(f"❌ Error during task execution: {error}")
+                    return f"Task failed: {error}"
+
+            return "Task execution completed (max iterations reached)"
+
+    def main():
+        print("🚀 Steel + OpenAI Computer Use Assistant")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "your-steel-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if OPENAI_API_KEY == "your-openai-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+            print("   Get your API key at: https://platform.openai.com/")
+            return
+
+        print("\nStarting Steel browser session...")
+
+        try:
+            with SteelBrowser() as computer:
+                print("✅ Steel browser session started!")
+                
+                agent = Agent(model="computer-use-preview", computer=computer)
+                
+                start_time = time.time()
+                result = agent.execute_task(TASK, max_iterations=50)
+                duration = f"{(time.time() - start_time):.1f}"
+                
+                print("\n" + "=" * 60)
+                print("🎉 TASK EXECUTION COMPLETED")
+                print("=" * 60)
+                print(f"⏱️  Duration: {duration} seconds")
+                print(f"🎯 Task: {TASK}")
+                print(f"📋 Result:\n{result}")
+                print("=" * 60)
+
+        except Exception as e:
+            print(f"❌ Failed to start Steel browser: {e}")
+            print("Please check your API keys and internet connection.")
+
+    if __name__ == "__main__":
+        main()
+    ```
+  </FullCodeExample>
+</Guide>

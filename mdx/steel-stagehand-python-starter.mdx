@@ -5,9 +5,348 @@ accentColor: "blue"
 category: "AI_AUTOMATION"
 stack: "python"
 description: "A starter project demonstrating how to use Steel with Stagehand in Python for AI-powered browser automations."
-flags: ["cli", "playground"]
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-stagehand-python-starter"
 groupId: "stagehand-starter"
 language: "python"
 shorthand: "stagehand-py"
 ---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Build intelligent browser automation with Steel's cloud browsers and Stagehand's AI-powered framework. Stagehand uses natural language instructions to interact with web pages, extract data with schemas, and perform complex actions autonomously.
+  </Intro>
+
+  <Step number={1} title="Install Required Packages">
+    Install the necessary dependencies for Steel, Stagehand, and structured data extraction.
+
+    ```bash
+    pip install steel-sdk stagehand python-dotenv pydantic
+    ```
+  </Step>
+
+  <Step number={2} title="Set Up Environment Variables">
+    Create a `.env` file with your API keys.
+
+    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    STEEL_API_KEY=YOUR_STEEL_API_KEY
+    OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
+  </Step>
+
+  <Step number={3} title="Create Data Models">
+    Define Pydantic models for structured data extraction from web pages.
+
+    ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+    import asyncio
+    import os
+    from dotenv import load_dotenv
+    from pydantic import BaseModel, Field
+    from steel import Steel
+    from stagehand import StagehandConfig, Stagehand
+
+    # Load environment variables
+    load_dotenv()
+
+    # Replace with your own API keys
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "YOUR_STEEL_API_KEY"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "YOUR_OPENAI_API_KEY"
+
+    # Define Pydantic models for structured data extraction
+    class Story(BaseModel):
+        title: str = Field(..., description="Story title")
+        rank: int = Field(..., description="Story rank number")
+
+    class Stories(BaseModel):
+        stories: list[Story] = Field(..., description="List of top stories")
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
+  </Step>
+
+  <Step number={4} title="Create Steel Session">
+    Initialize a Steel browser session for Stagehand to connect to.
+
+    ```python showLineNumbers{21} filename="main.py"
+    async def main():
+        print("🚀 Steel + Stagehand Python Starter")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "YOUR_STEEL_API_KEY":
+            print("⚠️  WARNING: Please replace 'YOUR_STEEL_API_KEY' with your actual Steel API key")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if OPENAI_API_KEY == "YOUR_OPENAI_API_KEY":
+            print("⚠️  WARNING: Please replace 'YOUR_OPENAI_API_KEY' with your actual OpenAI API key")
+            print("   Get your API key at: https://platform.openai.com/")
+            return
+
+        session = None
+        stagehand = None
+        client = None
+        
+        try:
+            print("\nCreating Steel session...")
+            
+            # Initialize Steel client with the API key from environment variables
+            client = Steel(steel_api_key=STEEL_API_KEY)
+            
+            session = client.sessions.create()
+            
+            print(f"Steel Session created!")
+            print(f"View session at {session.session_viewer_url}")
+    ```
+  </Step>
+
+  <Step number={5} title="Configure Stagehand">
+    Set up Stagehand configuration to connect to your Steel session via CDP.
+
+    ```python showLineNumbers{50} filename="main.py"
+            config = StagehandConfig(
+                env="LOCAL",
+                model_name="gpt-4o-mini",
+                model_api_key=OPENAI_API_KEY,
+                # Connect to Steel session via CDP
+                local_browser_launch_options={
+                    "cdp_url": f"{session.websocket_url}&apiKey={STEEL_API_KEY}",
+                }
+            )
+            
+            stagehand = Stagehand(config)
+            
+            print("Initializing Stagehand...")
+            await stagehand.init()
+            
+            print("Connected to browser via Stagehand")
+    ```
+  </Step>
+
+  <Step number={6} title="Navigate and Extract Data">
+    Use Stagehand's AI-powered methods to navigate pages and extract structured data.
+
+    ```python showLineNumbers{66} filename="main.py"
+            print("Navigating to Hacker News...")
+            await stagehand.page.goto("https://news.ycombinator.com")
+            
+            print("Extracting top stories using AI...")
+            
+            stories_data = await stagehand.page.extract(
+                "Extract the titles and ranks of the first 5 stories on the page",
+                schema=Stories
+            )
+            
+            print("\nTop 5 Hacker News Stories:")
+            for story in stories_data.stories:
+                print(f"{story.rank}. {story.title}")
+    ```
+  </Step>
+
+  <Step number={7} title="Perform AI Actions">
+    Use Stagehand's natural language actions to interact with web elements.
+
+    ```python showLineNumbers{81} filename="main.py"
+            print("\nLooking for search functionality...")
+            
+            try:
+                observe_result = await stagehand.page.observe("find the search link or button if it exists")
+                print(f"Observed: {observe_result}")
+                
+                await stagehand.page.act("click on the search link if it exists")
+                print("Found and clicked search functionality!")
+                
+                await stagehand.page.act("type 'AI' in the search box")
+                print("Typed 'AI' in search box")
+                
+            except Exception as error:
+                print(f"No search functionality found or accessible: {error}")
+            
+            await asyncio.sleep(2)
+            
+            print("\nAutomation completed successfully!")
+    ```
+  </Step>
+
+  <Step number={8} title="Clean Up Resources">
+    Properly close Stagehand and release the Steel session when done.
+
+    ```python showLineNumbers{102} filename="main.py"
+        except Exception as error:
+            print(f"Error during automation: {error}")
+            import traceback
+            traceback.print_exc()
+        
+        finally:
+            if stagehand:
+                print("Closing Stagehand...")
+                try:
+                    await stagehand.close()
+                except Exception as error:
+                    print(f"Error closing Stagehand: {error}")
+            
+            if session and client:
+                print("Releasing Steel session...")
+                try:
+                    client.sessions.release(session.id)
+                    print("Steel session released successfully")
+                except Exception as error:
+                    print(f"Error releasing session: {error}")
+
+    # Run the main function
+    if __name__ == "__main__":
+        asyncio.run(main())
+    ```
+  </Step>
+
+  <Step number={9} title="Run Your Automation">
+    Execute your script to start the AI-powered browser automation.
+
+    ```bash
+    python main.py
+    ```
+
+    Your Stagehand automation will:
+    - Connect to Steel's cloud browser
+    - Navigate to websites using natural language
+    - Extract structured data using AI and schemas
+    - Perform actions described in plain English
+    - Observe page elements intelligently
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete AI-powered browser automation using Stagehand with Steel.
+    ```python showLineNumbers filename="main.py"
+    """
+    AI-powered browser automation using Stagehand with Steel browsers.
+    """
+
+    import asyncio
+    import os
+    from dotenv import load_dotenv
+    from pydantic import BaseModel, Field
+    from steel import Steel
+    from stagehand import StagehandConfig, Stagehand
+
+    # Load environment variables
+    load_dotenv()
+
+    # Replace with your own API keys
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
+
+    # Define Pydantic models for structured data extraction
+    class Story(BaseModel):
+        title: str = Field(..., description="Story title")
+        rank: int = Field(..., description="Story rank number")
+
+    class Stories(BaseModel):
+        stories: list[Story] = Field(..., description="List of top stories")
+
+    async def main():
+        print("🚀 Steel + Stagehand Python Starter")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "your-steel-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if OPENAI_API_KEY == "your-openai-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+            print("   Get your API key at: https://platform.openai.com/")
+            return
+
+        session = None
+        stagehand = None
+        client = None
+        
+        try:
+            print("\nCreating Steel session...")
+            
+            # Initialize Steel client with the API key from environment variables
+            client = Steel(steel_api_key=STEEL_API_KEY)
+            
+            session = client.sessions.create()
+            
+            print(f"Steel Session created!")
+            print(f"View session at {session.session_viewer_url}")
+            
+            config = StagehandConfig(
+                env="LOCAL",
+                model_name="gpt-4o-mini",
+                model_api_key=OPENAI_API_KEY,
+                # Connect to Steel session via CDP
+                local_browser_launch_options={
+                    "cdp_url": f"{session.websocket_url}&apiKey={STEEL_API_KEY}",
+                }
+            )
+            
+            stagehand = Stagehand(config)
+            
+            print("Initializing Stagehand...")
+            await stagehand.init()
+            
+            print("Connected to browser via Stagehand")
+            
+            print("Navigating to Hacker News...")
+            await stagehand.page.goto("https://news.ycombinator.com")
+            
+            print("Extracting top stories using AI...")
+            
+            stories_data = await stagehand.page.extract(
+                "Extract the titles and ranks of the first 5 stories on the page",
+                schema=Stories
+            )
+            
+            print("\nTop 5 Hacker News Stories:")
+            for story in stories_data.stories:
+                print(f"{story.rank}. {story.title}")
+            
+            print("\nLooking for search functionality...")
+            
+            try:
+                observe_result = await stagehand.page.observe("find the search link or button if it exists")
+                print(f"Observed: {observe_result}")
+                
+                await stagehand.page.act("click on the search link if it exists")
+                print("Found and clicked search functionality!")
+                
+                await stagehand.page.act("type 'AI' in the search box")
+                print("Typed 'AI' in search box")
+                
+            except Exception as error:
+                print(f"No search functionality found or accessible: {error}")
+            
+            await asyncio.sleep(2)
+            
+            print("\nAutomation completed successfully!")
+            
+        except Exception as error:
+            print(f"Error during automation: {error}")
+            import traceback
+            traceback.print_exc()
+        
+        finally:
+            if stagehand:
+                print("Closing Stagehand...")
+                try:
+                    await stagehand.close()
+                except Exception as error:
+                    print(f"Error closing Stagehand: {error}")
+            
+            if session and client:
+                print("Releasing Steel session...")
+                try:
+                    client.sessions.release(session.id)
+                    print("Steel session released successfully")
+                except Exception as error:
+                    print(f"Error releasing session: {error}")
+
+    # Run the main function
+    if __name__ == "__main__":
+        asyncio.run(main())
+    ```
+  </FullCodeExample>
+</Guide>

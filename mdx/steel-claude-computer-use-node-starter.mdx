@@ -5,9 +5,588 @@ accentColor: "orange"
 category: "AI_AUTOMATION"
 stack: "nodejs"
 description: "A starter project demonstrating how to use Steel with Anthropic's Claude Computer Use API in Node.js to create a browser automation agent."
-flags: ["cli", "playground"]
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-claude-computer-use-node-starter"
 groupId: "claude-computer-use"
 language: "typescript"
 shorthand: "claude-cua"
 ---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Create autonomous AI agents that can navigate and interact with websites using Steel's cloud browsers and Claude's Computer Use API. Claude can see the screen, click buttons, fill forms, and complete complex web tasks independently.
+  </Intro>
+
+  <Step number={1} title="Optional: Create a new directory & environment">
+    Set up a new TypeScript project with the necessary configuration.
+    ```bash
+    mkdir steel-claude-cua && \
+    cd steel-claude-cua && \
+    npm init -y && \
+    npm install -D typescript @types/node ts-node && \
+    npx tsc --init && \
+    npm pkg set scripts.start="ts-node index.ts" && \
+    touch index.ts .env
+    ```
+  </Step>
+
+  <Step number={2} title="Install Required Packages">
+    Install the necessary dependencies for Steel, Claude Computer Use, and Playwright.
+
+    ```bash
+    npm install @anthropic-ai/sdk steel-sdk playwright dotenv
+    ```
+  </Step>
+
+  <Step number={3} title="Set Up Environment Variables">
+    Create a `.env` file with your API keys and task configuration.
+
+    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_ANTHROPIC_API_KEY/#2
+    STEEL_API_KEY=YOUR_STEEL_API_KEY
+    ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
+    TASK="Go to Wikipedia and search for machine learning"
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+    - Replace <HighlightRef id={2}>YOUR_ANTHROPIC_API_KEY</HighlightRef> with your Anthropic API key
+  </Step>
+
+  <Step number={4} title="Create the Steel Browser Class">
+    Initialize a Steel browser session with Claude Computer Use capabilities.
+
+    ```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1 /YOUR_ANTHROPIC_API_KEY/#2
+    import * as dotenv from "dotenv";
+    import { chromium } from "playwright";
+    import type { Browser, Page } from "playwright";
+    import { Steel } from "steel-sdk";
+    import Anthropic from "@anthropic-ai/sdk";
+    import type { MessageParam } from "@anthropic-ai/sdk/resources/messages";
+
+    dotenv.config();
+
+    // Load environment variables
+    const STEEL_API_KEY = process.env.STEEL_API_KEY || "YOUR_STEEL_API_KEY";
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "YOUR_ANTHROPIC_API_KEY";
+    const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
+
+    class SteelBrowser {
+      private client: Steel;
+      private session: any;
+      private browser: Browser | null = null;
+      private page: Page | null = null;
+      private dimensions: [number, number];
+
+      constructor(width: number = 1024, height: number = 768) {
+        this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
+        this.dimensions = [width, height];
+      }
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+    - Replace <HighlightRef id={2}>YOUR_ANTHROPIC_API_KEY</HighlightRef> with your actual Anthropic API key
+  </Step>
+
+  <Step number={5} title="Implement Browser Session Management">
+    Add methods for initializing and cleaning up the browser session.
+
+    ```typescript showLineNumbers{26} filename="index.ts"
+      async initialize(): Promise<void> {
+        const [width, height] = this.dimensions;
+        const sessionParams = {
+          useProxy: false,
+          solveCaptcha: false,
+          apiTimeout: 900000,
+          blockAds: true,
+          dimensions: { width, height },
+        };
+
+        this.session = await this.client.sessions.create(sessionParams);
+        console.log("Steel Session created successfully!");
+        console.log(`View live session at: ${this.session.sessionViewerUrl}`);
+
+        const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+        this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
+        this.page = this.browser.contexts()[0].pages()[0];
+        await this.page.setViewportSize({ width, height });
+        await this.page.goto("https://www.google.com");
+      }
+
+      async cleanup(): Promise<void> {
+        if (this.page) await this.page.close();
+        if (this.browser) await this.browser.close();
+        if (this.session) {
+          console.log("Releasing Steel session...");
+          await this.client.sessions.release(this.session.id);
+          console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
+        }
+      }
+    ```
+  </Step>
+
+  <Step number={6} title="Implement Computer Actions">
+    Add methods for taking screenshots and executing computer actions that Claude can use.
+
+    ```typescript showLineNumbers{52} filename="index.ts"
+      async screenshot(): Promise<string> {
+        if (!this.page) throw new Error("Page not initialized");
+        const [width, height] = this.dimensions;
+        const buffer = await this.page.screenshot({
+          fullPage: false,
+          clip: { x: 0, y: 0, width, height },
+        });
+        return buffer.toString("base64");
+      }
+
+      async executeComputerAction(action: string, params: any = {}): Promise<string> {
+        if (!this.page) throw new Error("Page not initialized");
+
+        switch (action) {
+          case "screenshot":
+            return this.screenshot();
+          case "left_click":
+            if (params.coordinate) {
+              const [x, y] = params.coordinate;
+              await this.page.mouse.click(x, y);
+            }
+            break;
+          case "type":
+            if (params.text) {
+              await this.page.keyboard.type(params.text);
+            }
+            break;
+          case "key":
+            if (params.text) {
+              await this.page.keyboard.press(params.text);
+            }
+            break;
+          case "scroll":
+            const scrollDirection = params.scroll_direction || "down";
+            const scrollAmount = params.scroll_amount || 3;
+            const deltaY = scrollDirection === "down" ? 100 * scrollAmount : -100 * scrollAmount;
+            await this.page.mouse.wheel(0, deltaY);
+            break;
+        }
+
+        return this.screenshot();
+      }
+    }
+    ```
+  </Step>
+
+  <Step number={7} title="Create the Claude Agent">
+    Implement the Claude agent with Computer Use API integration.
+
+    ```typescript showLineNumbers{87} filename="index.ts"
+    class ClaudeAgent {
+      private client: Anthropic;
+      private computer: SteelBrowser;
+      private model: string;
+      private tools: any[];
+
+      constructor(computer: SteelBrowser, model: string = "claude-3-5-sonnet-20241022") {
+        this.client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+        this.computer = computer;
+        this.model = model;
+
+        const [width, height] = computer.dimensions;
+        this.tools = [{
+          type: "computer_20241022",
+          name: "computer",
+          display_width_px: width,
+          display_height_px: height,
+          display_number: 1,
+        }];
+      }
+
+      async executeTask(task: string, maxIterations: number = 50): Promise<string> {
+        const messages: MessageParam[] = [
+          { role: "user", content: SYSTEM_PROMPT },
+          { role: "user", content: task }
+        ];
+
+        console.log(`🎯 Executing task: ${task}`);
+        console.log("=".repeat(60));
+
+        for (let iteration = 0; iteration < maxIterations; iteration++) {
+          try {
+            const response = await this.client.beta.messages.create({
+              model: this.model,
+              max_tokens: 4096,
+              messages,
+              tools: this.tools,
+            }, {
+              headers: { "anthropic-beta": "computer-use-2024-10-22" }
+            });
+
+            // Process response content
+            for (const block of response.content) {
+              if (block.type === "text") {
+                console.log(block.text);
+                messages.push({ role: "assistant", content: block.text });
+                if (block.text.includes("TASK_COMPLETED:")) {
+                  return block.text;
+                }
+              } else if (block.type === "tool_use" && block.name === "computer") {
+                const action = (block.input as any).action;
+                console.log(`🔧 ${action}(${JSON.stringify(block.input)})`);
+
+                const screenshotBase64 = await this.computer.executeComputerAction(
+                  action,
+                  block.input
+                );
+
+                // Add tool use and result to conversation
+                messages.push({
+                  role: "assistant",
+                  content: [{ type: "tool_use", id: block.id, name: block.name, input: block.input }]
+                });
+                messages.push({
+                  role: "user",
+                  content: [{
+                    type: "tool_result",
+                    tool_use_id: block.id,
+                    content: [{
+                      type: "image",
+                      source: { type: "base64", media_type: "image/png", data: screenshotBase64 }
+                    }]
+                  }]
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error during task execution: ${error}`);
+            return `Task failed: ${error}`;
+          }
+        }
+
+        return "Task execution completed (max iterations reached)";
+      }
+    }
+    ```
+  </Step>
+
+  <Step number={8} title="Add System Prompt and Main Function">
+    Define the AI assistant's behavior and create the main execution function.
+
+    ```typescript showLineNumbers{157} filename="index.ts"
+    const SYSTEM_PROMPT = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+    You can:
+    * Take screenshots to see the current page
+    * Click on elements by providing coordinates
+    * Type text into input fields
+    * Press keyboard keys
+    * Scroll the page
+
+    Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
+
+    async function main(): Promise<void> {
+      console.log("🚀 Steel + Claude Computer Use Assistant");
+      console.log("=".repeat(60));
+
+      if (STEEL_API_KEY === "YOUR_STEEL_API_KEY") {
+        console.warn("⚠️  WARNING: Please set your STEEL_API_KEY in the .env file");
+        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+        return;
+      }
+
+      if (ANTHROPIC_API_KEY === "YOUR_ANTHROPIC_API_KEY") {
+        console.warn("⚠️  WARNING: Please set your ANTHROPIC_API_KEY in the .env file");
+        console.warn("   Get your API key at: https://console.anthropic.com/");
+        return;
+      }
+
+      console.log("\nStarting Steel browser session...");
+
+      const computer = new SteelBrowser();
+
+      try {
+        await computer.initialize();
+        console.log("✅ Steel browser session started!");
+
+        const agent = new ClaudeAgent(computer, "claude-3-5-sonnet-20241022");
+        const startTime = Date.now();
+        const result = await agent.executeTask(TASK, 50);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        console.log("\n" + "=".repeat(60));
+        console.log("🎉 TASK EXECUTION COMPLETED");
+        console.log("=".repeat(60));
+        console.log(`⏱️  Duration: ${duration} seconds`);
+        console.log(`🎯 Task: ${TASK}`);
+        console.log(`📋 Result:\n${result}`);
+        console.log("=".repeat(60));
+      } catch (error) {
+        console.error(`❌ Failed to start Steel browser: ${error}`);
+        console.error("Please check your API keys and internet connection.");
+      } finally {
+        await computer.cleanup();
+      }
+    }
+
+    main().catch(console.error);
+    ```
+  </Step>
+
+  <Step number={9} title="Run Your AI Agent">
+    Execute your script to start the autonomous AI agent that can interact with websites.
+
+    ```bash
+    npm run start
+    ```
+
+    Your Claude agent will:
+    - Take screenshots to see the current state
+    - Analyze what's on screen using vision
+    - Make decisions about what actions to take
+    - Click, type, scroll, and navigate autonomously
+    - Complete complex multi-step tasks
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete autonomous browser agent using Claude's Computer Use API with Steel.
+    ```typescript showLineNumbers filename="index.ts"
+    import * as dotenv from "dotenv";
+    import { chromium } from "playwright";
+    import type { Browser, Page } from "playwright";
+    import { Steel } from "steel-sdk";
+    import Anthropic from "@anthropic-ai/sdk";
+    import type { MessageParam } from "@anthropic-ai/sdk/resources/messages";
+
+    dotenv.config();
+
+    // Environment variables
+    const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+    const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
+
+    const SYSTEM_PROMPT = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+    You can:
+    * Take screenshots to see the current page
+    * Click on elements by providing coordinates
+    * Type text into input fields
+    * Press keyboard keys
+    * Scroll the page
+
+    Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
+
+    class SteelBrowser {
+      private client: Steel;
+      private session: any;
+      private browser: Browser | null = null;
+      private page: Page | null = null;
+      public dimensions: [number, number];
+
+      constructor(width: number = 1024, height: number = 768) {
+        this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
+        this.dimensions = [width, height];
+      }
+
+      async initialize(): Promise<void> {
+        const [width, height] = this.dimensions;
+        const sessionParams = {
+          useProxy: false,
+          solveCaptcha: false,
+          apiTimeout: 900000,
+          blockAds: true,
+          dimensions: { width, height },
+        };
+
+        this.session = await this.client.sessions.create(sessionParams);
+        console.log("Steel Session created successfully!");
+        console.log(`View live session at: ${this.session.sessionViewerUrl}`);
+
+        const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+        this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
+        this.page = this.browser.contexts()[0].pages()[0];
+        await this.page.setViewportSize({ width, height });
+        await this.page.goto("https://www.google.com");
+      }
+
+      async cleanup(): Promise<void> {
+        if (this.page) await this.page.close();
+        if (this.browser) await this.browser.close();
+        if (this.session) {
+          console.log("Releasing Steel session...");
+          await this.client.sessions.release(this.session.id);
+          console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
+        }
+      }
+
+      async screenshot(): Promise<string> {
+        if (!this.page) throw new Error("Page not initialized");
+        const [width, height] = this.dimensions;
+        const buffer = await this.page.screenshot({
+          fullPage: false,
+          clip: { x: 0, y: 0, width, height },
+        });
+        return buffer.toString("base64");
+      }
+
+      async executeComputerAction(action: string, params: any = {}): Promise<string> {
+        if (!this.page) throw new Error("Page not initialized");
+
+        switch (action) {
+          case "screenshot":
+            return this.screenshot();
+          case "left_click":
+            if (params.coordinate) {
+              const [x, y] = params.coordinate;
+              await this.page.mouse.click(x, y);
+            }
+            break;
+          case "type":
+            if (params.text) {
+              await this.page.keyboard.type(params.text);
+            }
+            break;
+          case "key":
+            if (params.text) {
+              await this.page.keyboard.press(params.text);
+            }
+            break;
+          case "scroll":
+            const scrollDirection = params.scroll_direction || "down";
+            const scrollAmount = params.scroll_amount || 3;
+            const deltaY = scrollDirection === "down" ? 100 * scrollAmount : -100 * scrollAmount;
+            await this.page.mouse.wheel(0, deltaY);
+            break;
+        }
+
+        return this.screenshot();
+      }
+    }
+
+    class ClaudeAgent {
+      private client: Anthropic;
+      private computer: SteelBrowser;
+      private model: string;
+      private tools: any[];
+
+      constructor(computer: SteelBrowser, model: string = "claude-3-5-sonnet-20241022") {
+        this.client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+        this.computer = computer;
+        this.model = model;
+
+        const [width, height] = computer.dimensions;
+        this.tools = [{
+          type: "computer_20241022",
+          name: "computer",
+          display_width_px: width,
+          display_height_px: height,
+          display_number: 1,
+        }];
+      }
+
+      async executeTask(task: string, maxIterations: number = 50): Promise<string> {
+        const messages: MessageParam[] = [
+          { role: "user", content: SYSTEM_PROMPT },
+          { role: "user", content: task }
+        ];
+
+        console.log(`🎯 Executing task: ${task}`);
+        console.log("=".repeat(60));
+
+        for (let iteration = 0; iteration < maxIterations; iteration++) {
+          try {
+            const response = await this.client.beta.messages.create({
+              model: this.model,
+              max_tokens: 4096,
+              messages,
+              tools: this.tools,
+            }, {
+              headers: { "anthropic-beta": "computer-use-2024-10-22" }
+            });
+
+            // Process response content
+            for (const block of response.content) {
+              if (block.type === "text") {
+                console.log(block.text);
+                messages.push({ role: "assistant", content: block.text });
+                if (block.text.includes("TASK_COMPLETED:")) {
+                  return block.text;
+                }
+              } else if (block.type === "tool_use" && block.name === "computer") {
+                const action = (block.input as any).action;
+                console.log(`🔧 ${action}(${JSON.stringify(block.input)})`);
+
+                const screenshotBase64 = await this.computer.executeComputerAction(
+                  action,
+                  block.input
+                );
+
+                // Add tool use and result to conversation
+                messages.push({
+                  role: "assistant",
+                  content: [{ type: "tool_use", id: block.id, name: block.name, input: block.input }]
+                });
+                messages.push({
+                  role: "user",
+                  content: [{
+                    type: "tool_result",
+                    tool_use_id: block.id,
+                    content: [{
+                      type: "image",
+                      source: { type: "base64", media_type: "image/png", data: screenshotBase64 }
+                    }]
+                  }]
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error during task execution: ${error}`);
+            return `Task failed: ${error}`;
+          }
+        }
+
+        return "Task execution completed (max iterations reached)";
+      }
+    }
+
+    async function main(): Promise<void> {
+      console.log("🚀 Steel + Claude Computer Use Assistant");
+      console.log("=".repeat(60));
+
+      if (STEEL_API_KEY === "your-steel-api-key-here") {
+        console.warn("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key");
+        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+        return;
+      }
+
+      if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+        console.warn("⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key");
+        console.warn("   Get your API key at: https://console.anthropic.com/");
+        return;
+      }
+
+      console.log("\nStarting Steel browser session...");
+
+      const computer = new SteelBrowser();
+
+      try {
+        await computer.initialize();
+        console.log("✅ Steel browser session started!");
+
+        const agent = new ClaudeAgent(computer, "claude-3-5-sonnet-20241022");
+        const startTime = Date.now();
+        const result = await agent.executeTask(TASK, 50);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        console.log("\n" + "=".repeat(60));
+        console.log("🎉 TASK EXECUTION COMPLETED");
+        console.log("=".repeat(60));
+        console.log(`⏱️  Duration: ${duration} seconds`);
+        console.log(`🎯 Task: ${TASK}`);
+        console.log(`📋 Result:\n${result}`);
+        console.log("=".repeat(60));
+      } catch (error) {
+        console.error(`❌ Failed to start Steel browser: ${error}`);
+        console.error("Please check your API keys and internet connection.");
+      } finally {
+        await computer.cleanup();
+      }
+    }
+
+    main().catch(console.error);
+    ```
+  </FullCodeExample>
+</Guide>

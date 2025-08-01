@@ -23,7 +23,7 @@
       "accentColor": "orange",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and OpenAI's Computer Use Assistant.",
-      "flags": ["cli", "playground"]
+      "flags": ["cli", "guide", "playground"]
     },
     {
       "id": "claude-computer-use",
@@ -31,7 +31,7 @@
       "accentColor": "purple",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and Claude's Computer Use API.",
-      "flags": ["cli", "playground"]
+      "flags": ["cli", "guide", "playground"]
     },
     {
       "id": "stagehand-starter",
@@ -39,7 +39,7 @@
       "accentColor": "green",
       "category": "AI_AUTOMATION",
       "description": "A starter project demonstrating how to use Steel with Stagehand for AI-powered browser automations.",
-      "flags": ["cli", "playground"]
+      "flags": ["cli", "guide", "playground"]
     }
   ]
 }

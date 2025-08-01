@@ -5,9 +5,518 @@ accentColor: "orange"
 category: "AI_AUTOMATION"
 stack: "python"
 description: "A starter project demonstrating how to use Steel with Anthropic's Claude Computer Use API in Python to create a browser automation agent."
-flags: ["cli", "playground"]
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-claude-computer-use-python-starter"
 groupId: "claude-computer-use"
 language: "python"
 shorthand: "claude-cua-py"
 ---
+
+<Guide>
+  <Intro skipLink="#full-code-example">
+    Create autonomous AI agents that can navigate and interact with websites using Steel's cloud browsers and Claude's Computer Use API. Claude can see the screen, click buttons, fill forms, and complete complex web tasks independently.
+  </Intro>
+
+  <Step number={1} title="Install Required Packages">
+    Install the necessary dependencies for Steel, Claude Computer Use, Playwright, and image processing.
+
+    ```bash
+    pip install steel-sdk anthropic python-dotenv playwright Pillow
+    ```
+  </Step>
+
+  <Step number={2} title="Set Up Environment Variables">
+    Create a `.env` file with your API keys and task configuration.
+
+    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_ANTHROPIC_API_KEY/#2
+    STEEL_API_KEY=YOUR_STEEL_API_KEY
+    ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
+    TASK="Go to Wikipedia and search for machine learning"
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+    - Replace <HighlightRef id={2}>YOUR_ANTHROPIC_API_KEY</HighlightRef> with your Anthropic API key
+  </Step>
+
+  <Step number={3} title="Create the Steel Browser Session">
+    Initialize a Steel browser session with Claude Computer Use capabilities.
+
+    ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1 /YOUR_ANTHROPIC_API_KEY/#2
+    import os
+    import time
+    import base64
+    from typing import List
+    from dotenv import load_dotenv
+    from playwright.sync_api import sync_playwright
+    from steel import Steel
+    from anthropic import Anthropic
+    from anthropic.types.beta import BetaMessageParam
+
+    load_dotenv(override=True)
+
+    # Load environment variables
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "YOUR_STEEL_API_KEY"
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "YOUR_ANTHROPIC_API_KEY"
+    TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
+    class SteelBrowser:
+        def __init__(self, width=1024, height=768):
+            self.client = Steel(steel_api_key=STEEL_API_KEY)
+            self.dimensions = (width, height)
+            self.session = None
+            self._playwright = None
+            self._browser = None
+            self._page = None
+    ```
+    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+    - Replace <HighlightRef id={2}>YOUR_ANTHROPIC_API_KEY</HighlightRef> with your actual Anthropic API key
+  </Step>
+
+  <Step number={4} title="Implement Browser Context Manager">
+    Create context manager methods for proper resource management.
+
+    ```python showLineNumbers{30} filename="main.py"
+        def __enter__(self):
+            width, height = self.dimensions
+            session_params = {
+                "use_proxy": False,
+                "solve_captcha": False,
+                "api_timeout": 900000,
+                "block_ads": True,
+                "dimensions": {"width": width, "height": height}
+            }
+            self.session = self.client.sessions.create(**session_params)
+
+            print("Steel Session created successfully!")
+            print(f"View live session at: {self.session.session_viewer_url}")
+
+            self._playwright = sync_playwright().start()
+            browser = self._playwright.chromium.connect_over_cdp(
+                f"{self.session.websocket_url}&apiKey={STEEL_API_KEY}",
+                timeout=60000
+            )
+            self._browser = browser
+            self._page = browser.contexts[0].pages[0]
+            self._page.set_viewport_size({"width": width, "height": height})
+            
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._page:
+                self._page.close()
+            if self._browser:
+                self._browser.close()
+            if self._playwright:
+                self._playwright.stop()
+            if self.session:
+                print("Releasing Steel session...")
+                self.client.sessions.release(self.session.id)
+    ```
+  </Step>
+
+  <Step number={5} title="Implement Computer Actions">
+    Add methods for taking screenshots and executing computer actions that Claude can use.
+
+    ```python showLineNumbers{60} filename="main.py"
+        def screenshot(self) -> str:
+            width, height = self.dimensions
+            png_bytes = self._page.screenshot(
+                full_page=False,
+                clip={"x": 0, "y": 0, "width": width, "height": height}
+            )
+            return base64.b64encode(png_bytes).decode("utf-8")
+
+        def execute_computer_action(self, action: str, **kwargs) -> str:
+            if action == "screenshot":
+                return self.screenshot()
+            elif action == "left_click":
+                coordinate = kwargs.get("coordinate")
+                if coordinate:
+                    x, y = coordinate
+                    self._page.mouse.click(x, y)
+            elif action == "type":
+                text = kwargs.get("text", "")
+                self._page.keyboard.type(text)
+            elif action == "key":
+                key = kwargs.get("text", "")
+                self._page.keyboard.press(key)
+            elif action == "scroll":
+                scroll_direction = kwargs.get("scroll_direction", "down")
+                scroll_amount = kwargs.get("scroll_amount", 3)
+                delta_y = 100 * scroll_amount if scroll_direction == "down" else -100 * scroll_amount
+                self._page.mouse.wheel(0, delta_y)
+            
+            return self.screenshot()
+    ```
+  </Step>
+
+  <Step number={6} title="Create the Claude Agent">
+    Implement the Claude agent with Computer Use API integration.
+
+    ```python showLineNumbers{85} filename="main.py"
+    class ClaudeAgent:
+        def __init__(self, computer: SteelBrowser, model: str = "claude-3-5-sonnet-20241022"):
+            self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            self.computer = computer
+            self.model = model
+            
+            width, height = computer.dimensions
+            self.tools = [{
+                "type": "computer_20241022",
+                "name": "computer",
+                "display_width_px": width,
+                "display_height_px": height,
+                "display_number": 1,
+            }]
+
+        def execute_task(self, task: str, max_iterations: int = 50) -> str:
+            messages = [{"role": "user", "content": task}]
+            
+            print(f"🎯 Executing task: {task}")
+            print("=" * 60)
+
+            for iteration in range(max_iterations):
+                try:
+                    response = self.client.beta.messages.create(
+                        model=self.model,
+                        max_tokens=4096,
+                        messages=messages,
+                        tools=self.tools,
+                        betas=["computer-use-2024-10-22"]
+                    )
+
+                    # Process response and execute actions
+                    for block in response.content:
+                        if block.type == "text":
+                            print(block.text)
+                            if "TASK_COMPLETED:" in block.text:
+                                return block.text
+                        elif block.type == "tool_use" and block.name == "computer":
+                            action = block.input.get("action")
+                            print(f"🔧 {action}({block.input})")
+                            
+                            screenshot_base64 = self.computer.execute_computer_action(
+                                action=action,
+                                **block.input
+                            )
+                            
+                            # Add tool result to conversation
+                            messages.extend([
+                                {"role": "assistant", "content": [{"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}]},
+                                {"role": "user", "content": [{"type": "tool_result", "tool_use_id": block.id, "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": screenshot_base64}}]}]}
+                            ])
+
+                except Exception as error:
+                    print(f"❌ Error during task execution: {error}")
+                    return f"Task failed: {error}"
+
+            return "Task execution completed"
+    ```
+  </Step>
+
+  <Step number={7} title="Create the Main Function">
+    Implement the main execution function that brings everything together.
+
+    ```python showLineNumbers{135} filename="main.py"
+    def main():
+        print("🚀 Steel + Claude Computer Use Assistant")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "YOUR_STEEL_API_KEY":
+            print("⚠️  WARNING: Please set your STEEL_API_KEY in the .env file")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if ANTHROPIC_API_KEY == "YOUR_ANTHROPIC_API_KEY":
+            print("⚠️  WARNING: Please set your ANTHROPIC_API_KEY in the .env file")
+            print("   Get your API key at: https://console.anthropic.com/")
+            return
+
+        print("\nStarting Steel browser session...")
+
+        try:
+            with SteelBrowser() as computer:
+                print("✅ Steel browser session started!")
+                
+                agent = ClaudeAgent(computer, model="claude-3-5-sonnet-20241022")
+                
+                start_time = time.time()
+                result = agent.execute_task(TASK, max_iterations=50)
+                duration = f"{(time.time() - start_time):.1f}"
+                
+                print("\n" + "=" * 60)
+                print("🎉 TASK EXECUTION COMPLETED")
+                print("=" * 60)
+                print(f"⏱️  Duration: {duration} seconds")
+                print(f"🎯 Task: {TASK}")
+                print(f"📋 Result:\n{result}")
+                print("=" * 60)
+
+        except Exception as e:
+            print(f"❌ Failed to start Steel browser: {e}")
+            print("Please check your API keys and internet connection.")
+
+    if __name__ == "__main__":
+        main()
+    ```
+  </Step>
+
+  <Step number={8} title="Run Your AI Agent">
+    Execute your script to start the autonomous AI agent that can interact with websites.
+
+    ```bash
+    python main.py
+    ```
+
+    Your Claude agent will:
+    - Take screenshots to see the current state
+    - Analyze what's on screen using vision
+    - Make decisions about what actions to take
+    - Click, type, scroll, and navigate autonomously
+    - Complete complex multi-step tasks
+  </Step>
+
+  <FullCodeExample id="full-code-example" title="Full Example">
+    Complete autonomous browser agent using Claude's Computer Use API with Steel.
+    ```python showLineNumbers filename="main.py"
+    """
+    Claude AI agent for autonomous web task execution with Steel browsers.
+    """
+
+    import os
+    import time
+    import base64
+    from typing import List
+    from dotenv import load_dotenv
+    from playwright.sync_api import sync_playwright
+    from steel import Steel
+    from anthropic import Anthropic
+    from anthropic.types.beta import BetaMessageParam
+
+    load_dotenv(override=True)
+
+    # Environment variables
+    STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "your-anthropic-api-key-here"
+    TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
+    SYSTEM_PROMPT = """You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+    You can:
+    * Take screenshots to see the current page
+    * Click on elements by providing coordinates
+    * Type text into input fields
+    * Press keyboard keys
+    * Scroll the page
+
+    Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:"."""
+
+    class SteelBrowser:
+        def __init__(self, width=1024, height=768):
+            self.client = Steel(steel_api_key=STEEL_API_KEY)
+            self.dimensions = (width, height)
+            self.session = None
+            self._playwright = None
+            self._browser = None
+            self._page = None
+
+        def __enter__(self):
+            width, height = self.dimensions
+            session_params = {
+                "use_proxy": False,
+                "solve_captcha": False,
+                "api_timeout": 900000,
+                "block_ads": True,
+                "dimensions": {"width": width, "height": height}
+            }
+            self.session = self.client.sessions.create(**session_params)
+
+            print("Steel Session created successfully!")
+            print(f"View live session at: {self.session.session_viewer_url}")
+
+            self._playwright = sync_playwright().start()
+            browser = self._playwright.chromium.connect_over_cdp(
+                f"{self.session.websocket_url}&apiKey={STEEL_API_KEY}",
+                timeout=60000
+            )
+            self._browser = browser
+            context = browser.contexts[0]
+            self._page = context.pages[0]
+            self._page.set_viewport_size({"width": width, "height": height})
+            self._page.goto("https://www.google.com")
+            
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._page:
+                self._page.close()
+            if self._browser:
+                self._browser.close()
+            if self._playwright:
+                self._playwright.stop()
+            if self.session:
+                print("Releasing Steel session...")
+                self.client.sessions.release(self.session.id)
+                print(f"Session completed. View replay at {self.session.session_viewer_url}")
+
+        def screenshot(self) -> str:
+            width, height = self.dimensions
+            png_bytes = self._page.screenshot(
+                full_page=False,
+                clip={"x": 0, "y": 0, "width": width, "height": height}
+            )
+            return base64.b64encode(png_bytes).decode("utf-8")
+
+        def execute_computer_action(self, action: str, **kwargs) -> str:
+            if action == "screenshot":
+                return self.screenshot()
+            elif action == "left_click":
+                coordinate = kwargs.get("coordinate")
+                if coordinate:
+                    x, y = coordinate
+                    self._page.mouse.click(x, y)
+            elif action == "type":
+                text = kwargs.get("text", "")
+                self._page.keyboard.type(text)
+            elif action == "key":
+                key = kwargs.get("text", "")
+                self._page.keyboard.press(key)
+            elif action == "scroll":
+                scroll_direction = kwargs.get("scroll_direction", "down")
+                scroll_amount = kwargs.get("scroll_amount", 3)
+                delta_y = 100 * scroll_amount if scroll_direction == "down" else -100 * scroll_amount
+                self._page.mouse.wheel(0, delta_y)
+            
+            return self.screenshot()
+
+    class ClaudeAgent:
+        def __init__(self, computer: SteelBrowser, model: str = "claude-3-5-sonnet-20241022"):
+            self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            self.computer = computer
+            self.model = model
+            
+            width, height = computer.dimensions
+            self.tools = [{
+                "type": "computer_20241022",
+                "name": "computer",
+                "display_width_px": width,
+                "display_height_px": height,
+                "display_number": 1,
+            }]
+
+        def execute_task(self, task: str, max_iterations: int = 50) -> str:
+            messages = [
+                {"role": "user", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": task}
+            ]
+            
+            print(f"🎯 Executing task: {task}")
+            print("=" * 60)
+
+            for iteration in range(max_iterations):
+                try:
+                    response = self.client.beta.messages.create(
+                        model=self.model,
+                        max_tokens=4096,
+                        system=SYSTEM_PROMPT,
+                        messages=messages,
+                        tools=self.tools,
+                        betas=["computer-use-2024-10-22"]
+                    )
+
+                    # Process response content
+                    for block in response.content:
+                        if block.type == "text":
+                            print(block.text)
+                            messages.append({
+                                "role": "assistant",
+                                "content": [{"type": "text", "text": block.text}]
+                            })
+                            if "TASK_COMPLETED:" in block.text:
+                                return block.text
+                                
+                        elif block.type == "tool_use" and block.name == "computer":
+                            action = block.input.get("action")
+                            print(f"🔧 {action}({block.input})")
+                            
+                            screenshot_base64 = self.computer.execute_computer_action(
+                                action=action,
+                                **block.input
+                            )
+                            
+                            # Add assistant message with tool use
+                            messages.append({
+                                "role": "assistant",
+                                "content": [{
+                                    "type": "tool_use",
+                                    "id": block.id,
+                                    "name": block.name,
+                                    "input": block.input
+                                }]
+                            })
+                            
+                            # Add tool result
+                            messages.append({
+                                "role": "user",
+                                "content": [{
+                                    "type": "tool_result",
+                                    "tool_use_id": block.id,
+                                    "content": [{
+                                        "type": "image",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": "image/png",
+                                            "data": screenshot_base64
+                                        }
+                                    }]
+                                }]
+                            })
+
+                except Exception as error:
+                    print(f"❌ Error during task execution: {error}")
+                    return f"Task failed: {error}"
+
+            return "Task execution completed (max iterations reached)"
+
+    def main():
+        print("🚀 Steel + Claude Computer Use Assistant")
+        print("=" * 60)
+        
+        if STEEL_API_KEY == "your-steel-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+            print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+            return
+        
+        if ANTHROPIC_API_KEY == "your-anthropic-api-key-here":
+            print("⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key")
+            print("   Get your API key at: https://console.anthropic.com/")
+            return
+
+        print("\nStarting Steel browser session...")
+
+        try:
+            with SteelBrowser() as computer:
+                print("✅ Steel browser session started!")
+                
+                agent = ClaudeAgent(computer, model="claude-3-5-sonnet-20241022")
+                
+                start_time = time.time()
+                result = agent.execute_task(TASK, max_iterations=50)
+                duration = f"{(time.time() - start_time):.1f}"
+                
+                print("\n" + "=" * 60)
+                print("🎉 TASK EXECUTION COMPLETED")
+                print("=" * 60)
+                print(f"⏱️  Duration: {duration} seconds")
+                print(f"🎯 Task: {TASK}")
+                print(f"📋 Result:\n{result}")
+                print("=" * 60)
+
+        except Exception as e:
+            print(f"❌ Failed to start Steel browser: {e}")
+            print("Please check your STEEL_API_KEY and internet connection.")
+
+    if __name__ == "__main__":
+        main()
+    ```
+  </FullCodeExample>
+</Guide>
