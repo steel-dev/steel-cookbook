@@ -52,12 +52,31 @@ async function build() {
     await fs.mkdir(OUTPUT_DIR, { recursive: true });
     console.log(`Output directory '${OUTPUT_DIR}' prepared.`);
 
+    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
+
     // <-- 2. Load and parse the groups JSON file
     console.log("Loading group definitions from groups.json...");
     const groupsFileContents = await fs.readFile(GROUPS_FILE, "utf-8");
     const groupsDefinition = JSON.parse(groupsFileContents);
     // Extract the array from the 'examples' key as per your file structure
-    const groups = groupsDefinition.examples || [];
+    const groups = await Promise.all((groupsDefinition.examples || []).map(async (group: any) => {
+        const groupThumbnailPath = path.join(ASSETS_DIR, group.id, "thumbnail.webp");
+        let thumbnail;
+        try {
+            await fs.access(groupThumbnailPath);
+            thumbnail = `https://registry.steel-edge.net/${group.id}/thumbnail.webp?v=${shortHash}`;
+            
+            // Copy group assets to dist folder
+            const groupAssetDir = path.join(ASSETS_DIR, group.id);
+            const groupDistDir = path.join(OUTPUT_DIR, group.id);
+            await fs.mkdir(groupDistDir, { recursive: true });
+            await fs.cp(groupAssetDir, groupDistDir, { recursive: true });
+
+        } catch (error) {
+            // No thumbnail found
+        }
+        return { ...group, thumbnail };
+    }));
     console.log(`Loaded ${groups.length} group definitions.`);
 
     // 3. Read all files from the MDX directory
@@ -73,8 +92,6 @@ async function build() {
 
     const manifest: any = [];
 
-    const shortHash = execSync("git rev-parse --short HEAD").toString().trim();
-
     // 4. Loop over each MDX file and compile it
     for (const fileName of mdxFiles) {
       const filePath = path.join(MDX_DIR, fileName);
@@ -85,8 +102,8 @@ async function build() {
       const { markdown } = await compileMDX(source, "markdown");
 
       // ... (rest of the file writing and packaging logic is unchanged)
-      const outputFolderName = path.basename(fileName, ".mdx");
-      const exampleOutputDir = path.join(OUTPUT_DIR, outputFolderName);
+      const slug = path.basename(fileName, ".mdx");
+      const exampleOutputDir = path.join(OUTPUT_DIR, meta.id as string);
       await fs.mkdir(exampleOutputDir, { recursive: true });
 
       // Copy group-level assets if a groupId is present
@@ -149,7 +166,7 @@ async function build() {
         if (groupThumbnailPath) {
           try {
             await fs.access(groupThumbnailPath);
-            thumbnail = `https://registry.steel-edge.net/${meta.id}/thumbnail.webp?v=${shortHash}`;
+            thumbnail = `https://registry.steel-edge.net/${meta.groupId}/thumbnail.webp?v=${shortHash}`;
           } catch (e) {
             // No thumbnail found
           }
@@ -158,7 +175,7 @@ async function build() {
 
       const templateDirectory = path.relative(OUTPUT_DIR, output);
       manifest.push({
-        slug: outputFolderName,
+        slug: slug,
         ...meta,
         template: templateDirectory,
         thumbnail,
