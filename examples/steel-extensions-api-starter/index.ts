@@ -36,7 +36,9 @@ async function main() {
 
   try {
     console.log("\nUploading extension...");
-    const { extensionId } = await client.extensions
+    const {
+      data: { extensionId },
+    } = await client.extensions
       .upload({
         file: fs.readFileSync("./assets/extension.crx"),
       })
