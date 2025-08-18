@@ -53,26 +53,6 @@ async function main() {
         `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
     );
 
-    const file = new File(
-      [fs.readFileSync("./assets/stock.csv")],
-      "stock.csv",
-      {
-        type: "text/csv",
-      }
-    );
-
-    console.log("Uploading CSV file to the Steel session...");
-
-    // Upload CSV file to the Steel session.
-    const uploadedFile = await client.sessions.files.upload(session.id, {
-      file,
-    });
-
-    console.log(
-      `\x1b[1;92mCSV file uploaded successfully!\x1b[0m\n` +
-        `File path on Steel session: \x1b[1;37m${uploadedFile.path}\x1b[0m`
-    );
-
     // Connect Playwright to the Steel session
     browser = await chromium.connectOverCDP(
       `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
@@ -85,11 +65,30 @@ async function main() {
     const page = currentContext.pages()[0];
 
     // ============================================================
-    // Your Automations Go Here!
+    // Upload Files
     // ============================================================
 
-    //  Navigate to the CSV plotting website and wait for the page to load.
-    await page.goto("https://www.csvplot.com/");
+    const file = new File(
+      [fs.readFileSync("./assets/steel.png")],
+      "steel.png",
+      {
+        type: "image/png",
+      }
+    );
+
+    console.log("Uploading PNG file to the Steel session...");
+
+    // Upload PNG file to the Steel session.
+    const uploadedFile = await client.sessions.files.upload(session.id, {
+      file,
+    });
+
+    console.log(
+      `\x1b[1;92mPNG file uploaded successfully!\x1b[0m\n` +
+        `File path on Steel session: \x1b[1;37m${uploadedFile.path}\x1b[0m`
+    );
+
+    await page.goto("https://browser-tests-steel.vercel.app/upload");
 
     // Create a CDP session to pass in some custom controls
     const cdpSession = await currentContext.newCDPSession(page);
@@ -98,19 +97,45 @@ async function main() {
     // We need to find the input element using the selector
     const inputNode = await cdpSession.send("DOM.querySelector", {
       nodeId: document.root.nodeId,
-      selector: "#load-file",
+      selector: "#uploadFile",
     });
 
-    // Set the CSV file as input on the page.
+    // Set the PNG file as input on the page.
     await cdpSession.send("DOM.setFileInputFiles", {
       files: [uploadedFile.path],
       nodeId: inputNode.nodeId,
     });
 
-    // Wait for the rendered SVG, scroll it into view, and capture a screenshot.
-    const svg = await page.waitForSelector("svg.main-svg");
-    await svg.scrollIntoViewIfNeeded();
-    await svg.screenshot({ path: "stock.png" });
+    await page.waitForSelector("#fileName");
+    console.log("fileName:", await page.textContent("#fileName"));
+
+    // ============================================================
+    // Download Files
+    // ============================================================
+
+    await page.goto("https://browser-tests-steel.vercel.app/download");
+
+    // Pass in some custom controls
+    await cdpSession.send("Browser.setDownloadBehavior", {
+      behavior: "allow",
+      downloadPath: `/files`,
+      eventsEnabled: true,
+    });
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#downloadFile").click(),
+    ]);
+
+    const files = await client.sessions.files.list(session.id);
+
+    for (const file of files.data) {
+      const downloadedFile = await (
+        await client.sessions.files.download(session.id, file.id)
+      ).arrayBuffer();
+
+      fs.writeFileSync(`./${file.name}`, Buffer.from(downloadedFile));
+    }
 
     // ============================================================
     // End of Automations
