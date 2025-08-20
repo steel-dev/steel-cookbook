@@ -109,12 +109,8 @@ async function main() {
 
     // Wait for the rendered SVG, scroll it into view, and capture a screenshot.
     const svg = await page.waitForSelector("svg.main-svg");
-
-    if (svg) {
-      console.log("CSV file plotted successfully!");
-    } else {
-      console.log("CSV file not plotted");
-    }
+    await svg.scrollIntoViewIfNeeded();
+    await svg.screenshot({ path: "stock.png" });
 
     // ============================================================
     // End of Automations
