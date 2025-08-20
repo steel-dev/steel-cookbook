@@ -98,9 +98,6 @@ async function main() {
       console.log("Uh oh, something went wrong!");
     }
 
-    const buffer = await page.screenshot();
-    await writeFile(`./final-screenshot.png`, buffer);
-
     // ============================================================
     // End of Automations
     // ============================================================
