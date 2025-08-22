@@ -12,7 +12,6 @@ dotenv.config();
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
-  baseURL: "http://localhost:8080/",
   steelAPIKey: STEEL_API_KEY,
 });
 
