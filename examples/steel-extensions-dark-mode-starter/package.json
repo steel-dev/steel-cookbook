@@ -1,7 +1,7 @@
 {
-  "name": "steel-files-api-starter",
+  "name": "steel-extensions-dark-mode-starter",
   "version": "1.0.0",
-  "description": "A starter project with Steel files API on Node.js & TypeScript",
+  "description": "A starter project with Steel extensions API on Node.js & TypeScript",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
