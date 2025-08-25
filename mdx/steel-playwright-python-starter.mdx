@@ -11,148 +11,155 @@ groupId: "playwright-starter"
 language: "python"
 shorthand: "playwright-py"
 docs: "https://docs.steel.dev/overview/guides/connect-with-playwright-python"
+playgroundLink: ""
+replitLink: ""
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-playwright-python-starter"
 ---
 
-<Guide>
-  <Intro skipLink="#full-code-example">
-    Control Steel's managed browser infrastructure with Playwright in Python for reliable web automation without the headaches.
-  </Intro>
+<Intro skipLink="#full-code-example">
+  Control Steel's managed browser infrastructure with Playwright in Python for reliable web automation without the headaches.
+</Intro>
 
-  <Step number={1} title="Install Playwright and Steel SDK">
-    Run the following command to install Playwright and the Steel SDK.
-    ```bash
-    pip install playwright steel-sdk
-    ```
-  </Step>
+<Step number={1} title="Install Playwright and Steel SDK">
+  Run the following command to install Playwright and the Steel SDK.
+  ```bash
+  pip install playwright steel-sdk
+  ```
+</Step>
 
-  <Step number={2} title="Start a Steel Session">
-    Create a Steel session to get a remote browser instance that you can control with Playwright.
+<Step number={2} title="Start a Steel Session">
+  Create a Steel session to get a remote browser instance that you can control with Playwright.
 
-    ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1
-    from steel import Steel
-    from playwright.sync_api import sync_playwright
+  ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1
+  from steel import Steel
+  from playwright.sync_api import sync_playwright
 
-    # Initialize Steel client with API key
-    client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
+  # Initialize Steel client with API key
+  client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
 
-    # Create a Steel session
-    session = client.sessions.create()
+  # Create a Steel session
+  session = client.sessions.create()
 
-    print(f"View live session at: {session.session_viewer_url}")
-    ```
-    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
-  </Step>
+  print(f"View live session at: {session.session_viewer_url}")
+  ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+</Step>
 
-  <Step number={3} title="Connect Playwright to Your Session">
-    Connect Playwright to the running Steel browser session using the CDP protocol.
+<Step number={3} title="Connect Playwright to Your Session">
+  Connect Playwright to the running Steel browser session using the CDP protocol.
 
-    ```python showLineNumbers{12} filename="main.py" /YOUR_STEEL_API_KEY/#1
-    # Start Playwright and connect to the Steel session
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.connect_over_cdp(
-        f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
-    )
-    ```
-    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
-  </Step>
+  ```python showLineNumbers{12} filename="main.py" /YOUR_STEEL_API_KEY/#1
+  # Start Playwright and connect to the Steel session
+  playwright = sync_playwright().start()
+  browser = playwright.chromium.connect_over_cdp(
+      f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
+  )
+  ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
+</Step>
 
-  <Step number={4} title="Perform Browser Automation">
-    Now that Playwright is connected, you can add your own automations. Here's an example that scrapes Hacker News headlines.
+<Step number={4} title="Perform Browser Automation">
+  Now that Playwright is connected, you can add your own automations. Here's an example that scrapes Hacker News headlines.
 
-    ```python showLineNumbers{18} filename="main.py"
-    print("Navigating to Hacker News...")
-    page.goto("https://news.ycombinator.com", wait_until="networkidle")
+  ```python showLineNumbers{18} filename="main.py"
+  print("Navigating to Hacker News...")
+  page.goto("https://news.ycombinator.com", wait_until="networkidle")
 
-    # Find all story rows
-    story_rows = page.locator("tr.athing").all()[:5]  # Get first 5 stories
+  # Find all story rows
+  story_rows = page.locator("tr.athing").all()[:5]  # Get first 5 stories
 
-    # Extract the top 5 stories using Playwright's locators
-    print("\nTop 5 Hacker News Stories:")
-    for i, row in enumerate(story_rows, 1):
-        # Get the title and link from the story row
-        title_element = row.locator(".titleline > a")
-        title = title_element.text_content()
-        link = title_element.get_attribute("href")
+  # Extract the top 5 stories using Playwright's locators
+  print("\nTop 5 Hacker News Stories:")
+  for i, row in enumerate(story_rows, 1):
+      # Get the title and link from the story row
+      title_element = row.locator(".titleline > a")
+      title = title_element.text_content()
+      link = title_element.get_attribute("href")
 
-        # Get points from the following row
-        points_element = row.locator(
-            "xpath=following-sibling::tr[1]").locator(".score")
-        points = points_element.text_content().split(
-        )[0] if points_element.count() > 0 else "0"
+      # Get points from the following row
+      points_element = row.locator(
+          "xpath=following-sibling::tr[1]").locator(".score")
+      points = points_element.text_content().split(
+      )[0] if points_element.count() > 0 else "0"
 
-        # Print the story details
-        print(f"\n{i}. {title}")
-        print(f"   Link: {link}")
-        print(f"   Points: {points}")
-    ```
-  </Step>
+      # Print the story details
+      print(f"\n{i}. {title}")
+      print(f"   Link: {link}")
+      print(f"   Points: {points}")
+  ```
+</Step>
 
-  <Step number={6} title="Release the Session When Done">
-    Close the browser and release the session to free up resources when your automation is complete.
+<Step number={6} title="Release the Session When Done">
+  Close the browser and release the session to free up resources when your automation is complete.
 
-    ```python showLineNumbers{44} filename="main.py"
-    # Clean up resources
-    browser.close()
-    client.sessions.release(session.id)
-    ```
-  </Step>
+  ```python showLineNumbers{44} filename="main.py"
+  # Clean up resources
+  browser.close()
+  client.sessions.release(session.id)
+  ```
+</Step>
 
-  <Step number={7} title="Run Your Script">
-    Execute your script to start a Steel-powered browser session. You can view your session live in the Steel Session Viewer.
+<Step number={7} title="Run Your Script" isLast>
+  Execute your script to start a Steel-powered browser session. You can view your session live in the Steel Session Viewer.
 
-    ```bash
-    python main.py
-    ```
-  </Step>
+  ```bash
+  python main.py
+  ```
+</Step>
 
-  <FullCodeExample id="full-code-example" title="Full Example">
-    Complete code example that combines all the steps above.
-    ```python showLineNumbers filename="main.py"
-    from steel import Steel
-    from playwright.sync_api import sync_playwright
+<FullCodeExample id="full-code-example" title="Full Example">
+  Complete code example that combines all the steps above.
+  ```python showLineNumbers filename="main.py"
+  from steel import Steel
+  from playwright.sync_api import sync_playwright
 
-    # Initialize Steel client with API key
-    client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
+  # Initialize Steel client with API key
+  client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
 
-    # Create a Steel session
-    session = client.sessions.create()
+  # Create a Steel session
+  session = client.sessions.create()
 
-    print(f"View live session at: {session.session_viewer_url}")
-    
-    # Start Playwright and connect to the Steel session
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.connect_over_cdp(
-        f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
-    )
-    
-    print("Navigating to Hacker News...")
-    page.goto("https://news.ycombinator.com", wait_until="networkidle")
+  print(f"View live session at: {session.session_viewer_url}")
+  
+  # Start Playwright and connect to the Steel session
+  playwright = sync_playwright().start()
+  browser = playwright.chromium.connect_over_cdp(
+      f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
+  )
+  
+  print("Navigating to Hacker News...")
+  page.goto("https://news.ycombinator.com", wait_until="networkidle")
 
-    # Find all story rows
-    story_rows = page.locator("tr.athing").all()[:5]  # Get first 5 stories
+  # Find all story rows
+  story_rows = page.locator("tr.athing").all()[:5]  # Get first 5 stories
 
-    # Extract the top 5 stories using Playwright's locators
-    print("\nTop 5 Hacker News Stories:")
-    for i, row in enumerate(story_rows, 1):
-        # Get the title and link from the story row
-        title_element = row.locator(".titleline > a")
-        title = title_element.text_content()
-        link = title_element.get_attribute("href")
+  # Extract the top 5 stories using Playwright's locators
+  print("\nTop 5 Hacker News Stories:")
+  for i, row in enumerate(story_rows, 1):
+      # Get the title and link from the story row
+      title_element = row.locator(".titleline > a")
+      title = title_element.text_content()
+      link = title_element.get_attribute("href")
 
-        # Get points from the following row
-        points_element = row.locator(
-            "xpath=following-sibling::tr[1]").locator(".score")
-        points = points_element.text_content().split(
-        )[0] if points_element.count() > 0 else "0"
+      # Get points from the following row
+      points_element = row.locator(
+          "xpath=following-sibling::tr[1]").locator(".score")
+      points = points_element.text_content().split(
+      )[0] if points_element.count() > 0 else "0"
 
-        # Print the story details
-        print(f"\n{i}. {title}")
-        print(f"   Link: {link}")
-        print(f"   Points: {points}")
-    
-    # Clean up resources
-    browser.close()
-    client.sessions.release(session.id)
-    ```
-  </FullCodeExample>
-</Guide>
+      # Print the story details
+      print(f"\n{i}. {title}")
+      print(f"   Link: {link}")
+      print(f"   Points: {points}")
+  
+  # Clean up resources
+  browser.close()
+  client.sessions.release(session.id)
+  ```
+</FullCodeExample>
+
+<NextSteps>
+  - [Learn about Session Lifecycles](https://docs.steel.dev/overview/sessions-api/session-lifecycle)
+  - [Learn more about Sessions](https://docs.steel.dev/overview/sessions-api/overview)
+  - [Python SDK reference](https://github.com/steel-dev/steel-python)
+</NextSteps>

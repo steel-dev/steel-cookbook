@@ -11,767 +11,774 @@ groupId: "oai-computer-use"
 language: "typescript"
 shorthand: "oai-cua"
 docs: "https://docs.steel.dev/overview/integrations/openai-computer-use/quickstart-tsnode"
+playgroundLink: ""
+replitLink: ""
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-oai-computer-use-node-starter"
 ---
 
-<Guide>
-  <Intro skipLink="#full-code-example">
-    Create powerful autonomous AI agents that can see, think, and interact with websites using Steel's cloud browsers and OpenAI's Computer Use API. The agent can take screenshots, click elements, type text, and complete complex web tasks independently.
-  </Intro>
+<Intro skipLink="#full-code-example">
+  Create powerful autonomous AI agents that can see, think, and interact with websites using Steel's cloud browsers and OpenAI's Computer Use API. The agent can take screenshots, click elements, type text, and complete complex web tasks independently.
+</Intro>
 
-  <Step number={1} title="Optional: Create a new directory & environment">
-    Set up a new TypeScript project with the necessary configuration.
-    ```bash
-    mkdir steel-oai-cua && \
-    cd steel-oai-cua && \
-    npm init -y && \
-    npm install -D typescript @types/node ts-node && \
-    npx tsc --init && \
-    npm pkg set scripts.start="ts-node index.ts" && \
-    touch index.ts .env
-    ```
-  </Step>
+<Step number={1} title="Optional: Create a new directory & environment">
+  Set up a new TypeScript project with the necessary configuration.
+  ```bash
+  mkdir steel-oai-cua && \
+  cd steel-oai-cua && \
+  npm init -y && \
+  npm install -D typescript @types/node ts-node && \
+  npx tsc --init && \
+  npm pkg set scripts.start="ts-node index.ts" && \
+  touch index.ts .env
+  ```
+</Step>
 
-  <Step number={2} title="Install Required Packages">
-    Install the necessary dependencies for Steel, OpenAI Computer Use, and Playwright.
+<Step number={2} title="Install Required Packages">
+  Install the necessary dependencies for Steel, OpenAI Computer Use, and Playwright.
 
-    ```bash
-    npm install dotenv playwright steel-sdk
-    ```
-  </Step>
+  ```bash
+  npm install dotenv playwright steel-sdk
+  ```
+</Step>
 
-  <Step number={3} title="Set Up Environment Variables">
-    Create a `.env` file with your API keys and task configuration.
+<Step number={3} title="Set Up Environment Variables">
+  Create a `.env` file with your API keys and task configuration.
 
-    ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
-    STEEL_API_KEY=YOUR_STEEL_API_KEY
-    OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-    TASK="Go to Wikipedia and search for machine learning"
-    ```
-    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
-    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
-  </Step>
+  ```bash filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+  STEEL_API_KEY=YOUR_STEEL_API_KEY
+  OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+  TASK="Go to Wikipedia and search for machine learning"
+  ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+  - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
+</Step>
 
-  <Step number={4} title="Create the Steel Browser Class">
-    Initialize a Steel browser session with OpenAI Computer Use capabilities.
+<Step number={4} title="Create the Steel Browser Class">
+  Initialize a Steel browser session with OpenAI Computer Use capabilities.
 
-    ```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
-    import * as dotenv from "dotenv";
-    import { chromium } from "playwright";
-    import type { Browser, Page } from "playwright";
-    import { Steel } from "steel-sdk";
+  ```typescript showLineNumbers filename="index.ts" /YOUR_STEEL_API_KEY/#1 /YOUR_OPENAI_API_KEY/#2
+  import * as dotenv from "dotenv";
+  import { chromium } from "playwright";
+  import type { Browser, Page } from "playwright";
+  import { Steel } from "steel-sdk";
 
-    dotenv.config();
+  dotenv.config();
 
-    // Load environment variables
-    const STEEL_API_KEY = process.env.STEEL_API_KEY || "YOUR_STEEL_API_KEY";
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "YOUR_OPENAI_API_KEY";
-    const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
+  // Load environment variables
+  const STEEL_API_KEY = process.env.STEEL_API_KEY || "YOUR_STEEL_API_KEY";
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "YOUR_OPENAI_API_KEY";
+  const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
 
-    class SteelBrowser {
-      private client: Steel;
-      private session: any;
-      private browser: Browser | null = null;
-      private page: Page | null = null;
-      public dimensions: [number, number];
+  class SteelBrowser {
+    private client: Steel;
+    private session: any;
+    private browser: Browser | null = null;
+    private page: Page | null = null;
+    public dimensions: [number, number];
 
-      constructor(width: number = 1024, height: number = 768) {
-        this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
-        this.dimensions = [width, height];
-      }
-    ```
-    - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
-    - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
-  </Step>
-
-  <Step number={5} title="Implement Browser Session Management">
-    Add methods for initializing and cleaning up the browser session.
-
-    ```typescript showLineNumbers{26} filename="index.ts"
-      async initialize(): Promise<void> {
-        const [width, height] = this.dimensions;
-        const sessionParams = {
-          useProxy: false,
-          solveCaptcha: false,
-          apiTimeout: 900000,
-          blockAds: true,
-          dimensions: { width, height },
-        };
-
-        this.session = await this.client.sessions.create(sessionParams);
-        console.log("Steel Session created successfully!");
-        console.log(`View live session at: ${this.session.sessionViewerUrl}`);
-
-        const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
-        this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
-        this.page = this.browser.contexts()[0].pages()[0];
-        await this.page.setViewportSize({ width, height });
-        await this.page.goto("https://www.google.com");
-      }
-
-      async cleanup(): Promise<void> {
-        if (this.page) await this.page.close();
-        if (this.browser) await this.browser.close();
-        if (this.session) {
-          console.log("Releasing Steel session...");
-          await this.client.sessions.release(this.session.id);
-          console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
-        }
-      }
-    ```
-  </Step>
-
-  <Step number={6} title="Implement Computer Actions">
-    Add methods for taking screenshots and executing computer actions that OpenAI can use.
-
-    ```typescript showLineNumbers{51} filename="index.ts"
-      async screenshot(): Promise<string> {
-        if (!this.page) throw new Error("Page not initialized");
-        const [width, height] = this.dimensions;
-        const buffer = await this.page.screenshot({
-          fullPage: false,
-          clip: { x: 0, y: 0, width, height },
-        });
-        return buffer.toString("base64");
-      }
-
-      async click(x: number, y: number, button: string = "left"): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        if (button === "left") {
-          await this.page.mouse.click(x, y);
-        } else if (button === "right") {
-          await this.page.mouse.click(x, y, { button: "right" });
-        } else if (button === "back") {
-          await this.page.goBack();
-        } else if (button === "forward") {
-          await this.page.goForward();
-        }
-      }
-
-      async type(text: string): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        await this.page.keyboard.type(text);
-      }
-
-      async scroll(x: number, y: number, scrollX: number, scrollY: number): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        await this.page.mouse.move(x, y);
-        await this.page.evaluate(({ scrollX, scrollY }) => {
-          window.scrollBy(scrollX, scrollY);
-        }, { scrollX, scrollY });
-      }
-
-      async goto(url: string): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        try {
-          await this.page.goto(url);
-        } catch (error) {
-          console.log(`Error navigating to ${url}: ${error}`);
-        }
-      }
-
-      getCurrentUrl(): string {
-        return this.page?.url() || "";
-      }
+    constructor(width: number = 1024, height: number = 768) {
+      this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
+      this.dimensions = [width, height];
     }
-    ```
-  </Step>
+  ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
+  - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
+</Step>
 
-  <Step number={7} title="Create OpenAI API Helper">
-    Implement the OpenAI API client for computer use interactions.
+<Step number={5} title="Implement Browser Session Management">
+  Add methods for initializing and cleaning up the browser session.
 
-    ```typescript showLineNumbers{91} filename="index.ts"
-    async function createResponse(params: any): Promise<any> {
-      const url = "https://api.openai.com/v1/responses";
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+  ```typescript showLineNumbers{26} filename="index.ts"
+    async initialize(): Promise<void> {
+      const [width, height] = this.dimensions;
+      const sessionParams = {
+        useProxy: false,
+        solveCaptcha: false,
+        apiTimeout: 900000,
+        blockAds: true,
+        dimensions: { width, height },
       };
 
-      const openaiOrg = process.env.OPENAI_ORG;
-      if (openaiOrg) {
-        headers["Openai-Organization"] = openaiOrg;
-      }
+      this.session = await this.client.sessions.create(sessionParams);
+      console.log("Steel Session created successfully!");
+      console.log(`View live session at: ${this.session.sessionViewerUrl}`);
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(params),
+      const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+      this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
+      this.page = this.browser.contexts()[0].pages()[0];
+      await this.page.setViewportSize({ width, height });
+      await this.page.goto("https://www.google.com");
+    }
+
+    async cleanup(): Promise<void> {
+      if (this.page) await this.page.close();
+      if (this.browser) await this.browser.close();
+      if (this.session) {
+        console.log("Releasing Steel session...");
+        await this.client.sessions.release(this.session.id);
+        console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
+      }
+    }
+  ```
+</Step>
+
+<Step number={6} title="Implement Computer Actions">
+  Add methods for taking screenshots and executing computer actions that OpenAI can use.
+
+  ```typescript showLineNumbers{51} filename="index.ts"
+    async screenshot(): Promise<string> {
+      if (!this.page) throw new Error("Page not initialized");
+      const [width, height] = this.dimensions;
+      const buffer = await this.page.screenshot({
+        fullPage: false,
+        clip: { x: 0, y: 0, width, height },
+      });
+      return buffer.toString("base64");
+    }
+
+    async click(x: number, y: number, button: string = "left"): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      if (button === "left") {
+        await this.page.mouse.click(x, y);
+      } else if (button === "right") {
+        await this.page.mouse.click(x, y, { button: "right" });
+      } else if (button === "back") {
+        await this.page.goBack();
+      } else if (button === "forward") {
+        await this.page.goForward();
+      }
+    }
+
+    async type(text: string): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      await this.page.keyboard.type(text);
+    }
+
+    async scroll(x: number, y: number, scrollX: number, scrollY: number): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      await this.page.mouse.move(x, y);
+      await this.page.evaluate(({ scrollX, scrollY }) => {
+        window.scrollBy(scrollX, scrollY);
+      }, { scrollX, scrollY });
+    }
+
+    async goto(url: string): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      try {
+        await this.page.goto(url);
+      } catch (error) {
+        console.log(`Error navigating to ${url}: ${error}`);
+      }
+    }
+
+    getCurrentUrl(): string {
+      return this.page?.url() || "";
+    }
+  }
+  ```
+</Step>
+
+<Step number={7} title="Create OpenAI API Helper">
+  Implement the OpenAI API client for computer use interactions.
+
+  ```typescript showLineNumbers{91} filename="index.ts"
+  async function createResponse(params: any): Promise<any> {
+    const url = "https://api.openai.com/v1/responses";
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    const openaiOrg = process.env.OPENAI_ORG;
+    if (openaiOrg) {
+      headers["Openai-Organization"] = openaiOrg;
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API Error: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  class Agent {
+    private model: string;
+    private computer: SteelBrowser;
+    private tools: any[];
+
+    constructor(model: string = "computer-use-preview", computer: SteelBrowser) {
+      this.model = model;
+      this.computer = computer;
+      this.tools = [];
+
+      const [width, height] = computer.dimensions;
+      this.tools.push({
+        type: "computer-preview",
+        display_width: width,
+        display_height: height,
+        environment: "browser",
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI API Error: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    }
-
-    class Agent {
-      private model: string;
-      private computer: SteelBrowser;
-      private tools: any[];
-
-      constructor(model: string = "computer-use-preview", computer: SteelBrowser) {
-        this.model = model;
-        this.computer = computer;
-        this.tools = [];
-
-        const [width, height] = computer.dimensions;
-        this.tools.push({
-          type: "computer-preview",
-          display_width: width,
-          display_height: height,
-          environment: "browser",
-        });
-
-        // Add goto function for direct navigation
-        this.tools.push({
-          type: "function",
-          name: "goto",
-          description: "Navigate directly to a specific URL.",
-          parameters: {
-            type: "object",
-            properties: {
-              url: { type: "string", description: "URL to navigate to" }
-            },
-            required: ["url"],
+      // Add goto function for direct navigation
+      this.tools.push({
+        type: "function",
+        name: "goto",
+        description: "Navigate directly to a specific URL.",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "URL to navigate to" }
           },
-        });
-      }
-    ```
-  </Step>
+          required: ["url"],
+        },
+      });
+    }
+  ```
+</Step>
 
-  <Step number={8} title="Implement Action Handling">
-    Add methods to handle computer actions and function calls from OpenAI.
+<Step number={8} title="Implement Action Handling">
+  Add methods to handle computer actions and function calls from OpenAI.
 
-    ```typescript showLineNumbers{137} filename="index.ts"
-      async executeAction(actionType: string, actionArgs: any): Promise<void> {
-        switch (actionType) {
-          case "click":
-            await this.computer.click(actionArgs.x, actionArgs.y, actionArgs.button || "left");
-            break;
-          case "type":
-            await this.computer.type(actionArgs.text || "");
-            break;
-          case "scroll":
-            await this.computer.scroll(
-              actionArgs.x, actionArgs.y,
-              actionArgs.scroll_x || 0, actionArgs.scroll_y || 0
-            );
-            break;
-          case "goto":
-            await this.computer.goto(actionArgs.url || "");
-            break;
-          case "screenshot":
-            break;
-          default:
-            const method = (this.computer as any)[actionType];
-            if (typeof method === "function") {
-              await method.call(this.computer, ...Object.values(actionArgs));
-            }
-            break;
-        }
-      }
-
-      async handleItem(item: any): Promise<any[]> {
-        if (item.type === "message") {
-          console.log(item.content[0].text);
-        } else if (item.type === "function_call") {
-          const { name, arguments: argsStr } = item;
-          const args = JSON.parse(argsStr);
-          console.log(`${name}(${JSON.stringify(args)})`);
-
-          if (typeof (this.computer as any)[name] === "function") {
-            const method = (this.computer as any)[name];
-            await method.call(this.computer, ...Object.values(args));
+  ```typescript showLineNumbers{137} filename="index.ts"
+    async executeAction(actionType: string, actionArgs: any): Promise<void> {
+      switch (actionType) {
+        case "click":
+          await this.computer.click(actionArgs.x, actionArgs.y, actionArgs.button || "left");
+          break;
+        case "type":
+          await this.computer.type(actionArgs.text || "");
+          break;
+        case "scroll":
+          await this.computer.scroll(
+            actionArgs.x, actionArgs.y,
+            actionArgs.scroll_x || 0, actionArgs.scroll_y || 0
+          );
+          break;
+        case "goto":
+          await this.computer.goto(actionArgs.url || "");
+          break;
+        case "screenshot":
+          break;
+        default:
+          const method = (this.computer as any)[actionType];
+          if (typeof method === "function") {
+            await method.call(this.computer, ...Object.values(actionArgs));
           }
-
-          return [{
-            type: "function_call_output",
-            call_id: item.call_id,
-            output: "success",
-          }];
-        } else if (item.type === "computer_call") {
-          const { action } = item;
-          const actionType = action.type;
-          const { type, ...actionArgs } = action;
-
-          console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
-
-          await this.executeAction(actionType, actionArgs);
-          const screenshotBase64 = await this.computer.screenshot();
-
-          return [{
-            type: "computer_call_output",
-            call_id: item.call_id,
-            output: {
-              type: "input_image",
-              image_url: `data:image/png;base64,${screenshotBase64}`,
-              current_url: this.computer.getCurrentUrl()
-            },
-          }];
-        }
-
-        return [];
-      }
-    ```
-  </Step>
-
-  <Step number={9} title="Implement Task Execution">
-    Create the main task execution loop that coordinates with OpenAI.
-
-    ```typescript showLineNumbers{187} filename="index.ts"
-      async executeTask(task: string, maxIterations: number = 50): Promise<string> {
-        const systemPrompt = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
-
-        You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
-
-        const inputItems = [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: task },
-        ];
-
-        let newItems: any[] = [];
-        let iterations = 0;
-
-        console.log(`🎯 Executing task: ${task}`);
-        console.log("=".repeat(60));
-
-        while (iterations < maxIterations) {
-          iterations++;
-
-          try {
-            const response = await createResponse({
-              model: this.model,
-              input: [...inputItems, ...newItems],
-              tools: this.tools,
-              truncation: "auto",
-            });
-
-            if (!response.output) {
-              throw new Error("No output from model");
-            }
-
-            newItems.push(...response.output);
-
-            for (const item of response.output) {
-              if (item.type === "message") {
-                if (item.content[0].text.includes("TASK_COMPLETED:")) {
-                  return item.content[0].text;
-                }
-              }
-              const handleResult = await this.handleItem(item);
-              newItems.push(...handleResult);
-            }
-
-          } catch (error) {
-            console.error(`❌ Error during task execution: ${error}`);
-            return `Task failed: ${error}`;
-          }
-        }
-
-        return "Task execution completed (max iterations reached)";
+          break;
       }
     }
-    ```
-  </Step>
 
-  <Step number={10} title="Create the Main Function">
-    Implement the main execution function that brings everything together.
+    async handleItem(item: any): Promise<any[]> {
+      if (item.type === "message") {
+        console.log(item.content[0].text);
+      } else if (item.type === "function_call") {
+        const { name, arguments: argsStr } = item;
+        const args = JSON.parse(argsStr);
+        console.log(`${name}(${JSON.stringify(args)})`);
 
-    ```typescript showLineNumbers{227} filename="index.ts"
-    async function main(): Promise<void> {
-      console.log("🚀 Steel + OpenAI Computer Use Assistant");
+        if (typeof (this.computer as any)[name] === "function") {
+          const method = (this.computer as any)[name];
+          await method.call(this.computer, ...Object.values(args));
+        }
+
+        return [{
+          type: "function_call_output",
+          call_id: item.call_id,
+          output: "success",
+        }];
+      } else if (item.type === "computer_call") {
+        const { action } = item;
+        const actionType = action.type;
+        const { type, ...actionArgs } = action;
+
+        console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
+
+        await this.executeAction(actionType, actionArgs);
+        const screenshotBase64 = await this.computer.screenshot();
+
+        return [{
+          type: "computer_call_output",
+          call_id: item.call_id,
+          output: {
+            type: "input_image",
+            image_url: `data:image/png;base64,${screenshotBase64}`,
+            current_url: this.computer.getCurrentUrl()
+          },
+        }];
+      }
+
+      return [];
+    }
+  ```
+</Step>
+
+<Step number={9} title="Implement Task Execution">
+  Create the main task execution loop that coordinates with OpenAI.
+
+  ```typescript showLineNumbers{187} filename="index.ts"
+    async executeTask(task: string, maxIterations: number = 50): Promise<string> {
+      const systemPrompt = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+      You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
+
+      const inputItems = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: task },
+      ];
+
+      let newItems: any[] = [];
+      let iterations = 0;
+
+      console.log(`🎯 Executing task: ${task}`);
       console.log("=".repeat(60));
 
-      if (STEEL_API_KEY === "YOUR_STEEL_API_KEY") {
-        console.warn("⚠️  WARNING: Please set your STEEL_API_KEY in the .env file");
-        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
-        return;
+      while (iterations < maxIterations) {
+        iterations++;
+
+        try {
+          const response = await createResponse({
+            model: this.model,
+            input: [...inputItems, ...newItems],
+            tools: this.tools,
+            truncation: "auto",
+          });
+
+          if (!response.output) {
+            throw new Error("No output from model");
+          }
+
+          newItems.push(...response.output);
+
+          for (const item of response.output) {
+            if (item.type === "message") {
+              if (item.content[0].text.includes("TASK_COMPLETED:")) {
+                return item.content[0].text;
+              }
+            }
+            const handleResult = await this.handleItem(item);
+            newItems.push(...handleResult);
+          }
+
+        } catch (error) {
+          console.error(`❌ Error during task execution: ${error}`);
+          return `Task failed: ${error}`;
+        }
       }
 
-      if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY") {
-        console.warn("⚠️  WARNING: Please set your OPENAI_API_KEY in the .env file");
-        console.warn("   Get your API key at: https://platform.openai.com/");
-        return;
-      }
+      return "Task execution completed (max iterations reached)";
+    }
+  }
+  ```
+</Step>
 
-      console.log("\nStarting Steel browser session...");
+<Step number={10} title="Create the Main Function">
+  Implement the main execution function that brings everything together.
 
-      const computer = new SteelBrowser();
+  ```typescript showLineNumbers{227} filename="index.ts"
+  async function main(): Promise<void> {
+    console.log("🚀 Steel + OpenAI Computer Use Assistant");
+    console.log("=".repeat(60));
 
-      try {
-        await computer.initialize();
-        console.log("✅ Steel browser session started!");
-
-        const agent = new Agent("computer-use-preview", computer);
-        const startTime = Date.now();
-        const result = await agent.executeTask(TASK, 50);
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        console.log("\n" + "=".repeat(60));
-        console.log("🎉 TASK EXECUTION COMPLETED");
-        console.log("=".repeat(60));
-        console.log(`⏱️  Duration: ${duration} seconds`);
-        console.log(`🎯 Task: ${TASK}`);
-        console.log(`📋 Result:\n${result}`);
-        console.log("=".repeat(60));
-      } catch (error) {
-        console.error(`❌ Failed to start Steel browser: ${error}`);
-        console.error("Please check your API keys and internet connection.");
-      } finally {
-        await computer.cleanup();
-      }
+    if (STEEL_API_KEY === "YOUR_STEEL_API_KEY") {
+      console.warn("⚠️  WARNING: Please set your STEEL_API_KEY in the .env file");
+      console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+      return;
     }
 
-    main().catch(console.error);
-    ```
-  </Step>
+    if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY") {
+      console.warn("⚠️  WARNING: Please set your OPENAI_API_KEY in the .env file");
+      console.warn("   Get your API key at: https://platform.openai.com/");
+      return;
+    }
 
-  <Step number={11} title="Run Your AI Agent">
-    Execute your script to start the autonomous AI agent that can interact with websites.
+    console.log("\nStarting Steel browser session...");
 
-    ```bash
-    npm run start
-    ```
+    const computer = new SteelBrowser();
 
-    Your OpenAI agent will:
-    - Take screenshots to see the current state
-    - Analyze what's on screen using vision
-    - Make decisions about what actions to take
-    - Click, type, scroll, and navigate autonomously
-    - Complete complex multi-step tasks
-  </Step>
+    try {
+      await computer.initialize();
+      console.log("✅ Steel browser session started!");
 
-  <FullCodeExample id="full-code-example" title="Full Example">
-    Complete autonomous browser agent using OpenAI's Computer Use API with Steel.
-    ```typescript showLineNumbers filename="index.ts"
-    import * as dotenv from "dotenv";
-    import { chromium } from "playwright";
-    import type { Browser, Page } from "playwright";
-    import { Steel } from "steel-sdk";
+      const agent = new Agent("computer-use-preview", computer);
+      const startTime = Date.now();
+      const result = await agent.executeTask(TASK, 50);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    dotenv.config();
+      console.log("\n" + "=".repeat(60));
+      console.log("🎉 TASK EXECUTION COMPLETED");
+      console.log("=".repeat(60));
+      console.log(`⏱️  Duration: ${duration} seconds`);
+      console.log(`🎯 Task: ${TASK}`);
+      console.log(`📋 Result:\n${result}`);
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error(`❌ Failed to start Steel browser: ${error}`);
+      console.error("Please check your API keys and internet connection.");
+    } finally {
+      await computer.cleanup();
+    }
+  }
 
-    // Environment variables
-    const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
-    const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
+  main().catch(console.error);
+  ```
+</Step>
 
-    async function createResponse(params: any): Promise<any> {
-      const url = "https://api.openai.com/v1/responses";
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+<Step number={11} title="Run Your AI Agent" isLast>
+  Execute your script to start the autonomous AI agent that can interact with websites.
+
+  ```bash
+  npm run start
+  ```
+
+  Your OpenAI agent will:
+  - Take screenshots to see the current state
+  - Analyze what's on screen using vision
+  - Make decisions about what actions to take
+  - Click, type, scroll, and navigate autonomously
+  - Complete complex multi-step tasks
+</Step>
+
+<FullCodeExample id="full-code-example" title="Full Example">
+  Complete autonomous browser agent using OpenAI's Computer Use API with Steel.
+  ```typescript showLineNumbers filename="index.ts"
+  import * as dotenv from "dotenv";
+  import { chromium } from "playwright";
+  import type { Browser, Page } from "playwright";
+  import { Steel } from "steel-sdk";
+
+  dotenv.config();
+
+  // Environment variables
+  const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
+  const TASK = process.env.TASK || "Go to Wikipedia and search for machine learning";
+
+  async function createResponse(params: any): Promise<any> {
+    const url = "https://api.openai.com/v1/responses";
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API Error: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  class SteelBrowser {
+    private client: Steel;
+    private session: any;
+    private browser: Browser | null = null;
+    private page: Page | null = null;
+    public dimensions: [number, number];
+
+    constructor(width: number = 1024, height: number = 768) {
+      this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
+      this.dimensions = [width, height];
+    }
+
+    async initialize(): Promise<void> {
+      const [width, height] = this.dimensions;
+      const sessionParams = {
+        useProxy: false,
+        solveCaptcha: false,
+        apiTimeout: 900000,
+        blockAds: true,
+        dimensions: { width, height },
       };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(params),
+      this.session = await this.client.sessions.create(sessionParams);
+      console.log("Steel Session created successfully!");
+      console.log(`View live session at: ${this.session.sessionViewerUrl}`);
+
+      const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+      this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
+      this.page = this.browser.contexts()[0].pages()[0];
+      await this.page.setViewportSize({ width, height });
+      await this.page.goto("https://www.google.com");
+    }
+
+    async cleanup(): Promise<void> {
+      if (this.page) await this.page.close();
+      if (this.browser) await this.browser.close();
+      if (this.session) {
+        console.log("Releasing Steel session...");
+        await this.client.sessions.release(this.session.id);
+        console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
+      }
+    }
+
+    async screenshot(): Promise<string> {
+      if (!this.page) throw new Error("Page not initialized");
+      const [width, height] = this.dimensions;
+      const buffer = await this.page.screenshot({
+        fullPage: false,
+        clip: { x: 0, y: 0, width, height },
+      });
+      return buffer.toString("base64");
+    }
+
+    async click(x: number, y: number, button: string = "left"): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      if (button === "left") {
+        await this.page.mouse.click(x, y);
+      } else if (button === "right") {
+        await this.page.mouse.click(x, y, { button: "right" });
+      } else if (button === "back") {
+        await this.page.goBack();
+      } else if (button === "forward") {
+        await this.page.goForward();
+      }
+    }
+
+    async type(text: string): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      await this.page.keyboard.type(text);
+    }
+
+    async scroll(x: number, y: number, scrollX: number, scrollY: number): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      await this.page.mouse.move(x, y);
+      await this.page.evaluate(({ scrollX, scrollY }) => {
+        window.scrollBy(scrollX, scrollY);
+      }, { scrollX, scrollY });
+    }
+
+    async goto(url: string): Promise<void> {
+      if (!this.page) throw new Error("Page not initialized");
+      try {
+        await this.page.goto(url);
+      } catch (error) {
+        console.log(`Error navigating to ${url}: ${error}`);
+      }
+    }
+
+    getCurrentUrl(): string {
+      return this.page?.url() || "";
+    }
+  }
+
+  class Agent {
+    private model: string;
+    private computer: SteelBrowser;
+    private tools: any[];
+
+    constructor(model: string = "computer-use-preview", computer: SteelBrowser) {
+      this.model = model;
+      this.computer = computer;
+      this.tools = [];
+
+      const [width, height] = computer.dimensions;
+      this.tools.push({
+        type: "computer-preview",
+        display_width: width,
+        display_height: height,
+        environment: "browser",
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI API Error: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    }
-
-    class SteelBrowser {
-      private client: Steel;
-      private session: any;
-      private browser: Browser | null = null;
-      private page: Page | null = null;
-      public dimensions: [number, number];
-
-      constructor(width: number = 1024, height: number = 768) {
-        this.client = new Steel({ steelAPIKey: STEEL_API_KEY });
-        this.dimensions = [width, height];
-      }
-
-      async initialize(): Promise<void> {
-        const [width, height] = this.dimensions;
-        const sessionParams = {
-          useProxy: false,
-          solveCaptcha: false,
-          apiTimeout: 900000,
-          blockAds: true,
-          dimensions: { width, height },
-        };
-
-        this.session = await this.client.sessions.create(sessionParams);
-        console.log("Steel Session created successfully!");
-        console.log(`View live session at: ${this.session.sessionViewerUrl}`);
-
-        const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
-        this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
-        this.page = this.browser.contexts()[0].pages()[0];
-        await this.page.setViewportSize({ width, height });
-        await this.page.goto("https://www.google.com");
-      }
-
-      async cleanup(): Promise<void> {
-        if (this.page) await this.page.close();
-        if (this.browser) await this.browser.close();
-        if (this.session) {
-          console.log("Releasing Steel session...");
-          await this.client.sessions.release(this.session.id);
-          console.log(`Session completed. View replay at ${this.session.sessionViewerUrl}`);
-        }
-      }
-
-      async screenshot(): Promise<string> {
-        if (!this.page) throw new Error("Page not initialized");
-        const [width, height] = this.dimensions;
-        const buffer = await this.page.screenshot({
-          fullPage: false,
-          clip: { x: 0, y: 0, width, height },
-        });
-        return buffer.toString("base64");
-      }
-
-      async click(x: number, y: number, button: string = "left"): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        if (button === "left") {
-          await this.page.mouse.click(x, y);
-        } else if (button === "right") {
-          await this.page.mouse.click(x, y, { button: "right" });
-        } else if (button === "back") {
-          await this.page.goBack();
-        } else if (button === "forward") {
-          await this.page.goForward();
-        }
-      }
-
-      async type(text: string): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        await this.page.keyboard.type(text);
-      }
-
-      async scroll(x: number, y: number, scrollX: number, scrollY: number): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        await this.page.mouse.move(x, y);
-        await this.page.evaluate(({ scrollX, scrollY }) => {
-          window.scrollBy(scrollX, scrollY);
-        }, { scrollX, scrollY });
-      }
-
-      async goto(url: string): Promise<void> {
-        if (!this.page) throw new Error("Page not initialized");
-        try {
-          await this.page.goto(url);
-        } catch (error) {
-          console.log(`Error navigating to ${url}: ${error}`);
-        }
-      }
-
-      getCurrentUrl(): string {
-        return this.page?.url() || "";
-      }
-    }
-
-    class Agent {
-      private model: string;
-      private computer: SteelBrowser;
-      private tools: any[];
-
-      constructor(model: string = "computer-use-preview", computer: SteelBrowser) {
-        this.model = model;
-        this.computer = computer;
-        this.tools = [];
-
-        const [width, height] = computer.dimensions;
-        this.tools.push({
-          type: "computer-preview",
-          display_width: width,
-          display_height: height,
-          environment: "browser",
-        });
-
-        this.tools.push({
-          type: "function",
-          name: "goto",
-          description: "Navigate directly to a specific URL.",
-          parameters: {
-            type: "object",
-            properties: {
-              url: { type: "string", description: "URL to navigate to" }
-            },
-            required: ["url"],
+      this.tools.push({
+        type: "function",
+        name: "goto",
+        description: "Navigate directly to a specific URL.",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "URL to navigate to" }
           },
-        });
-      }
+          required: ["url"],
+        },
+      });
+    }
 
-      async executeAction(actionType: string, actionArgs: any): Promise<void> {
-        switch (actionType) {
-          case "click":
-            await this.computer.click(actionArgs.x, actionArgs.y, actionArgs.button || "left");
-            break;
-          case "type":
-            await this.computer.type(actionArgs.text || "");
-            break;
-          case "scroll":
-            await this.computer.scroll(
-              actionArgs.x, actionArgs.y,
-              actionArgs.scroll_x || 0, actionArgs.scroll_y || 0
-            );
-            break;
-          case "goto":
-            await this.computer.goto(actionArgs.url || "");
-            break;
-          case "screenshot":
-            break;
-          default:
-            const method = (this.computer as any)[actionType];
-            if (typeof method === "function") {
-              await method.call(this.computer, ...Object.values(actionArgs));
-            }
-            break;
-        }
-      }
-
-      async handleItem(item: any): Promise<any[]> {
-        if (item.type === "message") {
-          console.log(item.content[0].text);
-        } else if (item.type === "function_call") {
-          const { name, arguments: argsStr } = item;
-          const args = JSON.parse(argsStr);
-          console.log(`${name}(${JSON.stringify(args)})`);
-
-          if (typeof (this.computer as any)[name] === "function") {
-            const method = (this.computer as any)[name];
-            await method.call(this.computer, ...Object.values(args));
+    async executeAction(actionType: string, actionArgs: any): Promise<void> {
+      switch (actionType) {
+        case "click":
+          await this.computer.click(actionArgs.x, actionArgs.y, actionArgs.button || "left");
+          break;
+        case "type":
+          await this.computer.type(actionArgs.text || "");
+          break;
+        case "scroll":
+          await this.computer.scroll(
+            actionArgs.x, actionArgs.y,
+            actionArgs.scroll_x || 0, actionArgs.scroll_y || 0
+          );
+          break;
+        case "goto":
+          await this.computer.goto(actionArgs.url || "");
+          break;
+        case "screenshot":
+          break;
+        default:
+          const method = (this.computer as any)[actionType];
+          if (typeof method === "function") {
+            await method.call(this.computer, ...Object.values(actionArgs));
           }
-
-          return [{
-            type: "function_call_output",
-            call_id: item.call_id,
-            output: "success",
-          }];
-        } else if (item.type === "computer_call") {
-          const { action } = item;
-          const actionType = action.type;
-          const { type, ...actionArgs } = action;
-
-          console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
-
-          await this.executeAction(actionType, actionArgs);
-          const screenshotBase64 = await this.computer.screenshot();
-
-          return [{
-            type: "computer_call_output",
-            call_id: item.call_id,
-            output: {
-              type: "input_image",
-              image_url: `data:image/png;base64,${screenshotBase64}`,
-              current_url: this.computer.getCurrentUrl()
-            },
-          }];
-        }
-
-        return [];
-      }
-
-      async executeTask(task: string, maxIterations: number = 50): Promise<string> {
-        const systemPrompt = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
-
-        You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
-
-        const inputItems = [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: task },
-        ];
-
-        let newItems: any[] = [];
-        let iterations = 0;
-
-        console.log(`🎯 Executing task: ${task}`);
-        console.log("=".repeat(60));
-
-        while (iterations < maxIterations) {
-          iterations++;
-
-          try {
-            const response = await createResponse({
-              model: this.model,
-              input: [...inputItems, ...newItems],
-              tools: this.tools,
-              truncation: "auto",
-            });
-
-            if (!response.output) {
-              throw new Error("No output from model");
-            }
-
-            newItems.push(...response.output);
-
-            for (const item of response.output) {
-              if (item.type === "message") {
-                if (item.content[0].text.includes("TASK_COMPLETED:")) {
-                  return item.content[0].text;
-                }
-              }
-              const handleResult = await this.handleItem(item);
-              newItems.push(...handleResult);
-            }
-
-          } catch (error) {
-            console.error(`❌ Error during task execution: ${error}`);
-            return `Task failed: ${error}`;
-          }
-        }
-
-        return "Task execution completed (max iterations reached)";
+          break;
       }
     }
 
-    async function main(): Promise<void> {
-      console.log("🚀 Steel + OpenAI Computer Use Assistant");
+    async handleItem(item: any): Promise<any[]> {
+      if (item.type === "message") {
+        console.log(item.content[0].text);
+      } else if (item.type === "function_call") {
+        const { name, arguments: argsStr } = item;
+        const args = JSON.parse(argsStr);
+        console.log(`${name}(${JSON.stringify(args)})`);
+
+        if (typeof (this.computer as any)[name] === "function") {
+          const method = (this.computer as any)[name];
+          await method.call(this.computer, ...Object.values(args));
+        }
+
+        return [{
+          type: "function_call_output",
+          call_id: item.call_id,
+          output: "success",
+        }];
+      } else if (item.type === "computer_call") {
+        const { action } = item;
+        const actionType = action.type;
+        const { type, ...actionArgs } = action;
+
+        console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
+
+        await this.executeAction(actionType, actionArgs);
+        const screenshotBase64 = await this.computer.screenshot();
+
+        return [{
+          type: "computer_call_output",
+          call_id: item.call_id,
+          output: {
+            type: "input_image",
+            image_url: `data:image/png;base64,${screenshotBase64}`,
+            current_url: this.computer.getCurrentUrl()
+          },
+        }];
+      }
+
+      return [];
+    }
+
+    async executeTask(task: string, maxIterations: number = 50): Promise<string> {
+      const systemPrompt = `You are an expert browser automation assistant. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
+
+      You can take screenshots, click elements, type text, scroll pages, and navigate to URLs. Always start by taking a screenshot to understand the current state. When you complete the task, start your response with "TASK_COMPLETED:".`;
+
+      const inputItems = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: task },
+      ];
+
+      let newItems: any[] = [];
+      let iterations = 0;
+
+      console.log(`🎯 Executing task: ${task}`);
       console.log("=".repeat(60));
 
-      if (STEEL_API_KEY === "your-steel-api-key-here") {
-        console.warn("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key");
-        console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
-        return;
+      while (iterations < maxIterations) {
+        iterations++;
+
+        try {
+          const response = await createResponse({
+            model: this.model,
+            input: [...inputItems, ...newItems],
+            tools: this.tools,
+            truncation: "auto",
+          });
+
+          if (!response.output) {
+            throw new Error("No output from model");
+          }
+
+          newItems.push(...response.output);
+
+          for (const item of response.output) {
+            if (item.type === "message") {
+              if (item.content[0].text.includes("TASK_COMPLETED:")) {
+                return item.content[0].text;
+              }
+            }
+            const handleResult = await this.handleItem(item);
+            newItems.push(...handleResult);
+          }
+
+        } catch (error) {
+          console.error(`❌ Error during task execution: ${error}`);
+          return `Task failed: ${error}`;
+        }
       }
 
-      if (OPENAI_API_KEY === "your-openai-api-key-here") {
-        console.warn("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key");
-        console.warn("   Get your API key at: https://platform.openai.com/");
-        return;
-      }
+      return "Task execution completed (max iterations reached)";
+    }
+  }
 
-      console.log("\nStarting Steel browser session...");
+  async function main(): Promise<void> {
+    console.log("🚀 Steel + OpenAI Computer Use Assistant");
+    console.log("=".repeat(60));
 
-      const computer = new SteelBrowser();
-
-      try {
-        await computer.initialize();
-        console.log("✅ Steel browser session started!");
-
-        const agent = new Agent("computer-use-preview", computer);
-        const startTime = Date.now();
-        const result = await agent.executeTask(TASK, 50);
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        console.log("\n" + "=".repeat(60));
-        console.log("🎉 TASK EXECUTION COMPLETED");
-        console.log("=".repeat(60));
-        console.log(`⏱️  Duration: ${duration} seconds`);
-        console.log(`🎯 Task: ${TASK}`);
-        console.log(`📋 Result:\n${result}`);
-        console.log("=".repeat(60));
-      } catch (error) {
-        console.error(`❌ Failed to start Steel browser: ${error}`);
-        console.error("Please check your API keys and internet connection.");
-      } finally {
-        await computer.cleanup();
-      }
+    if (STEEL_API_KEY === "your-steel-api-key-here") {
+      console.warn("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key");
+      console.warn("   Get your API key at: https://app.steel.dev/settings/api-keys");
+      return;
     }
 
-    main().catch(console.error);
-    ```
-  </FullCodeExample>
-</Guide>
+    if (OPENAI_API_KEY === "your-openai-api-key-here") {
+      console.warn("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key");
+      console.warn("   Get your API key at: https://platform.openai.com/");
+      return;
+    }
+
+    console.log("\nStarting Steel browser session...");
+
+    const computer = new SteelBrowser();
+
+    try {
+      await computer.initialize();
+      console.log("✅ Steel browser session started!");
+
+      const agent = new Agent("computer-use-preview", computer);
+      const startTime = Date.now();
+      const result = await agent.executeTask(TASK, 50);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      console.log("\n" + "=".repeat(60));
+      console.log("🎉 TASK EXECUTION COMPLETED");
+      console.log("=".repeat(60));
+      console.log(`⏱️  Duration: ${duration} seconds`);
+      console.log(`🎯 Task: ${TASK}`);
+      console.log(`📋 Result:\n${result}`);
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error(`❌ Failed to start Steel browser: ${error}`);
+      console.error("Please check your API keys and internet connection.");
+    } finally {
+      await computer.cleanup();
+    }
+  }
+
+  main().catch(console.error);
+  ```
+</FullCodeExample>
+
+<NextSteps>
+  - [Learn about Session Lifecycles](https://docs.steel.dev/overview/sessions-api/session-lifecycle)
+  - [Learn more about Sessions](https://docs.steel.dev/overview/sessions-api/overview)
+  - [Node SDK reference](https://github.com/steel-dev/steel-node)
+</NextSteps>
