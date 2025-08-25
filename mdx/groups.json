@@ -3,7 +3,7 @@
   "examples": [
     {
       "id": "playwright-starter",
-      "title": "Using Playwright with Steel",
+      "title": "Playwright",
       "accentColor": "blue",
       "category": "BROWSER_AUTOMATION",
       "description": "A starter project for using Playwright with Steel",
@@ -11,7 +11,7 @@
     },
     {
       "id": "puppeteer-starter",
-      "title": "Using Puppeteer with Steel",
+      "title": "Puppeteer",
       "accentColor": "yellow",
       "category": "BROWSER_AUTOMATION",
       "description": "A starter project for using Puppeteer with Steel",
@@ -19,7 +19,7 @@
     },
     {
       "id": "oai-computer-use",
-      "title": "Using Steel with OpenAI's Computer Use API",
+      "title": "OpenAI's Computer Use",
       "accentColor": "orange",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and OpenAI's Computer Use Assistant.",
@@ -27,7 +27,7 @@
     },
     {
       "id": "claude-computer-use",
-      "title": "Using Steel with Claude's Computer Use API",
+      "title": "Claude's Computer Use",
       "accentColor": "purple",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and Claude's Computer Use API.",
@@ -35,7 +35,7 @@
     },
     {
       "id": "stagehand-starter",
-      "title": "Using Steel with Stagehand for AI-Powered Automations",
+      "title": "Stagehand",
       "accentColor": "green",
       "category": "AI_AUTOMATION",
       "description": "A starter project demonstrating how to use Steel with Stagehand for AI-powered browser automations.",
