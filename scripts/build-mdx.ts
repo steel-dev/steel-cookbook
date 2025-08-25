@@ -101,6 +101,9 @@ async function build() {
       const { content, toc, meta } = await compileMDX(source, "json");
       const { markdown } = await compileMDX(source, "markdown");
 
+      // TODO: Figure out how to fix this properly
+      const replacedContent = content.replace(/#bbbbbb/gi, "#ffffff");
+
       // ... (rest of the file writing and packaging logic is unchanged)
       const slug = path.basename(fileName, ".mdx");
       const exampleOutputDir = path.join(OUTPUT_DIR, meta.id as string);
@@ -130,7 +133,7 @@ async function build() {
 
       await fs.writeFile(
         path.join(exampleOutputDir, "content.json"),
-        content,
+        replacedContent,
         "utf-8",
       );
       await fs.writeFile(
