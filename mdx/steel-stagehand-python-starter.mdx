@@ -35,7 +35,6 @@ Create a `.env` file with your API keys.
 STEEL_API_KEY=YOUR_STEEL_API_KEY
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 ```
-- Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
 - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your OpenAI API key
 </Step>
 
@@ -65,7 +64,6 @@ class Story(BaseModel):
 class Stories(BaseModel):
     stories: list[Story] = Field(..., description="List of top stories")
 ```
-- Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your actual Steel API key
 - Replace <HighlightRef id={2}>YOUR_OPENAI_API_KEY</HighlightRef> with your actual OpenAI API key
 </Step>
 

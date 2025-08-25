@@ -52,7 +52,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
   print(f"View live session at: {session.session_viewer_url}")
   ```
-  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
 </Step>
 
 <Step number={4} title="Define Your Browser and Browser Context">
@@ -62,7 +61,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   # Connect to Steel session
   cdp_url = f"wss://connect.steel.dev?apiKey=YOUR_STEEL_API_KEY&sessionId={session.id}"
   ```
-  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your API key
 </Step>
 
 <Step number={5} title="Configure Your AI Agent">
@@ -137,7 +135,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   import time
 
   # Initialize the Steel client with API key
-  # Replace "YOUR_STEEL_API_KEY" with your actual API key
   client = Steel(steel_api_key=os.getenv("STEEL_API_KEY"))
 
   # Create a Steel session
@@ -146,7 +143,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   print(f"Session created at {session.session_viewer_url}")
 
   # Connect browser-use to Steel
-  # Replace YOUR_STEEL_API_KEY with your actual API key
   cdp_url = f"wss://connect.steel.dev?apiKey={os.getenv('STEEL_API_KEY')}&sessionId={session.id}"
 
   # Create and configure the AI agent
