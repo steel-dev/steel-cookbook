@@ -14,22 +14,25 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 ---
 
 <Intro skipLink="#full-code-example">
-  Control Steel cloud browsers using Notte's reasoning engine. This guide starts a Steel session, connects Notte via CDP, executes an AI task, and cleans up.
+  Build an AI browser agent with Notte running on Steel cloud browsers. Connect Notte to a live Steel session via CDP, execute a task, and cleanly tear everything down.
 </Intro>
 
-<Step number={1} title="Install Required Packages">
+<Step number={1} title="Optional: Create a new directory & environment">
   ```bash
-  pip install -r requirements.txt
+  python3 -m venv .venv && \
+  source .venv/bin/activate && \
+  mkdir notte-steel && cd notte-steel && \
+  touch main.py .env
   ```
-  Required versions used in the starter:
-  - steel-sdk==0.6.0
-  - notte-sdk==1.6.0
-  - python-dotenv>=1.0.0
-  - pydantic>=2.0.0
-  - patchright>=1.0.0
 </Step>
 
-<Step number={2} title="Set Up Environment Variables">
+<Step number={2} title="Install Required Packages">
+  ```bash
+  pip install steel-sdk notte-sdk python-dotenv
+  ```
+</Step>
+
+<Step number={3} title="Set Up Environment Variables">
   Create a `.env` file with your API keys and task configuration.
 
   ```text filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_NOTTE_API_KEY/#2
@@ -37,10 +40,86 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   NOTTE_API_KEY=YOUR_NOTTE_API_KEY
   TASK="Go to Wikipedia and search for machine learning"
   ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
   - Replace <HighlightRef id={2}>YOUR_NOTTE_API_KEY</HighlightRef> with your Notte API key
 </Step>
 
-<Step number={3} title="Run the script">
+<Step number={4} title="Create a Steel session and connect Notte via CDP">
+  ```python showLineNumbers filename="main.py"
+  import os
+  import time
+  import asyncio
+  from dotenv import load_dotenv
+  from steel import Steel
+  from notte_sdk import NotteClient
+
+  load_dotenv(override=True)
+
+  STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+  NOTTE_API_KEY = os.getenv("NOTTE_API_KEY") or "your-notte-api-key-here"
+  TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
+
+  client = Steel(steel_api_key=STEEL_API_KEY)
+  notte = NotteClient(api_key=NOTTE_API_KEY)
+
+  async def main():
+      print("🚀 Steel + Notte Assistant")
+      print("=" * 60)
+
+      if STEEL_API_KEY == "your-steel-api-key-here":
+          print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+          print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+          return
+
+      if NOTTE_API_KEY == "your-notte-api-key-here":
+          print("⚠️  WARNING: Please replace 'your-notte-api-key-here' with your actual Notte API key")
+          print("   Get your API key at: https://notte.cc")
+          return
+
+      print("\nCreating Steel session...")
+      session = client.sessions.create()
+      print(f"View live session at: {session.session_viewer_url}")
+
+      cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+  ```
+</Step>
+
+<Step number={5} title="Run a Notte agent task">
+  ```python showLineNumbers{27} filename="main.py"
+      start_time = time.time()
+      print(f"🎯 Executing task: {TASK}")
+      print("=" * 60)
+
+      try:
+          with notte.Session(cdp_url=cdp_url) as browser:
+              agent = notte.Agent(session=browser, max_steps=5)
+              response = agent.run(task=TASK)
+
+              duration = f"{(time.time() - start_time):.1f}"
+              print("\n" + "=" * 60)
+              print("🎉 TASK EXECUTION COMPLETED")
+              print("=" * 60)
+              print(f"⏱️  Duration: {duration} seconds")
+              print(f"🎯 Task: {TASK}")
+              if response:
+                  print(f"📋 Result:\n{response.answer}")
+              print("=" * 60)
+      except Exception as e:
+          print(f"❌ Task execution failed: {e}")
+  ```
+</Step>
+
+<Step number={6} title="Clean up the Steel session">
+  ```python showLineNumbers{43} filename="main.py"
+      finally:
+          if session:
+              print("Releasing Steel session...")
+              client.sessions.release(session.id)
+              print(f"Session completed. View replay at {session.session_viewer_url}")
+  ```
+</Step>
+
+<Step number={7} title="Run your agent" isLast>
   ```bash
   python main.py
   ```
@@ -61,8 +140,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   from steel import Steel
   from notte_sdk import NotteClient
 
-
-  load_dotenv()
+  load_dotenv(override=True)
 
   # Replace with your own API keys
   STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
@@ -70,7 +148,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
   # Replace with your own task
   TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
-
 
   async def main():
       print("🚀 Steel + Notte Assistant")
@@ -86,60 +163,44 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
           print("   Get your API key at: https://notte.cc")
           return
 
-      print("\nStarting Steel browser session...")
-
       client = Steel(steel_api_key=STEEL_API_KEY)
       notte = NotteClient(api_key=NOTTE_API_KEY)
 
+      session = None
       try:
+          print("\nCreating Steel session...")
           session = client.sessions.create()
           print("✅ Steel browser session started!")
           print(f"View live session at: {session.session_viewer_url}")
 
-          print(
-              f"\033[1;93mSteel Session created!\033[0m\n"
-              f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
-          )
-
           cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
           start_time = time.time()
-
           print(f"🎯 Executing task: {TASK}")
           print("=" * 60)
 
-          try:
-              with notte.Session(cdp_url=cdp_url) as session:
-                  agent = notte.Agent(
-                      session=session,
-                      max_steps=5,
-                  )
-                  response = agent.run(task=TASK)
+          with notte.Session(cdp_url=cdp_url) as browser:
+              agent = notte.Agent(session=browser, max_steps=5)
+              response = agent.run(task=TASK)
 
-                  duration = f"{(time.time() - start_time):.1f}"
+              duration = f"{(time.time() - start_time):.1f}"
 
-                  print("\n" + "=" * 60)
-                  print("🎉 TASK EXECUTION COMPLETED")
-                  print("=" * 60)
-                  print(f"⏱️  Duration: {duration} seconds")
-                  print(f"🎯 Task: {TASK}")
-                  if response:
-                      print(f"📋 Result:\n{response.answer}")
-                  print("=" * 60)
-
-          except Exception as e:
-              print(f"❌ Task execution failed: {e}")
-          finally:
-              if session:
-                  print("Releasing Steel session...")
-                  client.sessions.release(session.id)
-                  print(f"Session completed. View replay at {session.session_viewer_url}")
-              print("Done!")
+              print("\n" + "=" * 60)
+              print("🎉 TASK EXECUTION COMPLETED")
+              print("=" * 60)
+              print(f"⏱️  Duration: {duration} seconds")
+              print(f"🎯 Task: {TASK}")
+              if response:
+                  print(f"📋 Result:\n{response.answer}")
+              print("=" * 60)
 
       except Exception as e:
-          print(f"❌ Failed to start Steel browser: {e}")
-          print("Please check your STEEL_API_KEY and internet connection.")
-
+          print(f"❌ Failed to run: {e}")
+      finally:
+          if session:
+              print("Releasing Steel session...")
+              client.sessions.release(session.id)
+              print(f"Session completed. View replay at {session.session_viewer_url}")
 
   if __name__ == "__main__":
       asyncio.run(main())
