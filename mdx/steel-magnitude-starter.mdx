@@ -1,13 +1,277 @@
 ---
 id: "steel-magnitude-starter"
-title: "Using Steel with Magnitude"
+title: "Magnitude"
 accentColor: "blue"
 category: "AI_AUTOMATION"
 stack: "nodejs"
-description: "A starter project demonstrating how to use Steel with Magnitude in Node.js & TypeScript for AI-powered browser automations."
-flags: ["cli", "playground"]
+description: "Build an AI Agent with Steel and Magnitude"
+flags: ["cli", "guide", "playground"]
 directory: "examples/steel-magnitude-starter"
 language: "typescript"
 shorthand: "magnitude"
-docs: ""
+docs: "https://docs.steel.dev/overview/integrations/magnitude/quickstart"
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-magnitude-starter"
 ---
+
+<Intro skipLink="#full-code-example">
+  Build an AI browser agent with Magnitude running on Steel cloud browsers. Connect Magnitude to a live Steel session via CDP, extract structured data with Zod, perform actions, and cleanly tear everything down.
+ </Intro>
+
+<Step number={1} title="Optional: Create a new directory & environment">
+  ```bash
+  mkdir steel-magnitude && \
+  cd steel-magnitude && \
+  npm init -y && \
+  npm install -D typescript @types/node ts-node && \
+  npx tsc --init && \
+  npm pkg set scripts.start="ts-node index.ts" && \
+  touch index.ts .env
+  ```
+ </Step>
+
+<Step number={2} title="Install Required Packages">
+  ```bash
+  npm install steel-sdk magnitude-core zod dotenv
+  ```
+ </Step>
+
+<Step number={3} title="Set Up Environment Variables">
+  ```text filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_ANTHROPIC_API_KEY/#2
+  STEEL_API_KEY=YOUR_STEEL_API_KEY
+  ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
+  ```
+  - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
+  - Replace <HighlightRef id={2}>YOUR_ANTHROPIC_API_KEY</HighlightRef> with your Anthropic API key
+ </Step>
+
+<Step number={4} title="Create a Steel session and connect via CDP">
+  ```typescript showLineNumbers filename="index.ts"
+  import * as dotenv from "dotenv";
+  import { Steel } from "steel-sdk";
+  import { startBrowserAgent } from "magnitude-core";
+  import { z } from "zod";
+
+  dotenv.config();
+
+  const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+
+  const client = new Steel({ steelAPIKey: STEEL_API_KEY });
+
+  async function main() {
+    let session;
+    console.log("Creating Steel session...");
+    session = await client.sessions.create({});
+    console.log(`View session at ${session.sessionViewerUrl}`);
+
+    const agent = await startBrowserAgent({
+      url: "https://news.ycombinator.com",
+      narrate: true,
+      llm: {
+        provider: "anthropic",
+        options: { model: "claude-3-7-sonnet-latest", apiKey: ANTHROPIC_API_KEY },
+      },
+      browser: {
+        cdp: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      },
+    });
+  }
+  ```
+ </Step>
+
+<Step number={5} title="Extract structured data with Zod">
+  ```typescript showLineNumbers{21} filename="index.ts"
+    const stories = await agent.extract(
+      "extract the titles of the first 5 stories on the page",
+      z.object({
+        stories: z.array(
+          z.object({
+            title: z.string(),
+            rank: z.number(),
+          })
+        ),
+      })
+    );
+
+    stories.stories?.forEach((story: any, index: number) => {
+      console.log(`${index + 1}. ${story.title}`);
+    });
+  ```
+ </Step>
+
+<Step number={6} title="Act on the page and clean up">
+  ```typescript showLineNumbers{37} filename="index.ts"
+    try {
+      await agent.act("find and click on the search link or button if it exists");
+      await agent.act("type 'AI' in the search box");
+    } catch (error) {
+      console.log("No search functionality found or accessible");
+    }
+
+    await agent.stop();
+    await client.sessions.release(session.id);
+  ```
+ </Step>
+
+<Step number={7} title="Run the agent" isLast>
+  ```bash
+  npm run start
+  ```
+ </Step>
+
+<FullCodeExample id="full-code-example" title="Full Example">
+  ```typescript showLineNumbers filename="index.ts"
+  /*
+   * AI-powered browser automation using Magnitude with Steel browsers.
+   * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-magnitude-starter
+   */
+
+  import * as dotenv from "dotenv";
+  import { Steel } from "steel-sdk";
+  import { z } from "zod";
+  import { startBrowserAgent } from "magnitude-core";
+
+  dotenv.config();
+
+  // Replace with your own API keys
+  const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+  const ANTHROPIC_API_KEY =
+    process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+
+  // Initialize Steel client with the API key from environment variables
+  const client = new Steel({
+    steelAPIKey: STEEL_API_KEY,
+  });
+
+  async function main() {
+    console.log("🚀 Steel + Magnitude Node Starter");
+    console.log("=".repeat(60));
+
+    if (STEEL_API_KEY === "your-steel-api-key-here") {
+      console.warn(
+        "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      );
+      console.warn(
+        "   Get your API key at: https://app.steel.dev/settings/api-keys"
+      );
+      return;
+    }
+
+    if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+      console.warn(
+        "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+      );
+      console.warn("   Get your API key at: https://console.anthropic.com/");
+      return;
+    }
+
+    let session;
+    let agent;
+
+    try {
+      console.log("\nCreating Steel session...");
+
+      session = await client.sessions.create({
+        // === Basic Options ===
+        // useProxy: true, // Use Steel's proxy network (residential IPs)
+        // proxyUrl: 'http://...',         // Use your own proxy (format: protocol://username:password@host:port)
+        // solveCaptcha: true,             // Enable automatic CAPTCHA solving
+        // sessionTimeout: 1800000,        // Session timeout in ms (default: 5 mins)
+        // === Browser Configuration ===
+        // userAgent: 'custom-ua-string',  // Set a custom User-Agent
+      });
+
+      console.log(
+        `\x1b[1;93mSteel Session created!\x1b[0m\n` +
+          `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
+      );
+
+      agent = await startBrowserAgent({
+        url: "https://news.ycombinator.com",
+        narrate: true,
+        llm: {
+          provider: "anthropic",
+          options: {
+            model: "claude-3-7-sonnet-latest",
+            apiKey: process.env.ANTHROPIC_API_KEY,
+          },
+        },
+        browser: {
+          cdp: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+        },
+      });
+
+      console.log("Connected to browser via Magnitude");
+
+      console.log("Extracting top stories using AI...");
+
+      const stories = await agent.extract(
+        "extract the titles of the first 5 stories on the page",
+        z.object({
+          stories: z.array(
+            z.object({
+              title: z.string(),
+              rank: z.number(),
+            })
+          ),
+        })
+      );
+
+      console.log("\n\x1b[1;92mTop 5 Hacker News Stories:\x1b[0m");
+      stories.stories?.forEach((story: any, index: number) => {
+        console.log(`${index + 1}. ${story.title}`);
+      });
+
+      console.log("\nLooking for search functionality...");
+
+      try {
+        await agent.act(
+          "find and click on the search link or button if it exists"
+        );
+        console.log("Found search functionality!");
+
+        await agent.act("type 'AI' in the search box");
+        console.log("Typed 'AI' in search box");
+      } catch (error) {
+        console.log("No search functionality found or accessible");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      console.log("\n\x1b[1;92mAutomation completed successfully!\x1b[0m");
+    } catch (error) {
+      console.error("Error during automation:", error);
+    } finally {
+      if (agent) {
+        console.log("Stopping Magnitude agent...");
+        try {
+          await agent.stop();
+        } catch (error) {
+          console.error("Error stopping agent:", error);
+        }
+      }
+
+      if (session) {
+        console.log("Releasing Steel session...");
+        try {
+          await client.sessions.release(session.id);
+          console.log("Steel session released successfully");
+        } catch (error) {
+          console.error("Error releasing session:", error);
+        }
+      }
+    }
+  }
+
+  main().catch((error) => {
+    console.error("Unhandled error:", error);
+    process.exit(1);
+  });
+  ```
+ </FullCodeExample>
+
+<NextSteps>
+  - [Learn more about Sessions](https://docs.steel.dev/overview/sessions-api/overview)
+  - [Node SDK reference](https://github.com/steel-dev/steel-node)
+  - [magnitude-core on npm](https://www.npmjs.com/package/magnitude-core)
+ </NextSteps>
