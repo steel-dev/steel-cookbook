@@ -19,7 +19,7 @@
     },
     {
       "id": "oai-computer-use",
-      "title": "OpenAI's Computer Use",
+      "title": "OpenAIs Computer Use",
       "accentColor": "orange",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and OpenAI's Computer Use Assistant.",
@@ -27,7 +27,7 @@
     },
     {
       "id": "claude-computer-use",
-      "title": "Claude's Computer Use",
+      "title": "Claudes Computer Use",
       "accentColor": "purple",
       "category": "AI_AUTOMATION",
       "description": "Create a browser automation agent with Steel and Claude's Computer Use API.",
