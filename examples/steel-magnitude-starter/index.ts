@@ -64,7 +64,7 @@ async function main() {
     );
 
     agent = await startBrowserAgent({
-      url: "https://news.ycombinator.com",
+      url: "https://github.com/steel-dev/leaderboard",
       narrate: true,
       llm: {
         provider: "anthropic",
@@ -80,37 +80,35 @@ async function main() {
 
     console.log("Connected to browser via Magnitude");
 
-    console.log("Extracting top stories using AI...");
+    console.log("Looking for commits");
 
-    const stories = await agent.extract(
-      "extract the titles of the first 5 stories on the page",
+    const mostRecentCommitter = await agent.extract(
+      "Find the user with the most recent commit",
       z.object({
-        stories: z.array(
-          z.object({
-            title: z.string(),
-            rank: z.number(),
-          })
-        ),
+        user: z.string(),
+        commit: z.string(),
       })
     );
 
-    console.log("\n\x1b[1;92mTop 5 Hacker News Stories:\x1b[0m");
-    stories.stories?.forEach((story: any, index: number) => {
-      console.log(`${index + 1}. ${story.title}`);
-    });
-
-    console.log("\nLooking for search functionality...");
+    console.log("\n\x1b[1;92mMost recent committer:\x1b[0m");
+    console.log(`${mostRecentCommitter.user} has the most recent commit`);
 
     try {
       await agent.act(
-        "find and click on the search link or button if it exists"
+        "Find the pull request behind the most recent commit if there is one"
       );
-      console.log("Found search functionality!");
+      console.log("Found pull request!");
 
-      await agent.act("type 'AI' in the search box");
-      console.log("Typed 'AI' in search box");
+      const pullRequest = await agent.extract(
+        "What was added in this pull request?",
+        z.object({
+          summary: z.string(),
+        })
+      );
+      console.log("Pull request found!");
+      console.log(`${pullRequest.summary}`);
     } catch (error) {
-      console.log("No search functionality found or accessible");
+      console.log("No pull request found or accessible");
     }
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -140,7 +138,4 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Unhandled error:", error);
-  process.exit(1);
-});
+main();
