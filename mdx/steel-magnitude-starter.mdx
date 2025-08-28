@@ -53,8 +53,8 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
   dotenv.config();
 
-  const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+  const STEEL_API_KEY = process.env.STEEL_API_KEY;
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
   const client = new Steel({ steelAPIKey: STEEL_API_KEY });
 
@@ -65,7 +65,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
     console.log(`View session at ${session.sessionViewerUrl}`);
 
     const agent = await startBrowserAgent({
-      url: "https://news.ycombinator.com",
+      url: "https://github.com/steel-dev/leaderboard",
       narrate: true,
       llm: {
         provider: "anthropic",
@@ -81,31 +81,34 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
 <Step number={5} title="Extract structured data with Zod">
   ```typescript showLineNumbers{21} filename="index.ts"
-    const stories = await agent.extract(
-      "extract the titles of the first 5 stories on the page",
+    const mostRecentCommitter = await agent.extract(
+      "Find the user with the most recent commit",
       z.object({
-        stories: z.array(
-          z.object({
-            title: z.string(),
-            rank: z.number(),
-          })
-        ),
+        user: z.string(),
+        commit: z.string(),
       })
     );
 
-    stories.stories?.forEach((story: any, index: number) => {
-      console.log(`${index + 1}. ${story.title}`);
-    });
+    console.log(`${mostRecentCommitter.user} has the most recent commit`);
   ```
  </Step>
 
 <Step number={6} title="Act on the page and clean up">
-  ```typescript showLineNumbers{37} filename="index.ts"
+  ```typescript showLineNumbers{31} filename="index.ts"
     try {
-      await agent.act("find and click on the search link or button if it exists");
-      await agent.act("type 'AI' in the search box");
+      await agent.act("Find the pull request behind the most recent commit if there is one");
+      console.log("Found pull request!");
+
+      const pullRequest = await agent.extract(
+        "What was added in this pull request?",
+        z.object({
+          summary: z.string(),
+        })
+      );
+      console.log("Pull request found!");
+      console.log(`${pullRequest.summary}`);
     } catch (error) {
-      console.log("No search functionality found or accessible");
+      console.log("No pull request found or accessible");
     }
 
     await agent.stop();
@@ -134,9 +137,9 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   dotenv.config();
 
   // Replace with your own API keys
-  const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+  const STEEL_API_KEY = process.env.STEEL_API_KEY;
   const ANTHROPIC_API_KEY =
-    process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+    process.env.ANTHROPIC_API_KEY;
 
   // Initialize Steel client with the API key from environment variables
   const client = new Steel({
@@ -146,24 +149,6 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   async function main() {
     console.log("🚀 Steel + Magnitude Node Starter");
     console.log("=".repeat(60));
-
-    if (STEEL_API_KEY === "your-steel-api-key-here") {
-      console.warn(
-        "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
-      );
-      console.warn(
-        "   Get your API key at: https://app.steel.dev/settings/api-keys"
-      );
-      return;
-    }
-
-    if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
-      console.warn(
-        "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
-      );
-      console.warn("   Get your API key at: https://console.anthropic.com/");
-      return;
-    }
 
     let session;
     let agent;
