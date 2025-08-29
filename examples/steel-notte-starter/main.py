@@ -8,18 +8,16 @@ import time
 import asyncio
 from dotenv import load_dotenv
 from steel import Steel
-from notte_sdk import NotteClient
-
+import notte
 
 load_dotenv()
 
 # Replace with your own API keys
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-NOTTE_API_KEY = os.getenv("NOTTE_API_KEY") or "your-notte-api-key-here"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 
 # Replace with your own task
 TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
-
 
 async def main():
     print("🚀 Steel + Notte Assistant")
@@ -30,15 +28,14 @@ async def main():
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         return
 
-    if NOTTE_API_KEY == "your-notte-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-notte-api-key-here' with your actual Notte API key")
-        print("   Get your API key at: https://notte.cc")
+    if GEMINI_API_KEY == "your-gemini-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key")
+        print("   Get your API key at: https://console.cloud.google.com/apis/credentials")
         return
 
     print("\nStarting Steel browser session...")
 
     client = Steel(steel_api_key=STEEL_API_KEY)
-    notte = NotteClient(api_key=NOTTE_API_KEY)
 
     try:
         session = client.sessions.create()
@@ -58,10 +55,11 @@ async def main():
         print("=" * 60)
 
         try:
-            with notte.Session(cdp_url=cdp_url) as session:
+            with notte.Session(cdp_url=cdp_url) as notte_session:
                 agent = notte.Agent(
-                    session=session,
+                    session=notte_session,
                     max_steps=5,
+                    reasoning_model="gemini/gemini-2.0-flash"
                 )
                 response = agent.run(task=TASK)
 

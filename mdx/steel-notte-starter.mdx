@@ -28,20 +28,20 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
 <Step number={2} title="Install Required Packages">
   ```bash
-  pip install steel-sdk notte-sdk python-dotenv
+  pip install steel-sdk notte python-dotenv
   ```
 </Step>
 
 <Step number={3} title="Set Up Environment Variables">
   Create a `.env` file with your API keys and task configuration.
 
-  ```text filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_NOTTE_API_KEY/#2
+  ```text filename=".env" /YOUR_STEEL_API_KEY/#1 /YOUR_GEMINI_API_KEY/#2
   STEEL_API_KEY=YOUR_STEEL_API_KEY
-  NOTTE_API_KEY=YOUR_NOTTE_API_KEY
+  GEMINI_API_KEY=YOUR_GEMINI_API_KEY
   TASK="Go to Wikipedia and search for machine learning"
   ```
   - Replace <HighlightRef id={1}>YOUR_STEEL_API_KEY</HighlightRef> with your Steel API key
-  - Replace <HighlightRef id={2}>YOUR_NOTTE_API_KEY</HighlightRef> with your Notte API key
+  - Replace <HighlightRef id={2}>YOUR_GEMINI_API_KEY</HighlightRef> with your Gemini API key
 </Step>
 
 <Step number={4} title="Create a Steel session and connect Notte via CDP">
@@ -51,16 +51,13 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   import asyncio
   from dotenv import load_dotenv
   from steel import Steel
-  from notte_sdk import NotteClient
+  import notte
 
-  load_dotenv(override=True)
+  load_dotenv()
 
   STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-  NOTTE_API_KEY = os.getenv("NOTTE_API_KEY") or "your-notte-api-key-here"
+  GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
   TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
-
-  client = Steel(steel_api_key=STEEL_API_KEY)
-  notte = NotteClient(api_key=NOTTE_API_KEY)
 
   async def main():
       print("🚀 Steel + Notte Assistant")
@@ -71,12 +68,15 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
           print("   Get your API key at: https://app.steel.dev/settings/api-keys")
           return
 
-      if NOTTE_API_KEY == "your-notte-api-key-here":
-          print("⚠️  WARNING: Please replace 'your-notte-api-key-here' with your actual Notte API key")
-          print("   Get your API key at: https://notte.cc")
+      if GEMINI_API_KEY == "your-gemini-api-key-here":
+          print("⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key")
+          print("   Get your API key at: https://console.cloud.google.com/apis/credentials")
           return
 
-      print("\nCreating Steel session...")
+      print("\nStarting Steel browser session...")
+
+      client = Steel(steel_api_key=STEEL_API_KEY)
+
       session = client.sessions.create()
       print(f"View live session at: {session.session_viewer_url}")
 
@@ -91,8 +91,12 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
       print("=" * 60)
 
       try:
-          with notte.Session(cdp_url=cdp_url) as browser:
-              agent = notte.Agent(session=browser, max_steps=5)
+          with notte.Session(cdp_url=cdp_url) as notte_session:
+              agent = notte.Agent(
+                  session=notte_session,
+                  max_steps=5,
+                  reasoning_model="gemini/gemini-2.0-flash"
+              )
               response = agent.run(task=TASK)
 
               duration = f"{(time.time() - start_time):.1f}"
@@ -138,13 +142,13 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   import asyncio
   from dotenv import load_dotenv
   from steel import Steel
-  from notte_sdk import NotteClient
+  import notte
 
-  load_dotenv(override=True)
+  load_dotenv()
 
   # Replace with your own API keys
   STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-  NOTTE_API_KEY = os.getenv("NOTTE_API_KEY") or "your-notte-api-key-here"
+  GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 
   # Replace with your own task
   TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
@@ -158,49 +162,65 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
           print("   Get your API key at: https://app.steel.dev/settings/api-keys")
           return
 
-      if NOTTE_API_KEY == "your-notte-api-key-here":
-          print("⚠️  WARNING: Please replace 'your-notte-api-key-here' with your actual Notte API key")
-          print("   Get your API key at: https://notte.cc")
+      if GEMINI_API_KEY == "your-gemini-api-key-here":
+          print("⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key")
+          print("   Get your API key at: https://console.cloud.google.com/apis/credentials")
           return
 
-      client = Steel(steel_api_key=STEEL_API_KEY)
-      notte = NotteClient(api_key=NOTTE_API_KEY)
+      print("\nStarting Steel browser session...")
 
-      session = None
+      client = Steel(steel_api_key=STEEL_API_KEY)
+
       try:
-          print("\nCreating Steel session...")
           session = client.sessions.create()
           print("✅ Steel browser session started!")
           print(f"View live session at: {session.session_viewer_url}")
 
+          print(
+              f"\033[1;93mSteel Session created!\033[0m\n"
+              f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
+          )
+
           cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
           start_time = time.time()
+
           print(f"🎯 Executing task: {TASK}")
           print("=" * 60)
 
-          with notte.Session(cdp_url=cdp_url) as browser:
-              agent = notte.Agent(session=browser, max_steps=5)
-              response = agent.run(task=TASK)
+          try:
+              with notte.Session(cdp_url=cdp_url) as notte_session:
+                  agent = notte.Agent(
+                      session=notte_session,
+                      max_steps=5,
+                      reasoning_model="gemini/gemini-2.0-flash"
+                  )
+                  response = agent.run(task=TASK)
 
-              duration = f"{(time.time() - start_time):.1f}"
+                  duration = f"{(time.time() - start_time):.1f}"
 
-              print("\n" + "=" * 60)
-              print("🎉 TASK EXECUTION COMPLETED")
-              print("=" * 60)
-              print(f"⏱️  Duration: {duration} seconds")
-              print(f"🎯 Task: {TASK}")
-              if response:
-                  print(f"📋 Result:\n{response.answer}")
-              print("=" * 60)
+                  print("\n" + "=" * 60)
+                  print("🎉 TASK EXECUTION COMPLETED")
+                  print("=" * 60)
+                  print(f"⏱️  Duration: {duration} seconds")
+                  print(f"🎯 Task: {TASK}")
+                  if response:
+                      print(f"📋 Result:\n{response.answer}")
+                  print("=" * 60)
+
+          except Exception as e:
+              print(f"❌ Task execution failed: {e}")
+          finally:
+              if session:
+                  print("Releasing Steel session...")
+                  client.sessions.release(session.id)
+                  print(f"Session completed. View replay at {session.session_viewer_url}")
+              print("Done!")
 
       except Exception as e:
-          print(f"❌ Failed to run: {e}")
-      finally:
-          if session:
-              print("Releasing Steel session...")
-              client.sessions.release(session.id)
-              print(f"Session completed. View replay at {session.session_viewer_url}")
+          print(f"❌ Failed to start Steel browser: {e}")
+          print("Please check your STEEL_API_KEY and internet connection.")
+
 
   if __name__ == "__main__":
       asyncio.run(main())
