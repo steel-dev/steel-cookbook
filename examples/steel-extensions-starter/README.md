@@ -1,14 +1,14 @@
 # Steel Extensions API Starter
 
-This template demonstrates how to use the Steel Extensions API with Playwright to upload a Dark Mode extension. It includes session management, extension uploads, error handling, and a basic use case of scraping data from a website you can customize.
+This template demonstrates how to use the Steel Extensions API with Playwright to upload a GitHub Stats extension. It includes session management, extension uploads, error handling, and a basic use case of scraping data from the GitHub extension you can customize.
 
 ## Installation
 
-Clone this repository, navigate to the `examples/steel-extensions-dark-mode-starter` directory, and install dependencies:
+Clone this repository, navigate to the `examples/steel-extensions-starter` directory, and install dependencies:
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-extensions-dark-mode-starter
+cd steel-cookbook/examples/steel-extensions-starter
 npm install
 ```
 
@@ -18,8 +18,8 @@ The example script in `index.ts` shows you how to:
 
 - Create and manage a Steel browser session
 - Connect Playwright to the session
-- Upload an extension using Steel's Extensions API. We provide a dark mode extension to give your agent's eyes a break :)
-- Navigate to a random Wikipedia article and let your script do the work!
+- Upload an extension using Steel's Extensions API. We provide a GitHub Stats extension so you can see which developer is pushing the most :)
+- Navigate to a random profile from a [steel-browser](https://github.com/steel-dev/steel-browser) contributor!
 - Handle errors and cleanup properly
 - View your live session in Steel's session viewer
 
@@ -47,12 +47,24 @@ Find this section in `index.ts`:
 // ============================================================
 // Your Automations Go Here!
 // ============================================================
-
-// Example script - Navigate to a random Wikipedia article
-console.log("Navigating to random Wikipedia page...");
-await page.goto("https://en.wikipedia.org/wiki/Special:Random", {
-  waitUntil: "networkidle",
-});
+const randomContributor = async (): Promise<string> => {
+  const steelContributors = (await fetch(
+    "https://api.github.com/repos/steel-dev/steel-browser/contributors",
+  )
+    .then((response) => response.json())
+    .then((data) =>
+      data.map((contributor: { login: string }) =>
+        contributor.login.trim(),
+      ),
+    )) || [
+    "fukoda",
+    "danew",
+    "hussufo",
+    "jagadeshjai",
+    "junhsss",
+    "aspectrr",
+    // You could be next!
+  ];
 // ... rest of example code
 ```
 
