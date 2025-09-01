@@ -1,6 +1,6 @@
 /*
  * Extension upload and usage with Steel sessions.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-extensions-dark-mode-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-extensions-starter
  */
 
 import dotenv from "dotenv";
