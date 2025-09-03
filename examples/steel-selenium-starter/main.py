@@ -116,11 +116,6 @@ You can view the session live at {session.session_viewer_url}
     except Exception as error:
         print("An error occurred:", error)
     finally:
-        # Cleanup: Gracefully close browser and release session when done
-        if driver:
-            driver.quit()
-            print("Driver closed")
-
         if session:
             print("Releasing session...")
             client.sessions.release(session.id)
