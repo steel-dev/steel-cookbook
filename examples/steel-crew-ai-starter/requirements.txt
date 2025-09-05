@@ -1,0 +1,4 @@
+steel-sdk>=0.9.0
+python-dotenv>=1.0.0
+crewai[tools]>=0.177.0
+pydantic>=2.0.0

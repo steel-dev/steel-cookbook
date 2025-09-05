@@ -1,0 +1,30 @@
+{
+  "name": "steel-agent-kit-starter",
+  "version": "1.0.0",
+  "description": "Steel Browser with Agent Kit",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "agent-kit",
+    "ai",
+    "ai-agents",
+    "browser-automation"
+  ],
+  "author": "Steel Dev",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "@inngest/agent-kit": "latest",
+    "playwright": "^1.50.0",
+    "zod": "^3.23.8",
+    "steel-sdk": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}
