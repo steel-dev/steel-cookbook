@@ -1,70 +1,75 @@
 {
-    "name": "create-steel-app",
-    "version": "1.0.9",
-    "type": "module",
-    "license": "MIT",
-    "author": "Nasr Mohamed",
-    "bin": {
-        "create-steel-app": "index.js",
-        "csa": "index.js"
-    },
-    "files": [
-        "index.js",
-        "templates",
-        "examples",
-        "dist"
-    ],
-    "scripts": {
-        "dev": "unbuild --stub",
-        "build": "unbuild",
-        "typecheck": "tsc --noEmit",
-        "registry:build": "tsx scripts/build-mdx.ts",
-        "registry:csv": "tsx scripts/generate-csv.ts",
-        "registry:publish": "tsx scripts/upload-files.ts",
-        "registry:complete": "npm run registry:build && npm run registry:csv && npm run registry:publish",
-        "prepublishOnly": "npm run build"
-    },
-    "engines": {
-        "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/steel-dev/steel-cookbook.git"
-    },
-    "bugs": {
-        "url": "https://github.com/steel-dev/steel-cookbook/issues"
-    },
-    "homepage": "https://github.com/steel-dev/steel-cookbook#readme",
-    "devDependencies": {
-        "@clack/prompts": "^0.10.0",
-        "@cloudflare/workers-types": "^4.20250430.0",
-        "@types/cross-spawn": "^6.0.6",
-        "@types/node": "^24.0.14",
-        "cross-spawn": "^7.0.6",
-        "mri": "^1.2.0",
-        "picocolors": "^1.1.1",
-        "tsx": "^4.20.3",
-        "typescript": "^5.8.3",
-        "unbuild": "^3.5.0"
-    },
-    "dependencies": {
-        "@aws-sdk/client-s3": "^3.844.0",
-        "alchemy": "^0.45.6",
-        "dotenv": "^17.2.0",
-        "gray-matter": "^4.0.3",
-        "prettier": "^3.6.2",
-        "rehype-external-links": "^3.0.0",
-        "rehype-pretty-code": "^0.14.1",
-        "rehype-slug": "^6.0.0",
-        "remark-external-links": "^9.0.1",
-        "remark-frontmatter": "^5.0.0",
-        "remark-gfm": "^4.0.1",
-        "remark-mdx": "^3.1.0",
-        "remark-parse": "^11.0.0",
-        "remark-rehype": "^11.1.2",
-        "remark-smartypants": "^3.0.2",
-        "remark-unwrap-images": "^4.0.1",
-        "unified": "^11.0.5",
-        "unist-util-visit": "^5.0.0"
-    }
+  "name": "create-steel-app",
+  "version": "1.0.9",
+  "type": "module",
+  "license": "MIT",
+  "author": "Nasr Mohamed",
+  "bin": {
+    "create-steel-app": "index.js",
+    "csa": "index.js"
+  },
+  "files": [
+    "index.js",
+    "templates",
+    "examples",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "unbuild --stub",
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit",
+    "examples:validate": "tsx scripts/examples-check.ts --mode=validate",
+    "examples:validate:changed": "tsx scripts/examples-check.ts --mode=validate --since=origin/main",
+    "examples:check": "tsx scripts/examples-check.ts --mode=check --smoke",
+    "registry:build": "tsx scripts/build-mdx.ts",
+    "registry:csv": "tsx scripts/generate-csv.ts",
+    "registry:publish": "tsx scripts/upload-files.ts",
+    "registry:complete": "npm run registry:build && npm run registry:csv && npm run registry:publish",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steel-dev/steel-cookbook.git"
+  },
+  "bugs": {
+    "url": "https://github.com/steel-dev/steel-cookbook/issues"
+  },
+  "homepage": "https://github.com/steel-dev/steel-cookbook#readme",
+  "devDependencies": {
+    "@clack/prompts": "^0.10.0",
+    "@cloudflare/workers-types": "^4.20250430.0",
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^24.0.14",
+    "cross-spawn": "^7.0.6",
+    "mri": "^1.2.0",
+    "@types/semver": "^7.5.8",
+    "picocolors": "^1.1.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "unbuild": "^3.5.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.844.0",
+    "alchemy": "^0.45.6",
+    "dotenv": "^17.2.0",
+    "gray-matter": "^4.0.3",
+    "prettier": "^3.6.2",
+    "rehype-external-links": "^3.0.0",
+    "rehype-pretty-code": "^0.14.1",
+    "rehype-slug": "^6.0.0",
+    "remark-external-links": "^9.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx": "^3.1.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "remark-smartypants": "^3.0.2",
+    "remark-unwrap-images": "^4.0.1",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "semver": "^7.6.3"
+  }
 }

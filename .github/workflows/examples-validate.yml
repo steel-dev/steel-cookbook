@@ -1,0 +1,36 @@
+name: examples-validate
+
+on:
+  pull_request:
+    paths:
+      - "examples/**"
+      - "scripts/examples-check.ts"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Validate changed examples
+        run: npm run examples:validate:changed
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples-check
+          path: dist/examples-check.json
