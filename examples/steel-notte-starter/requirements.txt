@@ -1,4 +1,4 @@
-steel-sdk==0.6.0
+steel-sdk>=0.9.0
 notte==1.6.0
 python-dotenv>=1.0.0
 pydantic>=2.0.0 

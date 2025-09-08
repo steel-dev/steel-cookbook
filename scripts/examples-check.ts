@@ -305,6 +305,47 @@ async function checkPythonExample(exampleDir: string): Promise<Issue[]> {
   if (await pathExists(reqPath)) {
     const txt = await fs.readFile(reqPath, "utf-8");
     const reqs = parseRequirements(txt);
+    // steel-sdk: require declaration, forbid URL/VCS/path specs, enforce min
+    const steelSpec = reqs.get("steel-sdk") || "";
+    const lines = txt
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"));
+    const steelLines = lines.filter((l) => /^steel-sdk\b/i.test(l));
+    if (!steelSpec && steelLines.length === 0) {
+      issues.push({
+        code: "py.steel_sdk_missing",
+        message: "steel-sdk not declared in requirements.txt",
+        severity: "warning",
+      });
+    } else {
+      const hasBad = steelLines.some((l) =>
+        /(git\+|https?:\/\/|file:\/\/|@\s*(git\+|https?:\/\/|file:\/\/))/.test(
+          l
+        )
+      );
+      if (hasBad) {
+        issues.push({
+          code: "py.steel_sdk_bad_spec",
+          message: "steel-sdk version spec not allowed: direct URL/VCS/path",
+          severity: "error",
+        });
+      }
+      const minSteel = (
+        process.env.MIN_PY_STEEL_SDK ||
+        process.env.MIN_STEEL_SDK ||
+        ""
+      ).trim();
+      if (minSteel) {
+        if (!specEnsuresMin(steelSpec, minSteel)) {
+          issues.push({
+            code: "py.steel_sdk_below_min",
+            message: `steel-sdk minimum ${minSteel} required, found spec '${steelSpec || "unspecified"}'`,
+            severity: "error",
+          });
+        }
+      }
+    }
     for (const [pkg, minVer] of minEnv) {
       const spec = reqs.get(pkg);
       if (!spec) {
@@ -399,7 +440,17 @@ async function checkCommon(
     for (const d of dirents) {
       const abs = path.join(dir, d.name);
       if (d.isDirectory()) {
-        if (["node_modules", "venv", ".venv", "__pycache__", "dist", "build"].includes(d.name)) continue;
+        if (
+          [
+            "node_modules",
+            "venv",
+            ".venv",
+            "__pycache__",
+            "dist",
+            "build",
+          ].includes(d.name)
+        )
+          continue;
         yield* walk(abs);
       } else if (d.isFile()) {
         yield abs;
