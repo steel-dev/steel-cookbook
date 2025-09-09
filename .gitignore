@@ -166,3 +166,6 @@ build/
 agent_history.gif
 .cursor/
 .alchemy
+
+package-lock.json
+pnpm-lock.yaml
