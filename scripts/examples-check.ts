@@ -724,7 +724,9 @@ async function main() {
       issues = issues.concat(await checkPythonExample(dirAbs));
     // tsconfig consistency warnings
     const thisTs = tsconfigMap.get(dirAbs) ?? null;
-    if (canonicalTs) {
+    const isTsPackage =
+      thisTs !== null || files.some((f) => /\.(tsx?|mts|cts)$/.test(f));
+    if (canonicalTs && isTsPackage) {
       if (thisTs === null) {
         issues.push({
           code: "common.tsconfig_missing",

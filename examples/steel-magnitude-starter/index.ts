@@ -93,7 +93,9 @@ async function main() {
     console.log("\n\x1b[1;92mMost recent committer:\x1b[0m");
     console.log(`${mostRecentCommitter.user} has the most recent commit`);
 
-    console.log("\n\x1b[1;92mLooking for pull request behind the most recent commit\x1b[0m");
+    console.log(
+      "\n\x1b[1;92mLooking for pull request behind the most recent commit\x1b[0m"
+    );
 
     try {
       await agent.act(

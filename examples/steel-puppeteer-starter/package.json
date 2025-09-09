@@ -1,5 +1,5 @@
 {
-  "name": "steel-puppeteer-starter-ts",
+  "name": "steel-puppeteer-starter",
   "version": "1.0.0",
   "description": "A starter project for using Puppeteer with Steel on Node.js & TypeScript",
   "main": "index.ts",

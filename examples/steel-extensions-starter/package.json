@@ -1,5 +1,5 @@
 {
-  "name": "steel-extensions-dark-mode-starter",
+  "name": "steel-extensions-starter",
   "version": "1.0.0",
   "description": "A starter project with Steel extensions API on Node.js & TypeScript",
   "main": "index.ts",

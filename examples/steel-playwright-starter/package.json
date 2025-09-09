@@ -1,5 +1,5 @@
 {
-  "name": "steel-playwright-starter-ts",
+  "name": "steel-playwright-starter",
   "version": "1.0.0",
   "description": "A starter project for using Playwright with Steel on Node.js & TypeScript",
   "main": "index.ts",
