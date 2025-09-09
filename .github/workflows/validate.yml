@@ -46,9 +46,6 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
     env:
-      STEEL_API_KEY: ${{ secrets.STEEL_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
       PIP_DISABLE_PIP_VERSION_CHECK: 1
       PYTHONUNBUFFERED: 1
@@ -67,6 +64,34 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: npm i --no-fund --no-audit
 
+      - name: Build env from .env.example
+        working-directory: ${{ matrix.dir }}
+        env:
+          STEEL_API_KEY: ${{ secrets.STEEL_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          : > .env.selected
+          if [ -f .env.example ]; then
+            while IFS= read -r line || [ -n "$line" ]; do
+              case "$line" in
+                ''|'#'* ) continue;;
+              esac
+              key="${line%%=*}"
+              key="${key%% }"; key="${key## }"
+              if [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+                val="${!key-}"
+                if [ -n "${val}" ]; then
+                  printf '%s=%q\n' "$key" "$val" >> .env.selected
+                fi
+              fi
+            done < .env.example
+          fi
+          echo "Selected env keys:"
+          if [ -s .env.selected ]; then cut -d '=' -f 1 .env.selected; else echo "(none)"; fi
+
       - name: Precheck (node no-env)
         if: matrix.kind == 'node'
         working-directory: ${{ matrix.dir }}
@@ -81,7 +106,13 @@ jobs:
       - name: Start (node)
         if: matrix.kind == 'node'
         working-directory: ${{ matrix.dir }}
-        run: npm run -s start
+        run: |
+          set -euo pipefail
+          if [ -f .env.selected ]; then echo "Using $(wc -l < .env.selected) env vars from .env.example"; fi
+          set -a
+          [ -f .env.selected ] && . .env.selected
+          set +a
+          npm run -s start
 
       - name: Python setup
         if: matrix.kind == 'python'
@@ -125,5 +156,10 @@ jobs:
         if: matrix.kind == 'python'
         working-directory: ${{ matrix.dir }}
         run: |
+          set -euo pipefail
           . .venv/bin/activate
+          if [ -f .env.selected ]; then echo "Using $(wc -l < .env.selected) env vars from .env.example"; fi
+          set -a
+          [ -f .env.selected ] && . .env.selected
+          set +a
           if [ -f main.py ]; then python main.py; else echo "missing main.py"; exit 1; fi
