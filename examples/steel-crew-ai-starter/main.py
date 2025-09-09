@@ -10,6 +10,7 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
 from crewai.tools import BaseTool, EnvVar
 from dotenv import load_dotenv
+import sys
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from steel import Steel
 
@@ -135,7 +136,7 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
 
     inputs = {
         'task': TASK,

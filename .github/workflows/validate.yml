@@ -1,4 +1,4 @@
-name:
+name: Validate examples
 
 on:
   pull_request:
@@ -39,7 +39,7 @@ jobs:
           printf '{"include":[%s]}\n' "$(IFS=,; echo "${items[*]}")" > matrix.json
           echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
 
-  run-examples:
+  run:
     runs-on: ubuntu-latest
     needs: discover
     strategy:
@@ -66,6 +66,17 @@ jobs:
         if: matrix.kind == 'node'
         working-directory: ${{ matrix.dir }}
         run: npm i --no-fund --no-audit
+
+      - name: Precheck (node no-env)
+        if: matrix.kind == 'node'
+        working-directory: ${{ matrix.dir }}
+        run: |
+          if env -u STEEL_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY npm run -s start; then
+            echo "Expected failure when API keys are missing";
+            exit 1;
+          else
+            echo "Precheck passed: example failed as expected without API keys";
+          fi
 
       - name: Start (node)
         if: matrix.kind == 'node'
@@ -97,6 +108,18 @@ jobs:
           python -m venv .venv
           . .venv/bin/activate
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Precheck (python no-env)
+        if: matrix.kind == 'python'
+        working-directory: ${{ matrix.dir }}
+        run: |
+          . .venv/bin/activate
+          if env -u STEEL_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY python main.py; then
+            echo "Expected failure when API keys are missing";
+            exit 1;
+          else
+            echo "Precheck passed: example failed as expected without API keys";
+          fi
 
       - name: Start (python)
         if: matrix.kind == 'python'

@@ -5,6 +5,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-stagehand-p
 
 import asyncio
 import os
+import sys
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from steel import Steel
@@ -32,12 +33,12 @@ async def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/")
-        return
+        sys.exit(1)
 
     session = None
     stagehand = None

@@ -29,7 +29,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    process.exit(1);
   }
 
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
@@ -37,7 +37,7 @@ async function main() {
       "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
     );
     console.warn("   Get your API key at: https://platform.openai.com/");
-    return;
+    process.exit(1);
   }
 
   let session;

@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-playwright-
 """
 
 import os
+import sys
 from typing import Optional
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
@@ -27,7 +28,7 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     session = None
     browser = None
 

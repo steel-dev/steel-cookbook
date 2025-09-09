@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 from agno.tools import Toolkit
@@ -194,12 +195,12 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
 
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/api-keys")
-        return
+        sys.exit(1)
 
     tools = SteelTools(api_key=STEEL_API_KEY)
     agent = Agent(

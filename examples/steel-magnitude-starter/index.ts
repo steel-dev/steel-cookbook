@@ -31,7 +31,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    process.exit(1);
   }
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
@@ -39,7 +39,7 @@ async function main() {
       "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
-    return;
+    process.exit(1);
   }
 
   let session;
