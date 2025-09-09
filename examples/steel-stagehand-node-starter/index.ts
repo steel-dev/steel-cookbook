@@ -5,7 +5,7 @@
 
 import { Stagehand } from "@browserbasehq/stagehand";
 import Steel from "steel-sdk";
-import { z } from "zod";
+import { z } from "zod/v3";
 import dotenv from "dotenv";
 
 dotenv.config();
