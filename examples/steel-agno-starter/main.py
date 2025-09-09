@@ -15,7 +15,7 @@ load_dotenv()
 
 # Replace with your own API keys
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here";
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 # Replace with your own task
 TASK = os.getenv("TASK") or "Go to https://quotes.toscrape.com and: 1. Get the first 3 quotes with authors 2. Navigate to page 2 3. Get 2 more quotes from page 2"

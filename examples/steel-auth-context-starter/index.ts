@@ -41,7 +41,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    process.exit(1);
   }
 
   let session;

@@ -66,6 +66,7 @@ async function main() {
     agent = await startBrowserAgent({
       url: "https://github.com/steel-dev/leaderboard",
       narrate: true,
+      telemetry: false,
       llm: {
         provider: "anthropic",
         options: {
