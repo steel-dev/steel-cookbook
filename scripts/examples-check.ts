@@ -82,6 +82,98 @@ async function readJson<T>(p: string): Promise<T | null> {
   }
 }
 
+// Utilities for content normalization and policy checks
+function normalizeNewlines(s: string): string {
+  return s.replace(/\r\n/g, "\n");
+}
+
+let rootLicenseCache: string | null = null;
+async function getRootLicenseText(): Promise<string | null> {
+  if (rootLicenseCache !== null) return rootLicenseCache;
+  try {
+    const abs = path.join(ROOT_DIR, "LICENSE");
+    const txt = await fs.readFile(abs, "utf-8");
+    rootLicenseCache = normalizeNewlines(txt).trim();
+    return rootLicenseCache;
+  } catch {
+    return null;
+  }
+}
+
+function isProbablyBinary(buf: Buffer): boolean {
+  for (let i = 0; i < buf.length; i++) {
+    if (buf[i] === 0) return true;
+  }
+  return false;
+}
+
+const binaryExtensions = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".ico",
+  ".pdf",
+  ".mp3",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".zip",
+  ".gz",
+  ".tar",
+  ".tgz",
+  ".7z",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".otf",
+  ".bin",
+]);
+
+function fileExt(name: string): string {
+  const idx = name.lastIndexOf(".");
+  return idx >= 0 ? name.slice(idx).toLowerCase() : "";
+}
+
+async function checkTextFormatting(
+  repoRoot: string,
+  rel: string
+): Promise<Issue[]> {
+  const issues: Issue[] = [];
+  const abs = path.join(repoRoot, rel);
+  try {
+    const buf = await fs.readFile(abs);
+    const ext = fileExt(abs);
+    if (binaryExtensions.has(ext) || isProbablyBinary(buf)) return issues;
+    const s = buf.toString("utf-8");
+    if (s.includes("\uFFFD")) {
+      issues.push({
+        code: "common.text.non_utf8",
+        message: `non-UTF-8 or invalid UTF-8 sequences: ${rel}`,
+        severity: "error",
+      });
+    }
+    if (/\r\n/.test(s)) {
+      issues.push({
+        code: "common.text.crlf",
+        message: `CRLF line endings detected: ${rel}`,
+        severity: "error",
+      });
+    }
+    if (s.length > 0 && !s.endsWith("\n")) {
+      issues.push({
+        code: "common.text.missing_final_newline",
+        message: `final newline missing: ${rel}`,
+        severity: "error",
+      });
+    }
+  } catch {
+    // ignore unreadable files
+  }
+  return issues;
+}
+
 async function gitTrackedFilesUnder(
   repoRoot: string,
   relDir: string
@@ -215,6 +307,23 @@ async function checkNodeExample(exampleDir: string): Promise<Issue[]> {
         code: "node.steel_sdk_missing",
         message: "steel-sdk not declared in dependencies",
         severity: "warning",
+      });
+    }
+  }
+  // package.json name must match example directory name
+  const id = exampleIdFromDir(exampleDir);
+  if (pkg) {
+    if (!pkg.name || typeof pkg.name !== "string") {
+      issues.push({
+        code: "node.missing_name",
+        message: "package.json name is missing",
+        severity: "error",
+      });
+    } else if (pkg.name !== id) {
+      issues.push({
+        code: "node.pkg_name_mismatch",
+        message: `package.json name '${pkg.name}' does not match directory '${id}'`,
+        severity: "error",
       });
     }
   }
@@ -435,11 +544,28 @@ async function checkCommon(
     "requirements.lock",
   ]);
 
+  const forbiddenDirs = new Set([".ruff_cache", ".pytest_cache"]);
+  const forbiddenFiles = new Set([
+    ".python-version",
+    ".tool-versions",
+    ".npmrc",
+    ".pypirc",
+    "poetry.toml",
+  ]);
+
   async function* walk(dir: string): AsyncGenerator<string> {
     const dirents = await fs.readdir(dir, { withFileTypes: true });
     for (const d of dirents) {
       const abs = path.join(dir, d.name);
       if (d.isDirectory()) {
+        if (forbiddenDirs.has(d.name)) {
+          issues.push({
+            code: "common.artifact_forbidden",
+            message: `forbidden directory: ${path.relative(repoRoot, abs)}`,
+            severity: "error",
+          });
+          continue;
+        }
         if (
           [
             "node_modules",
@@ -453,20 +579,57 @@ async function checkCommon(
           continue;
         yield* walk(abs);
       } else if (d.isFile()) {
+        const base = path.basename(abs);
+        if (forbiddenLockfiles.has(base)) {
+          issues.push({
+            code: "common.lockfile_forbidden",
+            message: `lockfile not allowed: ${path.relative(repoRoot, abs)}`,
+            severity: "error",
+          });
+          continue;
+        }
+        if (forbiddenFiles.has(base) || base.startsWith("coverage.")) {
+          issues.push({
+            code: "common.artifact_forbidden",
+            message: `forbidden artifact: ${path.relative(repoRoot, abs)}`,
+            severity: "error",
+          });
+          continue;
+        }
         yield abs;
       }
     }
   }
 
-  for await (const abs of walk(exampleDir)) {
-    const base = path.basename(abs);
-    if (forbiddenLockfiles.has(base)) {
-      issues.push({
-        code: "common.lockfile_forbidden",
-        message: `lockfile not allowed: ${path.relative(repoRoot, abs)}`,
-        severity: "error",
-      });
-    }
+  for await (const _ of walk(exampleDir)) {
+    // walk emits issues for forbidden artifacts
+  }
+
+  // LICENSE content equality with root LICENSE
+  const licensePathAbs = path.join(exampleDir, "LICENSE");
+  if (await pathExists(licensePathAbs)) {
+    try {
+      const root = await getRootLicenseText();
+      if (root) {
+        const content = normalizeNewlines(
+          await fs.readFile(licensePathAbs, "utf-8")
+        ).trim();
+        if (content !== root) {
+          issues.push({
+            code: "common.license_mismatch",
+            message: "LICENSE content differs from root LICENSE",
+            severity: "error",
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // Text formatting checks for tracked files under this example
+  for (const rel of relFiles) {
+    if (!rel.startsWith(relDir)) continue;
+    const textIssues = await checkTextFormatting(repoRoot, rel);
+    issues.push(...textIssues);
   }
   return issues;
 }
@@ -521,6 +684,30 @@ async function main() {
 
   const reports: ExampleReport[] = [];
 
+  // Gather tsconfig.json canonical representation across examples
+  const tsconfigMap = new Map<string, string | null>();
+  for (const dir of allDirs) {
+    const p = path.join(dir, "tsconfig.json");
+    if (await pathExists(p)) {
+      try {
+        const raw = await fs.readFile(p, "utf-8");
+        const obj = JSON.parse(raw);
+        const canon = JSON.stringify(obj, Object.keys(obj).sort());
+        tsconfigMap.set(dir, canon);
+      } catch {
+        tsconfigMap.set(dir, null);
+      }
+    } else {
+      tsconfigMap.set(dir, null);
+    }
+  }
+  const canonicalTs =
+    Array.from(
+      new Set(
+        Array.from(tsconfigMap.values()).filter((v): v is string => v !== null)
+      )
+    ).sort()[0] || null;
+
   for (const dirAbs of targetDirs) {
     const id = exampleIdFromDir(dirAbs);
     const relDir = path.relative(repoRoot, dirAbs);
@@ -535,6 +722,23 @@ async function main() {
     if (kind === "node") issues = issues.concat(await checkNodeExample(dirAbs));
     if (kind === "python")
       issues = issues.concat(await checkPythonExample(dirAbs));
+    // tsconfig consistency warnings
+    const thisTs = tsconfigMap.get(dirAbs) ?? null;
+    if (canonicalTs) {
+      if (thisTs === null) {
+        issues.push({
+          code: "common.tsconfig_missing",
+          message: `tsconfig.json missing while present in others`,
+          severity: "warning",
+        });
+      } else if (thisTs !== canonicalTs) {
+        issues.push({
+          code: "common.tsconfig_inconsistent",
+          message: `tsconfig.json differs from canonical`,
+          severity: "warning",
+        });
+      }
+    }
     if (totalBytes > 5 * 1024 * 1024) {
       issues.push({
         code: "common.total_size_exceeded",
