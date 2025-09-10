@@ -525,19 +525,6 @@ async function checkCommon(
     }
   }
 
-  // Forbid lockfiles under examples (tracked or untracked)
-  const forbiddenLockfiles = new Set([
-    "package-lock.json",
-    "yarn.lock",
-    "pnpm-lock.yaml",
-    "bun.lockb",
-    "Pipfile.lock",
-    "poetry.lock",
-    "uv.lock",
-    "pdm.lock",
-    "requirements.lock",
-  ]);
-
   const forbiddenDirs = new Set([".ruff_cache", ".pytest_cache"]);
   const forbiddenFiles = new Set([
     ".python-version",
@@ -574,14 +561,6 @@ async function checkCommon(
         yield* walk(abs);
       } else if (d.isFile()) {
         const base = path.basename(abs);
-        if (forbiddenLockfiles.has(base)) {
-          issues.push({
-            code: "common.lockfile_forbidden",
-            message: `lockfile not allowed: ${path.relative(repoRoot, abs)}`,
-            severity: "error",
-          });
-          continue;
-        }
         if (forbiddenFiles.has(base) || base.startsWith("coverage.")) {
           issues.push({
             code: "common.artifact_forbidden",
@@ -777,7 +756,7 @@ async function main() {
     examples: reports.sort((a, b) => a.id.localeCompare(b.id)),
   };
 
-  const outPath = path.join(DIST_DIR, "examples-check.json");
+  const outPath = path.join(DIST_DIR, "validate.json");
   await fs.writeFile(outPath, JSON.stringify(full, null, 2), "utf-8");
 
   for (const r of reports) {

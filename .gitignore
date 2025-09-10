@@ -169,3 +169,12 @@ agent_history.gif
 
 package-lock.json
 pnpm-lock.yaml
+examples/**/package-lock.json
+examples/**/yarn.lock
+examples/**/pnpm-lock.yaml
+examples/**/bun.lockb
+examples/**/Pipfile.lock
+examples/**/poetry.lock
+examples/**/uv.lock
+examples/**/pdm.lock
+examples/**/requirements.lock
