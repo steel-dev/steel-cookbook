@@ -40,6 +40,7 @@ async function main() {
     const extensionExists = (await client.extensions.list()).extensions.find(
       (ext) => ext.name === "Github_Isometric_Contribu",
     );
+    console.log("Extension exists:", extensionExists);
     if (extensionExists) {
       console.log("Extension already exists");
       await client.extensions.delete(extensionExists.id);
@@ -48,7 +49,7 @@ async function main() {
       .upload({
         url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
       })
-      .catch(async (error: unknown) => {
+      .catch((error: unknown) => {
         console.error("Error uploading extension:", error);
         throw new Error("Error uploading extension, please try again");
       });
