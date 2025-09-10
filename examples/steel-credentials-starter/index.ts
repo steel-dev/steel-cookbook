@@ -29,7 +29,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    process.exit(1);
+    throw new Error("Set STEEL_API_KEY");
   }
 
   let session;
@@ -115,7 +115,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Unhandled error:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

@@ -236,16 +236,10 @@ async function checkNodeExample(exampleDir: string): Promise<Issue[]> {
       severity: "error",
     });
   }
-  if (
-    pkg &&
-    !(
-      pkg.scripts &&
-      (pkg.scripts.start || pkg.scripts.build || pkg.scripts.smoke)
-    )
-  ) {
+  if (pkg && !(pkg.scripts && (pkg.scripts.start || pkg.scripts.build))) {
     issues.push({
       code: "node.missing_scripts",
-      message: "missing start/build/smoke script",
+      message: "missing start/build script",
       severity: "warning",
     });
   }
@@ -663,9 +657,7 @@ async function changedExampleDirs(
 
 async function main() {
   const args = mri(process.argv.slice(2), {
-    string: ["mode", "since"],
-    boolean: ["smoke"],
-    default: { mode: "validate", smoke: false },
+    string: ["since"],
   });
 
   const repoRoot = await getRepoRoot();
@@ -805,15 +797,8 @@ async function main() {
     }
   }
 
-  if (args.mode === "validate") {
-    if (errors > 0) process.exit(1);
-    process.exit(0);
-  }
-
-  if (args.mode === "check") {
-    if (errors > 0) process.exit(1);
-    process.exit(0);
-  }
+  if (errors > 0) process.exit(1);
+  process.exit(0);
 }
 
 main().catch((err) => {

@@ -147,7 +147,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    process.exit(1);
+    throw new Error("Set STEEL_API_KEY");
   }
 
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
@@ -157,7 +157,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://platform.openai.com/api-keys"
     );
-    process.exit(1);
+    throw new Error("Set OPENAI_API_KEY");
   }
 
   try {
@@ -174,4 +174,11 @@ async function main() {
   }
 }
 
-main();
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });
