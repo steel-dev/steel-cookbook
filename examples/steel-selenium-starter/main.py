@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-selenium-st
 """
 
 import os
+import sys
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,7 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 from steel import Steel
-import http.client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,7 +43,7 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     session = None
     driver = None
 
@@ -115,6 +115,7 @@ You can view the session live at {session.session_viewer_url}
 
     except Exception as error:
         print("An error occurred:", error)
+        raise
     finally:
         if session:
             print("Releasing session...")

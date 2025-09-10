@@ -20,7 +20,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
-    "steel-sdk": "^0.6.0",
+    "steel-sdk": "^0.10",
     "playwright": "^1.49.1",
     "dotenv": "^16.4.7"
   },

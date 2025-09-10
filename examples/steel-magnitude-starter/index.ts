@@ -31,7 +31,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
@@ -39,7 +39,7 @@ async function main() {
       "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
-    return;
+    throw new Error("Set ANTHROPIC_API_KEY");
   }
 
   let session;
@@ -66,6 +66,7 @@ async function main() {
     agent = await startBrowserAgent({
       url: "https://github.com/steel-dev/leaderboard",
       narrate: true,
+      telemetry: false,
       llm: {
         provider: "anthropic",
         options: {
@@ -93,7 +94,9 @@ async function main() {
     console.log("\n\x1b[1;92mMost recent committer:\x1b[0m");
     console.log(`${mostRecentCommitter.user} has the most recent commit`);
 
-    console.log("\n\x1b[1;92mLooking for pull request behind the most recent commit\x1b[0m");
+    console.log(
+      "\n\x1b[1;92mLooking for pull request behind the most recent commit\x1b[0m"
+    );
 
     try {
       await agent.act(
@@ -118,6 +121,7 @@ async function main() {
     console.log("\n\x1b[1;92mAutomation completed successfully!\x1b[0m");
   } catch (error) {
     console.error("Error during automation:", error);
+    throw error;
   } finally {
     if (agent) {
       console.log("Stopping Magnitude agent...");
@@ -140,7 +144,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Unhandled error:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

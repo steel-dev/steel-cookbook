@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-comp
 """
 
 import os
+import sys
 import time
 import base64
 import json
@@ -899,12 +900,12 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     
     if ANTHROPIC_API_KEY == "your-anthropic-api-key-here":
         print("⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key")
         print("   Get your API key at: https://console.anthropic.com/")
-        return
+        sys.exit(1)
 
     print("\nStarting Steel browser session...")
 

@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-oai-compute
 """
 
 import os
+import sys
 import time
 import base64
 import json
@@ -765,12 +766,12 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/")
-        return
+        sys.exit(1)
 
     task = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
 

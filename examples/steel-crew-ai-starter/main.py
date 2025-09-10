@@ -10,6 +10,7 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
 from crewai.tools import BaseTool, EnvVar
 from dotenv import load_dotenv
+import sys
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from steel import Steel
 
@@ -19,6 +20,7 @@ load_dotenv()
 
 # Replace with your own API keys
 STEEL_API_KEY = os.getenv('STEEL_API_KEY') or "your-steel-api-key-here"
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') or "your-openai-api-key-here"
 
 # Replace with your own task
 TASK = os.getenv('TASK') or 'Research AI LLMs and summarize key developments'
@@ -135,7 +137,12 @@ def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
+
+    if OPENAI_API_KEY == "your-openai-api-key-here":
+        print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+        print("   Get your API key at: https://platform.openai.com/")
+        sys.exit(1)
 
     inputs = {
         'task': TASK,

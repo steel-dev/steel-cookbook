@@ -1,5 +1,5 @@
 {
-  "name": "steel-cua",
+  "name": "steel-oai-computer-use-node-starter",
   "version": "1.0.0",
   "description": "Steel Browser Computer Use Agent",
   "main": "index.ts",
@@ -17,7 +17,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "playwright": "^1.50.0",
-    "steel-sdk": "latest"
+    "steel-sdk": "^0.10"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

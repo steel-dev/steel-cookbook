@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use
 """
 
 import os
+import sys
 import time
 import asyncio
 from dotenv import load_dotenv
@@ -28,12 +29,12 @@ async def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
     
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/api-keys")
-        return
+        sys.exit(1)
 
     print("\nStarting Steel browser session...")
 
@@ -75,6 +76,7 @@ async def main():
             
         except Exception as e:
             print(f"❌ Task execution failed: {e}")
+            raise
         finally:
             if session:
                 print("Releasing Steel session...")
@@ -85,6 +87,7 @@ async def main():
     except Exception as e:
         print(f"❌ Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
+        raise
 
 
 if __name__ == "__main__":

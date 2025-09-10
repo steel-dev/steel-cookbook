@@ -1,5 +1,5 @@
 {
-  "name": "steel-playwright-starter",
+  "name": "steel-playwright-starter-js",
   "version": "1.0.0",
   "description": "A starter project for using Playwright with Steel on Node.js",
   "main": "index.js",
@@ -13,6 +13,6 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "playwright": "^1.48.2",
-    "steel-sdk": "latest"
+    "steel-sdk": "^0.10"
   }
 }

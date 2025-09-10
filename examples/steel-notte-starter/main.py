@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-notte-start
 """
 
 import os
+import sys
 import time
 import asyncio
 from dotenv import load_dotenv
@@ -26,12 +27,12 @@ async def main():
     if STEEL_API_KEY == "your-steel-api-key-here":
         print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
-        return
+        sys.exit(1)
 
     if GEMINI_API_KEY == "your-gemini-api-key-here":
         print("⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key")
         print("   Get your API key at: https://console.cloud.google.com/apis/credentials")
-        return
+        sys.exit(1)
 
     print("\nStarting Steel browser session...")
 
@@ -76,6 +77,7 @@ async def main():
 
         except Exception as e:
             print(f"❌ Task execution failed: {e}")
+            raise
         finally:
             if session:
                 print("Releasing Steel session...")
@@ -86,6 +88,7 @@ async def main():
     except Exception as e:
         print(f"❌ Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
+        raise
 
 
 if __name__ == "__main__":

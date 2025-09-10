@@ -24,12 +24,12 @@ async function main() {
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
-      "   Get your API key at: https://app.steel.dev/settings/api-keys",
+      "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   let session;
@@ -41,10 +41,15 @@ async function main() {
       .upload({
         url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Error uploading extension:", error);
-        return;
+        throw new Error("Error uploading extension");
       });
+
+    if (!extension || !extension.id) {
+      console.error("Extension upload failed: missing extension ID.");
+      throw new Error("Extension upload failed: missing extension ID");
+    }
 
     console.log("\nExtension uploaded:", extension);
 
@@ -64,12 +69,12 @@ async function main() {
 
     console.log(
       `\x1b[1;93mSteel Session created!\x1b[0m\n` +
-        `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`,
+        `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
     );
 
     // Connect Playwright to the Steel session
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
     );
 
     console.log("Connected to browser via Playwright");
@@ -83,13 +88,11 @@ async function main() {
     // ============================================================
     const randomContributor = async (): Promise<string> => {
       const steelContributors = (await fetch(
-        "https://api.github.com/repos/steel-dev/steel-browser/contributors",
+        "https://api.github.com/repos/steel-dev/steel-browser/contributors"
       )
         .then((response) => response.json())
         .then((data) =>
-          data.map((contributor: { login: string }) =>
-            contributor.login.trim(),
-          ),
+          data.map((contributor: { login: string }) => contributor.login.trim())
         )) || [
         "fukoda",
         "danew",
@@ -218,13 +221,8 @@ async function main() {
     // ============================================================
   } catch (error) {
     console.error("An error occurred:", error);
+    throw error;
   } finally {
-    // Cleanup: Gracefully close browser and release session when done
-    if (browser) {
-      await browser.close();
-      console.log("Browser closed");
-    }
-
     if (session) {
       console.log("Releasing session...");
       await client.sessions.release(session.id);
@@ -235,5 +233,11 @@ async function main() {
   }
 }
 
-// Run the script
-main();
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

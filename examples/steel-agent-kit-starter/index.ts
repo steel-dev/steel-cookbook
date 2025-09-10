@@ -112,11 +112,7 @@ const browseHackerNews = createTool({
         }
         return deduped.slice(0, limit);
       } finally {
-        try {
-          await browser.close();
-        } finally {
-          await client.sessions.release(session.id);
-        }
+        await client.sessions.release(session.id);
       }
     });
   },
@@ -151,7 +147,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
@@ -161,7 +157,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://platform.openai.com/api-keys"
     );
-    return;
+    throw new Error("Set OPENAI_API_KEY");
   }
 
   try {
@@ -178,4 +174,11 @@ async function main() {
   }
 }
 
-main();
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

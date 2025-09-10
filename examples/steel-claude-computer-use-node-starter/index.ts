@@ -1092,7 +1092,7 @@ async function main(): Promise<void> {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
@@ -1100,7 +1100,7 @@ async function main(): Promise<void> {
       "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
-    return;
+    throw new Error("Set ANTHROPIC_API_KEY");
   }
 
   console.log("\nStarting Steel browser session...");
@@ -1129,15 +1129,22 @@ async function main(): Promise<void> {
       console.log("=".repeat(60));
     } catch (error) {
       console.error(`❌ Task execution failed: ${error}`);
-      process.exit(1);
+      throw new Error("Task execution failed");
     }
   } catch (error) {
     console.log(`❌ Failed to start Steel browser: ${error}`);
     console.log("Please check your STEEL_API_KEY and internet connection.");
-    process.exit(1);
+    throw new Error("Failed to start Steel browser");
   } finally {
     await computer.cleanup();
   }
 }
 
-main().catch(console.error);
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

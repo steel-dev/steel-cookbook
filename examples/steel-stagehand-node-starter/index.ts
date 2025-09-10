@@ -5,7 +5,7 @@
 
 import { Stagehand } from "@browserbasehq/stagehand";
 import Steel from "steel-sdk";
-import { z } from "zod";
+import { z } from "zod/v3";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -29,7 +29,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
@@ -37,7 +37,7 @@ async function main() {
       "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
     );
     console.warn("   Get your API key at: https://platform.openai.com/");
-    return;
+    throw new Error("Set OPENAI_API_KEY");
   }
 
   let session;
@@ -118,6 +118,7 @@ async function main() {
     console.log("\n\x1b[1;92mAutomation completed successfully!\x1b[0m");
   } catch (error) {
     console.error("Error during automation:", error);
+    throw error;
   } finally {
     if (stagehand) {
       console.log("Closing Stagehand...");
@@ -140,7 +141,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Unhandled error:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

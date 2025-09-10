@@ -1,5 +1,5 @@
 {
-  "name": "steel-puppeteer-starter",
+  "name": "steel-puppeteer-starter-js",
   "version": "1.0.0",
   "description": "A starter project for using Puppeteer with Steel on Node.js",
   "main": "index.js",
@@ -13,6 +13,6 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "puppeteer-core": "^23.8.0",
-    "steel-sdk": "latest"
+    "steel-sdk": "^0.10"
   }
 }

@@ -27,7 +27,7 @@ async function main() {
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
     );
-    return;
+    throw new Error("Set STEEL_API_KEY");
   }
 
   let session;
@@ -108,13 +108,8 @@ async function main() {
     // ============================================================
   } catch (error) {
     console.error("An error occurred:", error);
+    throw error;
   } finally {
-    // Cleanup: Gracefully close browser and release session when done
-    if (browser) {
-      await browser.close();
-      console.log("Browser closed");
-    }
-
     if (session) {
       console.log("Releasing session...");
       await client.sessions.release(session.id);
@@ -125,5 +120,11 @@ async function main() {
   }
 }
 
-// Run the script
-main();
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });
