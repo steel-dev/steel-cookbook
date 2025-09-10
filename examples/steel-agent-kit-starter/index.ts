@@ -112,11 +112,7 @@ const browseHackerNews = createTool({
         }
         return deduped.slice(0, limit);
       } finally {
-        try {
-          await browser.close();
-        } finally {
-          await client.sessions.release(session.id);
-        }
+        await client.sessions.release(session.id);
       }
     });
   },

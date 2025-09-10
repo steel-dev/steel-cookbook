@@ -77,6 +77,7 @@ async def main():
 
         except Exception as e:
             print(f"❌ Task execution failed: {e}")
+            raise
         finally:
             if session:
                 print("Releasing Steel session...")
@@ -87,6 +88,7 @@ async def main():
     except Exception as e:
         print(f"❌ Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
+        raise
 
 
 if __name__ == "__main__":

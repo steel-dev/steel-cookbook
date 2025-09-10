@@ -96,12 +96,8 @@ You can view the session live at \033[1;37m{session.session_viewer_url}\033[0m
 
     except Exception as e:
         print(f"An error occurred: {e}")
+        raise
     finally:
-        # Cleanup: Gracefully close browser and release session when done
-        if browser:
-            browser.close()
-            print("Browser closed")
-
         if session:
             print("Releasing session...")
             client.sessions.release(session.id)

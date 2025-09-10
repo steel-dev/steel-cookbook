@@ -12,7 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 from steel import Steel
-import http.client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -116,6 +115,7 @@ You can view the session live at {session.session_viewer_url}
 
     except Exception as error:
         print("An error occurred:", error)
+        raise
     finally:
         if session:
             print("Releasing session...")

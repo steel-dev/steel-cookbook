@@ -121,6 +121,7 @@ async function main() {
     console.log("\n\x1b[1;92mAutomation completed successfully!\x1b[0m");
   } catch (error) {
     console.error("Error during automation:", error);
+    throw error;
   } finally {
     if (agent) {
       console.log("Stopping Magnitude agent...");

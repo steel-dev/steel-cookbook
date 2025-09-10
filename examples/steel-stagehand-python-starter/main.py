@@ -117,6 +117,7 @@ async def main():
         print(f"Error during automation: {error}")
         import traceback
         traceback.print_exc()
+        raise
     
     finally:
         if stagehand:

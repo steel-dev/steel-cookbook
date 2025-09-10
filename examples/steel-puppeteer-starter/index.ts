@@ -107,13 +107,8 @@ async function main() {
     // ============================================================
   } catch (error) {
     console.error("An error occurred:", error);
+    throw error;
   } finally {
-    // Cleanup: Gracefully close browser and release session when done (even when an error occurs)
-    if (browser) {
-      await browser.close();
-      console.log("Browser closed");
-    }
-
     if (session) {
       console.log("Releasing session...");
       await client.sessions.release(session.id);
@@ -124,5 +119,7 @@ async function main() {
   }
 }
 
-// Run the script
-main();
+main().catch((error) => {
+  console.error("Unhandled error:", error);
+  process.exit(1);
+});
