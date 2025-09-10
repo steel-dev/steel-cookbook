@@ -41,10 +41,15 @@ async function main() {
       .upload({
         url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Error uploading extension:", error);
-        return;
+        process.exit(1);
       });
+
+    if (!extension || !extension.id) {
+      console.error("Extension upload failed: missing extension ID.");
+      process.exit(1);
+    }
 
     console.log("\nExtension uploaded:", extension);
 
