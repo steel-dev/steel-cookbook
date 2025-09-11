@@ -34,33 +34,35 @@ async function main() {
 
   let session;
   let browser;
+  let extension;
 
   try {
-    console.log("\nUploading extension...");
+    console.log("\nChecking extension...");
     const extensionExists = (await client.extensions.list()).extensions.find(
       (ext) => ext.name === "Github_Isometric_Contribu",
     );
     console.log("Extension exists:", extensionExists);
-    if (extensionExists) {
-      console.log("Extension already exists");
-      await client.extensions.delete(extensionExists.id);
-    }
-    console.log("Client extension", client.extensions);
-    const extension = await client.extensions
-      .upload({
-        url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
-      })
-      .catch((error: unknown) => {
-        console.error("Error uploading extension:", error);
-        throw new Error("Error uploading extension, please try again");
-      });
 
-    if (!extension || !extension.id) {
-      console.error("Extension upload failed: missing extension ID.");
-      throw new Error("Extension upload failed: missing extension ID");
-    }
+    if (!extensionExists) {
+      console.log("Client extension", client.extensions);
+      console.log("\nUploading extension...");
+      extension = await client.extensions
+        .upload({
+          url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
+        })
+        .catch((error: unknown) => {
+          console.error("Error uploading extension:", error);
+          throw new Error("Error uploading extension, please try again");
+        });
+      console.log("\nExtension uploaded:", extension);
 
-    console.log("\nExtension uploaded:", extension);
+      if (!extension || !extension.id) {
+        console.error("Extension upload failed: missing extension ID.");
+        throw new Error("Extension upload failed: missing extension ID");
+      }
+    } else {
+      extension = extensionExists;
+    }
 
     console.log("\nCreating Steel session...");
 
