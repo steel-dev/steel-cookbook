@@ -46,14 +46,19 @@ async function main() {
     if (!extensionExists) {
       console.log("Client extension", client.extensions);
       console.log("\nUploading extension...");
-      extension = await client.extensions
-        .upload({
+      extension = await client.extensions.upload(
+        {
           url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
-        })
-        .catch((error: unknown) => {
-          console.error("Error uploading extension:", error);
-          throw new Error("Error uploading extension, please try again");
-        });
+        },
+        {
+          maxRetries: 1,
+          stream: true,
+        },
+      );
+      // .catch((error: unknown) => {
+      //   console.error("Error uploading extension:", error);
+      //   throw new Error("Error uploading extension, please try again");
+      // });
       console.log("\nExtension uploaded:", extension);
 
       if (!extension || !extension.id) {
