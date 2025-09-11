@@ -45,6 +45,7 @@ async function main() {
       console.log("Extension already exists");
       await client.extensions.delete(extensionExists.id);
     }
+    console.log("Client extension", client.extensions);
     const extension = await client.extensions
       .upload({
         url: "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien", // GitHub Isometric Contributor
