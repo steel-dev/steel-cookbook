@@ -1,13 +1,13 @@
 # Steel Browser Use Captcha Solver Example
 
-This example demonstrates how to integrate Steel with the [browser-use](https://github.com/browser-use/browser-use) framework to create an AI agent capable of interacting with Steel and solving Captchas. It leverages Steel's session management to provide a secure, cloud-based browser instance for browser-use to connect to.
+This example demonstrates how to integrate Steel with the [browser-use](https://github.com/browser-use/browser-use) framework to create an AI agent capable of interacting with Steel and solving Captchas. It leverages Steel's session management to provide a secure, cloud-based browser instance for browser-use to connect to and Steel's Captcha solving capabilities to solve any Captchas encountered.
 
 ## Features
 
 - Seamless integration between Steel and browser-use
 - Cloud-based browser automation with Steel sessions
 - AI-powered browser interaction using OpenAI GPT-4o
-- Captcha Solving capabilities
+- Captcha Solving capabilities with Steel
 - Automatic cleanup of resources
 - Robust error handling and session management
 
@@ -24,7 +24,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 
    ```bash
    git clone https://github.com/steel-dev/steel-cookbook.git
-   cd steel-cookbook/examples/steel-browser-use-starter
+   cd steel-cookbook/examples/steel-browser-use-captcha-solve-starter
    ```
 
 2. **Create and activate a virtual environment with venv:**
@@ -79,7 +79,7 @@ The script will:
 3. **AI Agent Setup**: A browser-use Agent is created with:
 
    - The specified task
-   - OpenAI GPT-4 language model
+   - OpenAI GPT-4o language model
    - Browser instance connected to Steel
    - Captcha Solving tools
 
@@ -105,7 +105,8 @@ You can modify the example by:
 1. Changing the task in `main.py`
 2. Adjusting Steel session parameters
 3. Configuring different browser-use settings
-4. Using a different OpenAI model or adjusting model parameters
+4. Adjusting Steel Captcha solving tools
+5. Using a different OpenAI model or adjusting model parameters
 
 ## Contributing
 
