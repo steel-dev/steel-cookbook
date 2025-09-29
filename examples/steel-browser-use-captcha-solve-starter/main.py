@@ -4,6 +4,7 @@ Tool call example for browser-use 0.7.7. Based on https://github.com/steel-dev/s
 
 import os
 import time
+import sys
 import asyncio
 from dotenv import load_dotenv
 from steel import Steel
@@ -16,8 +17,8 @@ from typing import Any, Dict, List, Optional
 load_dotenv()
 
 # Replace with your own API keys
-STEEL_API_KEY = os.getenv("STEEL_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 # Replace with your own task
 TASK = """
@@ -153,8 +154,29 @@ def wait_for_captcha_solution() -> Dict[str, Any]:
 
 
 async def main():
+    print("🚀 Steel + Browser Use Assistant")
+    print("=" * 60)
+
+    if STEEL_API_KEY == "your-steel-api-key-here":
+        print(
+            "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+        )
+        print("   Get your API key at: https://app.steel.dev/settings/api-keys")
+        sys.exit(1)
+
+    if OPENAI_API_KEY == "your-openai-api-key-here":
+        print(
+            "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+        )
+        print("   Get your API key at: https://platform.openai.com/api-keys")
+        sys.exit(1)
+
+    print("\nStarting Steel browser session...")
+
+    client = Steel(steel_api_key=STEEL_API_KEY)
     try:
         session = client.sessions.create(solve_captcha=True)
+
         SESSION_CACHE["session_id"] = session.id
         print("✅ Steel browser session started!")
         print(f"View live session at: {session.session_viewer_url}")
