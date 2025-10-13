@@ -74,7 +74,7 @@ async function main() {
       profileId,
     });
     console.log(
-      `\x1b[1;93mSteel Session #1 created!\x1b[0m\n` +
+      `\x1b[1;93mSteel Session #2 created!\x1b[0m\n` +
         `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`,
     );
 
