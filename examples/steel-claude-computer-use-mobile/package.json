@@ -1,7 +1,7 @@
 {
-  "name": "steel-profiles-starter",
+  "name": "steel-claude-computer-use-mobile",
   "version": "1.0.0",
-  "description": "A Starter project on how to maintain authenticated sessions across different Steel browser instances by using profiles.",
+  "description": "Steel Claude Computer Use Node Starter with mobile mode emulation",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,23 +9,23 @@
   },
   "keywords": [
     "steel",
-    "playwright",
-    "profiles",
-    "persistence",
-    "tricentis",
-    "shopping-cart"
+    "puppeteer",
+    "automation",
+    "mobile",
+    "claude",
+    "computer-use"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "dotenv": "^16.4.5",
-    "inquirer": "^12.9.6",
-    "playwright": "^1.56.0",
-    "steel-sdk": "^0.12.0",
+    "playwright": "^1.45.0",
+    "steel_preview": "github:stainless-sdks/steel_preview-node",
+    "steel-sdk": "^0.10",
     "typescript": "^5.6.3"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.0",
     "@types/node": "^22.9.0",
     "ts-node": "^10.9.2"
   }
