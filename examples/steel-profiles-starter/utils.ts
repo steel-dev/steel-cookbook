@@ -62,7 +62,7 @@ export async function verifyAuth(page: Page): Promise<boolean> {
     const headerExists = (await page.locator(".header-links").count()) > 0;
     return headerExists;
   } catch (error) {
-    console.error("❌ Failed to verify site access:", error);
+    console.error("Failed to verify site access:", error);
     return false;
   }
 }
@@ -134,7 +134,7 @@ export async function addItemsToCart(page: Page) {
           );
         }
       } catch (error) {
-        console.log(`❌ Failed to add item from ${item.name}`);
+        console.log(`Failed to add item from ${item.name}`);
       }
     }
 
@@ -150,7 +150,7 @@ export async function addItemsToCart(page: Page) {
     const cartContent = await page.locator("body").textContent();
 
     if (cartContent?.includes("Your Shopping Cart is empty")) {
-      console.log("❌ Cart is empty - no items were added successfully");
+      console.log("Cart is empty - no items were added successfully");
       return false;
     } else {
       // Try to count cart items
@@ -177,7 +177,7 @@ export async function addItemsToCart(page: Page) {
       }
     }
   } catch (error) {
-    console.error("❌ Error adding items to cart");
+    console.error("Error adding items to cart");
     return false;
   }
 }
@@ -196,7 +196,7 @@ export async function checkItemsInCart(page: Page) {
     const pageContent = await page.locator("body").textContent();
 
     if (pageContent?.includes("Your Shopping Cart is empty")) {
-      console.log("❌ Cart is empty");
+      console.log("Cart is empty");
       return false;
     }
 
@@ -224,11 +224,11 @@ export async function checkItemsInCart(page: Page) {
         return true;
       }
 
-      console.log("❌ No items found in cart");
+      console.log("No items found in cart");
       return false;
     }
   } catch (error) {
-    console.error("❌ Error checking cart");
+    console.error("Error checking cart");
     return false;
   }
 }

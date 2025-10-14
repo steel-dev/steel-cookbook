@@ -124,13 +124,13 @@ async function main() {
       if (persistenceWorking) {
         console.log("Found your shopping cart!");
       } else {
-        console.log("\n❌ Profile persistence test failed");
+        console.log("\nFailed Profile persistence test");
       }
     } else {
       throw new Error("Failed to verify new session access");
     }
   } catch (error) {
-    console.error("\n❌ Failed ");
+    console.error("\nFailed ");
   } finally {
     if (session) {
       console.log("Releasing session...");
