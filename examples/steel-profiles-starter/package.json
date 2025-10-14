@@ -10,19 +10,22 @@
   "keywords": [
     "steel",
     "playwright",
-    "authentication",
-    "session-reuse"
+    "profiles",
+    "persistence",
+    "tricentis",
+    "shopping-cart"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
     "inquirer": "^12.9.6",
-    "puppeteer-core": "^24.24.0",
+    "playwright": "^1.56.0",
     "steel-sdk": "^0.12.0",
     "typescript": "^5.6.3"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.0",
     "@types/node": "^22.9.0",
     "ts-node": "^10.9.2"
   }
