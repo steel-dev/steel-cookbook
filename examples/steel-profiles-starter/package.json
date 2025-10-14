@@ -1,7 +1,7 @@
 {
-  "name": "steel-auth-context-starter",
+  "name": "steel-profiles-starter",
   "version": "1.0.0",
-  "description": "A starter project for reusing authentication across Steel sessions with Playwright",
+  "description": "A Starter project on how to maintain authenticated sessions across different Steel browser instances by using profiles.",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
