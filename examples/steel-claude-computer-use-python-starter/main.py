@@ -103,25 +103,25 @@ BLOCKED_DOMAINS = [
 ]
 
 MODEL_CONFIGS = {
-    "claude-3-5-sonnet-20241022": {
-        "tool_type": "computer_20241022",
-        "beta_flag": "computer-use-2024-10-22",
-        "description": "Stable Claude 3.5 Sonnet (recommended)"
-    },
     "claude-3-7-sonnet-20250219": {
         "tool_type": "computer_20250124", 
         "beta_flag": "computer-use-2025-01-24",
-        "description": "Claude 3.7 Sonnet (newer)"
+        "description": "Claude 3.7 Sonnet"
     },
     "claude-sonnet-4-20250514": {
         "tool_type": "computer_20250124",
         "beta_flag": "computer-use-2025-01-24", 
-        "description": "Claude 4 Sonnet (newest)"
+        "description": "Claude 4 Sonnet"
     },
     "claude-opus-4-20250514": {
         "tool_type": "computer_20250124",
         "beta_flag": "computer-use-2025-01-24",
-        "description": "Claude 4 Opus (newest)"
+        "description": "Claude 4 Opus"
+    },
+    "claude-sonnet-4-5": {
+        "tool_type": "computer_20250124",
+        "beta_flag": "computer-use-2025-01-24",
+        "description": "Claude 4.5 Sonnet (recommended)"
     }
 }
 
@@ -569,7 +569,7 @@ class SteelBrowser:
 
 
 class ClaudeAgent:
-    def __init__(self, computer: SteelBrowser = None, model: str = "claude-3-7-sonnet-20250219"):
+    def __init__(self, computer: SteelBrowser = None, model: str = "claude-sonnet-4-5"):
         self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
         self.computer = computer
         self.messages: List[BetaMessageParam] = []
@@ -915,7 +915,7 @@ def main():
             
             agent = ClaudeAgent(
                 computer=computer,
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-5",
             )
             
             start_time = time.time()

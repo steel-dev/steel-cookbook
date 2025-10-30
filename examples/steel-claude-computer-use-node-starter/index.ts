@@ -96,25 +96,25 @@ const BLOCKED_DOMAINS = [
 ];
 
 const MODEL_CONFIGS = {
-  "claude-3-5-sonnet-20241022": {
-    toolType: "computer_20241022",
-    betaFlag: "computer-use-2024-10-22",
-    description: "Stable Claude 3.5 Sonnet (recommended)",
-  },
   "claude-3-7-sonnet-20250219": {
     toolType: "computer_20250124",
     betaFlag: "computer-use-2025-01-24",
-    description: "Claude 3.7 Sonnet (newer)",
+    description: "Claude 3.7 Sonnet",
   },
   "claude-sonnet-4-20250514": {
     toolType: "computer_20250124",
     betaFlag: "computer-use-2025-01-24",
-    description: "Claude 4 Sonnet (newest)",
+    description: "Claude 4 Sonnet",
   },
   "claude-opus-4-20250514": {
     toolType: "computer_20250124",
     betaFlag: "computer-use-2025-01-24",
-    description: "Claude 4 Opus (newest)",
+    description: "Claude 4 Opus",
+  },
+  "claude-sonnet-4-5": {
+    toolType: "computer_20250124",
+    betaFlag: "computer-use-2025-01-24",
+    description: "Claude 4.5 Sonnet (recommended)",
   },
 };
 
@@ -1111,7 +1111,7 @@ async function main(): Promise<void> {
     await computer.initialize();
     console.log("✅ Steel browser session started!");
 
-    const agent = new ClaudeAgent(computer, "claude-3-5-sonnet-20241022");
+    const agent = new ClaudeAgent(computer, "claude-sonnet-4-5");
 
     const startTime = Date.now();
 
