@@ -1,0 +1,39 @@
+{
+  "name": "steel-perplexity-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fastify API with OpenAI-backed web search and Steel.dev scraping, written in TypeScript",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/sensible": "^5.6.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "openai": "^4.63.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "tsx": "^4.16.2",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [
+    "fastify",
+    "typescript",
+    "openai",
+    "websearch",
+    "steel.dev",
+    "scrape",
+    "api"
+  ]
+}
