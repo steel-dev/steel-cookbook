@@ -1,0 +1,35 @@
+{
+  "name": "steel-profound-clone-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fastify server (TypeScript) orchestrating Steel + Playwright automations with DuckDB storage and OpenRouter fallback.",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "NODE_ENV=production node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "playwright:install": "playwright install chromium",
+    "postinstall": "npm run playwright:install"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "@duckdb/node-api": "*",
+    "fastify": "^4.26.2",
+    "playwright": "^1.47.0",
+    "steel-sdk": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "tsx": "^4.17.0",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}
