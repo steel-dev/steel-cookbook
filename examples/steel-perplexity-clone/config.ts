@@ -32,7 +32,7 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined)),
   // A cost-effective model with websearch capability enabled via tool usage at runtime
-  OPENAI_MODEL: z.string().default("gpt-5-mini"),
+  OPENAI_MODEL: z.string().default("gpt-5-nano"),
   // Feature flag to enable web search where supported
   OPENAI_ENABLE_WEB_SEARCH: z.coerce.boolean().default(true),
 
@@ -54,8 +54,14 @@ const envSchema = z.object({
   BRAVE_SAFESEARCH: z.enum(["off", "moderate", "strict"]).default("moderate"),
 
   // Search behavior
-  SEARCH_TOP_K: z.coerce.number().int().min(1).max(10).default(3),
+  SEARCH_TOP_K: z.coerce.number().int().min(1).default(10),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1).default(30000),
+  CONCURRENCY: z.coerce.number().int().min(1).default(2),
+  QUERY: z
+    .string()
+    .default(
+      "How do prediction markets provide hedging opportunities and potential liquidity against broader market positions?",
+    ),
 
   // CORS
   CORS_ORIGINS: z.string().default("*"),
@@ -70,16 +76,6 @@ function parseCorsOrigins(input: string): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-}
-
-function maskSecret(
-  value: string | undefined,
-  visibleTail = 4,
-): string | undefined {
-  if (!value) return value;
-  if (value.length <= visibleTail) return "*".repeat(value.length);
-  const maskedLen = Math.max(0, value.length - visibleTail);
-  return `${"*".repeat(maskedLen)}${value.slice(-visibleTail)}`;
 }
 
 const parsed = envSchema.safeParse(process.env);
@@ -135,6 +131,10 @@ export const config = {
 
   // Networking
   requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
+  // Query
+  query: env.QUERY,
+  // Concurrency
+  concurrency: env.CONCURRENCY,
 
   // CORS
   cors: {
@@ -153,19 +153,6 @@ export function getSanitizedConfig(): Record<string, unknown> {
   return {
     env: config.env,
     server: config.server,
-    openai: {
-      ...config.openai,
-      apiKey: maskSecret(config.openai.apiKey),
-      orgId: maskSecret(config.openai.orgId),
-    },
-    steel: {
-      ...config.steel,
-      apiKey: maskSecret(config.steel.apiKey),
-    },
-    brave: {
-      ...config.brave,
-      apiKey: maskSecret(config.brave.apiKey),
-    },
     search: config.search,
     requestTimeoutMs: config.requestTimeoutMs,
     cors: config.cors,

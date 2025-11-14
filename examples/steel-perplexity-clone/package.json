@@ -2,7 +2,7 @@
   "name": "steel-perplexity-api",
   "version": "0.1.0",
   "private": true,
-  "description": "Fastify API with OpenAI-backed web search and Steel.dev scraping, written in TypeScript",
+  "description": "Perplexity Clone with Steel.dev scraping, written in TypeScript",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -15,10 +15,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/sensible": "^5.6.0",
     "dotenv": "^16.4.5",
-    "fastify": "^4.28.1",
     "openai": "^4.63.0",
     "zod": "^3.23.8"
   },
@@ -28,7 +25,6 @@
     "typescript": "^5.6.3"
   },
   "keywords": [
-    "fastify",
     "typescript",
     "openai",
     "websearch",
