@@ -20,11 +20,6 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
 
-  // Server
-  PORT: z.coerce.number().int().min(0).max(65535).default(3000),
-  HOST: z.string().default("0.0.0.0"),
-  LOG_LEVEL: z.enum(logLevels).default("info"),
-
   // OpenAI
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
   OPENAI_ORG_ID: z
@@ -42,6 +37,7 @@ const envSchema = z.object({
     .string()
     .url()
     .default("https://api.steel.dev/v1/scrape"),
+  STEEL_TIMEOUT: z.coerce.number().int().min(1).default(3000),
 
   // Brave Search
   BRAVE_API_KEY: z.string().min(1, "BRAVE_API_KEY is required"),
@@ -95,13 +91,6 @@ export const config = {
   isDevelopment: env.NODE_ENV === "development",
   isTest: env.NODE_ENV === "test",
 
-  // Server
-  server: {
-    port: env.PORT,
-    host: env.HOST,
-    logLevel: env.LOG_LEVEL,
-  },
-
   // OpenAI
   openai: {
     apiKey: env.OPENAI_API_KEY,
@@ -114,6 +103,7 @@ export const config = {
   steel: {
     apiKey: env.STEEL_API_KEY,
     scrapeEndpoint: env.STEEL_SCRAPE_ENDPOINT,
+    timeout: env.STEEL_TIMEOUT,
   },
   // Brave Search
   brave: {
@@ -152,7 +142,6 @@ export type AppConfig = typeof config;
 export function getSanitizedConfig(): Record<string, unknown> {
   return {
     env: config.env,
-    server: config.server,
     search: config.search,
     requestTimeoutMs: config.requestTimeoutMs,
     cors: config.cors,

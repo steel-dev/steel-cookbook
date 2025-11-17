@@ -411,6 +411,7 @@ export async function scrapeUrlsToMarkdown(
       try {
         const scraped = await scrapeUrlToMarkdown(next);
         results.push(scraped);
+        setTimeout(() => {}, config.steel.timeout); // Can only do 20 requests per minute on hobby plan
       } catch (err) {
         console.warn("Failed to scrape URL", {
           url: next,

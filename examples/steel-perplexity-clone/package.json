@@ -9,10 +9,7 @@
   },
   "type": "commonjs",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "type-check": "tsc --noEmit"
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
