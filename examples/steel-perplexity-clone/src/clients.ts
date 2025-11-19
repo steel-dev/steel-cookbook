@@ -348,49 +348,44 @@ export interface SteelScrapeResponse {
 /**
  * Scrape a single URL into Markdown using Steel.dev.
  */
-export async function scrapeUrlToMarkdown(url: string): Promise<ScrapeResult> {
-  const endpoint = config.steel.scrapeEndpoint;
+export async function scrapeUrlToMarkdown(
+  url: string,
+): Promise<ScrapeResult | null> {
+  try {
+    const endpoint = config.steel.scrapeEndpoint;
 
-  const body: SteelScrapeRequest = {
-    url,
-    format: ["markdown"],
-  };
-
-  const res = await fetchWithTimeout(endpoint, {
-    method: "POST",
-    headers: {
-      "Steel-Api-Key": config.steel.apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("Steel.dev scrape failed", {
-      status: res.status,
-      statusText: res.statusText,
+    const body: SteelScrapeRequest = {
       url,
-      response: text?.slice(0, 1000),
+      format: ["markdown"],
+    };
+
+    const res = await fetchWithTimeout(endpoint, {
+      method: "POST",
+      headers: {
+        "Steel-Api-Key": config.steel.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
-    throw new Error(
-      `Steel.dev scrape failed for ${url}: ${res.status} ${res.statusText}`,
-    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Steel.dev scrape failed for ${url}: ${res.status} ${res.statusText}`,
+      );
+    }
+
+    const payload = (await res.json()) as SteelScrapeResponse;
+    const markdown = payload?.content?.markdown;
+    const links = payload?.links;
+
+    if (!markdown) {
+      throw new Error(`Steel.dev response missing markdown content for ${url}`);
+    }
+
+    return { url, markdown, links };
+  } catch {
+    return null;
   }
-
-  const payload = (await res.json()) as SteelScrapeResponse;
-  const markdown = payload?.content?.markdown;
-  const links = payload?.links;
-
-  if (!markdown) {
-    console.warn("Steel.dev response did not include recognizable markdown", {
-      url,
-      payload: JSON.stringify(payload).slice(0, 1000),
-    });
-    throw new Error(`Steel.dev response missing markdown content for ${url}`);
-  }
-
-  return { url, markdown, links };
 }
 
 /**
@@ -410,7 +405,9 @@ export async function scrapeUrlsToMarkdown(
       if (!next) break;
       try {
         const scraped = await scrapeUrlToMarkdown(next);
-        results.push(scraped);
+        if (scraped) {
+          results.push(scraped);
+        }
         setTimeout(() => {}, config.steel.timeout); // Can only do 20 requests per minute on hobby plan
       } catch (err) {
         console.warn("Failed to scrape URL", {
