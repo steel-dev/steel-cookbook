@@ -1,0 +1,880 @@
+---
+id: "steel-perplexity-clone"
+title: "Build a Perplexity‑style Answerer"
+accentColor: "blue"
+category: "BROWSER_AUTOMATION"
+stack: "typescript"
+description: "Search with Brave, scrape with Steel, and synthesize with OpenAI using a TypeScript CLI"
+flags: ["guide", "playground", "cli"]
+directory: "examples/steel-perplexity-clone"
+groupId: "perplexity-clone"
+language: "typescript"
+shorthand: "perplexity"
+docs: "https://docs.steel.dev/overview/guides/perplexity"
+playgroundLink: ""
+replitLink: ""
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-perplexity-clone"
+---
+
+<Intro skipLink="#full-code-example">
+    Search with Brave, scrape with Steel, and synthesize with OpenAI using a TypeScript CLI
+</Intro>
+
+<Step number={1} title="Clone the example and install dependencies">
+  Use the ready-made example in the steel-cookbook repo.
+
+```/dev/null/commands.sh#L1-12
+git clone https://github.com/steel-dev/steel-cookbook
+cd steel-cookbook/examples/steel-perplexity-clone
+
+# Install dependencies (Node 18+ recommended)
+npm install
+
+# Optionally initialize TypeScript locally if you're adapting elsewhere:
+# npm install -D typescript ts-node @types/node
+```
+</Step>
+
+<Step number={2} title="Configure environment variables">
+  Create a `.env` file in `examples/steel-perplexity-clone` with your API keys and preferences.
+
+```/dev/null/.env#L1-40
+NODE_ENV=development
+
+# OpenAI (required)
+OPENAI_API_KEY=sk-...
+OPENAI_ORG_ID=
+OPENAI_MODEL=gpt-5-nano
+OPENAI_ENABLE_WEB_SEARCH=true
+
+# Steel.dev (required)
+STEEL_API_KEY=steel_...
+STEEL_SCRAPE_ENDPOINT=https://api.steel.dev/v1/scrape
+# Optional pacing between scrape requests (ms), useful for rate limits
+STEEL_TIMEOUT=3000
+
+# Brave Search (required)
+BRAVE_API_KEY=brv_...
+BRAVE_SEARCH_ENDPOINT=https://api.search.brave.com/res/v1/web/search
+BRAVE_SEARCH_COUNTRY=US
+BRAVE_SEARCH_LANG=en
+BRAVE_SAFESEARCH=moderate
+
+# Search behavior (tweak as needed)
+SEARCH_TOP_K=3
+REQUEST_TIMEOUT_MS=30000
+CONCURRENCY=2
+
+# Your question to research (Option A: set here, or pass at runtime)
+QUERY="What are the latest improvements in WebAssembly and their benefits?"
+```
+</Step>
+
+<Step number={3} title="Orchestrate the pipeline (TypeScript)">
+  The main script coordinates search, scraping, and synthesis. This is the core flow used by the example.
+
+```/dev/null/src/index.ts#L1-120
+import { config } from "./config";
+import {
+  scrapeUrlsToMarkdown,
+  synthesizeWithCitations,
+  multiQueryBraveSearch,
+} from "./clients";
+
+type SearchResponse = {
+  query: string;
+  answer: string;
+  citations: Array<{ index: number; url: string }>;
+  model: string;
+  meta: { tookMs: number };
+};
+
+async function main() {
+  const started = Date.now();
+
+  const query = config.query;
+  const topK = config.search.topK;
+  const concurrency = config.concurrency;
+
+  console.info("Search request received", { query, topK });
+
+  // 1) Use Brave to get top relevant URLs (double the target to improve quality)
+  const { urls } = await multiQueryBraveSearch(query, topK * 2);
+
+  if (urls.length === 0) {
+    console.error("No URLs found for the given query.");
+    return;
+  }
+
+  // 2) Scrape each URL into markdown using Steel.dev
+  const materials = await scrapeUrlsToMarkdown(urls, concurrency, topK);
+
+  if (materials.length === 0) {
+    console.error("Failed to scrape all URLs. Try again or refine your query.");
+  }
+
+  // 3) Use OpenAI to synthesize an answer with inline citations
+  const synthesis = await synthesizeWithCitations({ query, materials });
+
+  const tookMs = Date.now() - started;
+
+  const response: SearchResponse = {
+    query,
+    answer: synthesis.answer,
+    citations: synthesis.sources,
+    model: config.openai.model,
+    meta: { tookMs },
+  };
+
+  console.log(response);
+}
+
+// Execute the demo
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });
+```
+</Step>
+
+<Step number={4} title="Generate targeted queries and search with Brave">
+  Ask OpenAI for 3 high-signal queries, then call Brave Search for each. Aggregate and rank URLs.
+
+```/dev/null/src/clients.ts#L1-220
+import { config } from "./config";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: config.openai.apiKey });
+
+// Small fetch helper with timeout
+export async function fetchWithTimeout(
+  url: string,
+  init: RequestInit & { timeoutMs?: number } = {},
+) {
+  const timeout = init.timeoutMs ?? config.requestTimeoutMs;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+type UrlSearchResult = { urls: string[]; _raw: any };
+type RankedUrl = { url: string; score: number; occurrences: number; ranks: number[] };
+type MultiQuerySearchResult = { queries: string[]; urls: string[]; _raw: any };
+
+export async function searchTopRelevantUrls(
+  query: string,
+  topK = config.search.topK,
+): Promise<UrlSearchResult> {
+  // Build Brave Search request URL
+  const endpoint = new URL(config.brave.endpoint);
+  endpoint.searchParams.set("q", query);
+  endpoint.searchParams.set("country", config.brave.country);
+  endpoint.searchParams.set("search_lang", config.brave.lang);
+  endpoint.searchParams.set("safesearch", config.brave.safesearch);
+  endpoint.searchParams.set("count", String(Math.min(topK, config.search.topK)));
+
+  const res = await fetchWithTimeout(endpoint.toString(), {
+    headers: {
+      Accept: "application/json",
+      "X-Subscription-Token": config.brave.apiKey,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Brave search failed", {
+      status: res.status,
+      statusText: res.statusText,
+      response: text?.slice(0, 1000),
+    });
+    throw new Error(`Brave search failed: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as any;
+
+  // Extract URLs
+  const urls: string[] = [];
+  if (data?.web?.results && Array.isArray(data.web.results)) {
+    for (const r of data.web.results) {
+      if (typeof r?.url === "string") urls.push(r.url);
+    }
+  } else if (Array.isArray(data?.results)) {
+    for (const r of data.results) {
+      if (typeof r?.url === "string") urls.push(r.url);
+    }
+  }
+
+  if (urls.length === 0) {
+    console.warn("No URLs returned from Brave, attempting salvage from raw", {
+      raw: JSON.stringify(data).slice(0, 1000),
+    });
+    const rawText = JSON.stringify(data);
+    const regex = /\bhttps?:\/\/[^\s"'<>]+/gi;
+    const salvaged = (rawText.match(regex) ?? []) as string[];
+    urls.push(...salvaged);
+  }
+
+  const normalized = Array.from(new Set(urls.map((u) => u.trim())))
+    .filter(Boolean)
+    .slice(0, topK);
+
+  console.info("Collected URLs from Brave", { count: normalized.length });
+
+  return { urls: normalized, _raw: data };
+}
+
+export async function multiQueryBraveSearch(
+  userQuery: string,
+  topKPerQuery = config.search.topK,
+): Promise<MultiQuerySearchResult> {
+  // 1) Ask OpenAI to produce exactly 3 queries
+  const prompt = [
+    "You are a search strategist.",
+    "Given the user's query, generate exactly 3 search queries that maximize the likelihood of finding relevant, recent, and factual information.",
+    "Avoid generic questions; use specific keywords.",
+    "",
+    "Return strict JSON with this shape:",
+    '{ "queries": ["...", "...", "..."] }',
+    "",
+    `User query: ${userQuery}`,
+  ].join("\n");
+
+  const completion = await openai.chat.completions.create({
+    model: config.openai.model,
+    messages: [
+      { role: "system", content: "You produce JSON only. No prose." },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  const rawContent =
+    completion.choices?.[0]?.message?.content?.trim() ?? '{"queries": []}';
+
+  let queries: string[] = [];
+  try {
+    const parsed = JSON.parse(rawContent);
+    if (Array.isArray(parsed?.queries)) {
+      queries = parsed.queries.map((q: unknown) =>
+        typeof q === "string" ? q.trim() : "",
+      );
+    }
+  } catch {
+    // Fallback: split lines
+    queries = rawContent
+      .split("\n")
+      .map((l) => l.replace(/^[-*\d.)\s]+/, "").trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+
+  // Ensure exactly 3 queries
+  queries = Array.from(
+    new Set(
+      queries
+        .filter(Boolean)
+        .map((q) => q.replace(/\s+/g, " ").trim())
+        .slice(0, 3),
+    ),
+  );
+  while (queries.length < 3) {
+    if (queries.length === 0) queries.push(userQuery);
+    else queries.push(`${userQuery} ${queries.length + 1}`);
+  }
+  queries = queries.slice(0, 3);
+
+  console.info("Generated queries", { queries });
+
+  // 2) Brave for each query, with 1s delay
+  const perQueryUrls: string[][] = [];
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    if (!q) {
+      perQueryUrls.push([]);
+      continue;
+    }
+    if (i > 0) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    try {
+      const { urls } = await searchTopRelevantUrls(q, topKPerQuery);
+      perQueryUrls.push(urls);
+    } catch (err) {
+      console.warn("Brave search failed for generated query", {
+        query: q,
+        err: (err as Error)?.message,
+      });
+      perQueryUrls.push([]);
+    }
+  }
+
+  // 3) Rank aggregation: reciprocal rank + frequency + best rank
+  type Acc = { score: number; occurrences: number; ranks: number[] };
+  const scores = new Map<string, Acc>();
+
+  perQueryUrls.forEach((urls) => {
+    urls.forEach((u, idx) => {
+      const url = u.trim();
+      if (!url) return;
+      const rank = idx + 1; // 1-based
+      const inc = 1 / rank; // reciprocal rank
+      const prev = scores.get(url) ?? { score: 0, occurrences: 0, ranks: [] };
+      prev.score += inc;
+      prev.occurrences += 1;
+      prev.ranks.push(rank);
+      scores.set(url, prev);
+    });
+  });
+
+  const ranked: RankedUrl[] = Array.from(scores.entries())
+    .map(([url, acc]) => ({
+      url,
+      score: acc.score,
+      occurrences: acc.occurrences,
+      ranks: acc.ranks.sort((a, b) => a - b),
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences;
+      const aBest = a.ranks[0] ?? Number.POSITIVE_INFINITY;
+      const bBest = b.ranks[0] ?? Number.POSITIVE_INFINITY;
+      return aBest - bBest;
+    });
+
+  console.info("Ranked URLs across multi-query search", { unique: ranked.length });
+
+  return {
+    queries,
+    urls: ranked.map((x) => x.url),
+    _raw: { openai: completion, perQueryUrls },
+  };
+}
+```
+</Step>
+
+<Step number={5} title="Scrape URLs to Markdown with Steel">
+  Use Steel’s `/v1/scrape` endpoint to fetch clean Markdown. Be sure your `STEEL_API_KEY` is set.
+
+```/dev/null/src/clients.scrape.ts#L1-120
+import { config } from "./config";
+import { fetchWithTimeout } from "./clients"; // reuse helper above
+
+type SteelScrapeRequest = { url: string; format: Array<"markdown"> };
+type SteelScrapeResponse = { content?: { markdown?: string }; links?: string[] };
+type ScrapeResult = { url: string; markdown: string; links?: string[] };
+
+export async function scrapeUrlToMarkdown(url: string): Promise<ScrapeResult> {
+  const endpoint = config.steel.scrapeEndpoint;
+  const body: SteelScrapeRequest = { url, format: ["markdown"] };
+
+  const res = await fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: {
+      "Steel-Api-Key": config.steel.apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Steel.dev scrape failed", {
+      status: res.status,
+      statusText: res.statusText,
+      url,
+      response: text?.slice(0, 1000),
+    });
+    throw new Error(`Steel.dev scrape failed for ${url}: ${res.status} ${res.statusText}`);
+  }
+
+  const payload = (await res.json()) as SteelScrapeResponse;
+  const markdown = payload?.content?.markdown;
+  const links = payload?.links;
+
+  if (!markdown) {
+    console.warn("Steel.dev response did not include recognizable markdown", {
+      url,
+      payload: JSON.stringify(payload).slice(0, 1000),
+    });
+    throw new Error(`Steel.dev response missing markdown content for ${url}`);
+  }
+
+  return { url, markdown, links };
+}
+
+export async function scrapeUrlsToMarkdown(
+  urls: string[],
+  concurrency = 2,
+  takeTop = 3,
+) {
+  const topUrls = urls.slice(0, takeTop);
+  const out: Array<{ url: string; markdown: string }> = [];
+  let i = 0;
+  while (i < topUrls.length) {
+    const batch = topUrls.slice(i, i + concurrency);
+    const results = await Promise.allSettled(batch.map((u) => scrapeUrlToMarkdown(u)));
+    for (const r of results) {
+      if (r.status === "fulfilled") out.push(r.value);
+      else console.warn("Scrape failed", (r as any).reason?.message);
+    }
+    // Optional pacing for rate limit friendliness
+    if (config.steel.timeout > 0) {
+      await new Promise((r) => setTimeout(r, config.steel.timeout));
+    }
+    i += concurrency;
+  }
+  return out;
+}
+```
+</Step>
+
+<Step number={6} title="Synthesize an answer with inline citations">
+  Provide the scraped Markdown to OpenAI and instruct it to cite sources as [n].
+
+```/dev/null/src/clients.synthesize.ts#L1-140
+import OpenAI from "openai";
+import { config } from "./config";
+
+const openai = new OpenAI({ apiKey: config.openai.apiKey });
+
+type Material = { url: string; markdown: string };
+type SynthesisInput = { query: string; materials: Material[] };
+type SynthesisOutput = {
+  answer: string;
+  sources: Array<{ index: number; url: string }>;
+  _raw: unknown;
+};
+
+export async function synthesizeWithCitations(
+  input: SynthesisInput,
+): Promise<SynthesisOutput> {
+  // Build context block
+  const contextHeader =
+    "Context materials (each item shows [index] and URL, followed by markdown content)";
+  const contextLines: string[] = [contextHeader];
+  input.materials.forEach((m, i) => {
+    const idx = i + 1;
+    contextLines.push(`\n[${idx}] ${m.url}\n---\n${m.markdown}\n`);
+  });
+
+  const system = `<goal>
+You are Perplexity. Write concise, well-cited answers using [n] markers that correspond to the source order.
+Only cite when a statement is supported by a source. Prefer recent, authoritative sources.
+</goal>`;
+
+  const user = [`User query: ${input.query}`, "", contextLines.join("\n")].join("\n");
+
+  const completion = await openai.chat.completions.create({
+    model: config.openai.model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  });
+
+  const answer = completion.choices?.[0]?.message?.content?.trim() ?? "";
+
+  const sources = input.materials.map((m, i) => ({ index: i + 1, url: m.url }));
+
+  console.info("Synthesis complete", { answerPreview: answer.slice(0, 160) });
+
+  return { answer, sources, _raw: completion };
+}
+```
+</Step>
+
+<Step number={7} title="Run and interpret the output" isLast>
+  You can set `QUERY` in `.env` or pass it in-line.
+
+```/dev/null/commands.sh#L1-12
+# Option A: query from .env
+npm start
+
+# Option B: pass QUERY on the fly
+QUERY="What are the latest improvements in WebAssembly?" npm start
+```
+
+Expected output is a JSON object with your answer and citations:
+
+```/dev/null/output.json#L1-20
+{
+  "query": "What are the latest improvements in WebAssembly and their benefits?",
+  "answer": "Recent WebAssembly updates improved component model support and tooling, enabling easier interop and faster iterations.[1][2] These changes reduce bundle size, improve portability, and speed up non‑JS language performance across platforms.[2][3]",
+  "citations": [
+    { "index": 1, "url": "https://example.com/article-1" },
+    { "index": 2, "url": "https://example.com/article-2" },
+    { "index": 3, "url": "https://example.com/article-3" }
+  ],
+  "model": "gpt-5-nano",
+  "meta": { "tookMs": 12345 }
+}
+```
+</Step>
+
+<FullCodeExample id="full-code-example" title="Full Example (Single-file CLI)">
+  Prefer a single file? Drop this into a fresh project as `main.ts`, run with `ts-node main.ts` or bundle via `tsc && node dist/main.js`. Requires Node 18+.
+
+```/dev/null/main.ts#L1-400
+import "dotenv/config";
+import OpenAI from "openai";
+
+// ----- Config parsing -----
+const config = {
+  query:
+    process.env.QUERY ??
+    "What are the latest improvements in WebAssembly and their benefits?",
+  requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS ?? 30000),
+
+  openai: {
+    apiKey: mustGet("OPENAI_API_KEY"),
+    model: process.env.OPENAI_MODEL ?? "gpt-5-nano",
+  },
+
+  steel: {
+    apiKey: mustGet("STEEL_API_KEY"),
+    scrapeEndpoint:
+      process.env.STEEL_SCRAPE_ENDPOINT ?? "https://api.steel.dev/v1/scrape",
+    timeout: Number(process.env.STEEL_TIMEOUT ?? 0),
+  },
+
+  brave: {
+    apiKey: mustGet("BRAVE_API_KEY"),
+    endpoint:
+      process.env.BRAVE_SEARCH_ENDPOINT ??
+      "https://api.search.brave.com/res/v1/web/search",
+    country: process.env.BRAVE_SEARCH_COUNTRY ?? "US",
+    lang: process.env.BRAVE_SEARCH_LANG ?? "en",
+    safesearch: process.env.BRAVE_SAFESEARCH ?? "moderate",
+  },
+
+  search: {
+    topK: Number(process.env.SEARCH_TOP_K ?? 3),
+  },
+
+  concurrency: Number(process.env.CONCURRENCY ?? 2),
+};
+
+function mustGet(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing required env var: ${name}`);
+  return v;
+}
+
+// ----- Utilities -----
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit & { timeoutMs?: number } = {},
+) {
+  const timeout = init.timeoutMs ?? config.requestTimeoutMs;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+// ----- Brave search helpers -----
+type UrlSearchResult = { urls: string[]; _raw: any };
+
+async function searchTopRelevantUrls(
+  query: string,
+  topK = config.search.topK,
+): Promise<UrlSearchResult> {
+  const endpoint = new URL(config.brave.endpoint);
+  endpoint.searchParams.set("q", query);
+  endpoint.searchParams.set("country", config.brave.country);
+  endpoint.searchParams.set("search_lang", config.brave.lang);
+  endpoint.searchParams.set("safesearch", config.brave.safesearch);
+  endpoint.searchParams.set("count", String(Math.min(topK, config.search.topK)));
+
+  const res = await fetchWithTimeout(endpoint.toString(), {
+    headers: {
+      Accept: "application/json",
+      "X-Subscription-Token": config.brave.apiKey,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Brave search failed", {
+      status: res.status,
+      statusText: res.statusText,
+      response: text?.slice(0, 1000),
+    });
+    throw new Error(`Brave search failed: ${res.status} ${res.statusText}`);
+  }
+
+  const data = (await res.json()) as any;
+  const urls: string[] = [];
+
+  if (data?.web?.results && Array.isArray(data.web.results)) {
+    for (const r of data.web.results) if (typeof r?.url === "string") urls.push(r.url);
+  } else if (Array.isArray(data?.results)) {
+    for (const r of data.results) if (typeof r?.url === "string") urls.push(r.url);
+  }
+
+  if (urls.length === 0) {
+    console.warn("No URLs returned from Brave, attempting salvage from raw", {
+      raw: JSON.stringify(data).slice(0, 1000),
+    });
+    const rawText = JSON.stringify(data);
+    const regex = /\bhttps?:\/\/[^\s"'<>]+/gi;
+    const salvaged = (rawText.match(regex) ?? []) as string[];
+    urls.push(...salvaged);
+  }
+
+  const normalized = Array.from(new Set(urls.map((u) => u.trim())))
+    .filter(Boolean)
+    .slice(0, topK);
+
+  console.info("Collected URLs from Brave", { count: normalized.length });
+  return { urls: normalized, _raw: data };
+}
+
+// ----- Multi-query via OpenAI -----
+const openai = new OpenAI({ apiKey: config.openai.apiKey });
+
+async function multiQueryBraveSearch(userQuery: string, topKPerQuery: number) {
+  const prompt = [
+    "You are a search strategist.",
+    "Given the user's query, generate exactly 3 search queries that maximize the likelihood of finding relevant, recent, and factual information.",
+    "Avoid generic questions; use specific keywords.",
+    "",
+    "Return strict JSON with this shape:",
+    '{ "queries": ["...", "...", "..."] }',
+    "",
+    `User query: ${userQuery}`,
+  ].join("\n");
+
+  const completion = await openai.chat.completions.create({
+    model: config.openai.model,
+    messages: [
+      { role: "system", content: "You produce JSON only. No prose." },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  const rawContent =
+    completion.choices?.[0]?.message?.content?.trim() ?? '{"queries": []}';
+
+  let queries: string[] = [];
+  try {
+    const parsed = JSON.parse(rawContent);
+    if (Array.isArray(parsed?.queries)) {
+      queries = parsed.queries.map((q: unknown) =>
+        typeof q === "string" ? q.trim() : "",
+      );
+    }
+  } catch {
+    queries = rawContent
+      .split("\n")
+      .map((l) => l.replace(/^[-*\d.)\s]+/, "").trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+
+  queries = Array.from(
+    new Set(
+      queries
+        .filter(Boolean)
+        .map((q) => q.replace(/\s+/g, " ").trim())
+        .slice(0, 3),
+    ),
+  );
+  while (queries.length < 3) {
+    if (queries.length === 0) queries.push(userQuery);
+    else queries.push(`${userQuery} ${queries.length + 1}`);
+  }
+  queries = queries.slice(0, 3);
+
+  console.info("Generated queries", { queries });
+
+  const perQueryUrls: string[][] = [];
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
+    if (!q) {
+      perQueryUrls.push([]);
+      continue;
+    }
+    if (i > 0) await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const { urls } = await searchTopRelevantUrls(q, topKPerQuery);
+      perQueryUrls.push(urls);
+    } catch (err) {
+      console.warn("Brave search failed for generated query", {
+        query: q,
+        err: (err as Error)?.message,
+      });
+      perQueryUrls.push([]);
+    }
+  }
+
+  type Acc = { score: number; occurrences: number; ranks: number[] };
+  const scores = new Map<string, Acc>();
+
+  perQueryUrls.forEach((urls) => {
+    urls.forEach((u, idx) => {
+      const url = u.trim();
+      if (!url) return;
+      const rank = idx + 1;
+      const inc = 1 / rank;
+      const prev = scores.get(url) ?? { score: 0, occurrences: 0, ranks: [] };
+      prev.score += inc;
+      prev.occurrences += 1;
+      prev.ranks.push(rank);
+      scores.set(url, prev);
+    });
+  });
+
+  const ranked = Array.from(scores.entries())
+    .map(([url, acc]) => ({
+      url,
+      score: acc.score,
+      occurrences: acc.occurrences,
+      ranks: acc.ranks.sort((a, b) => a - b),
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences;
+      const aBest = a.ranks[0] ?? Number.POSITIVE_INFINITY;
+      const bBest = b.ranks[0] ?? Number.POSITIVE_INFINITY;
+      return aBest - bBest;
+    });
+
+  return { queries, urls: ranked.map((x) => x.url), _raw: { completion, perQueryUrls } };
+}
+
+// ----- Steel scraping -----
+type SteelScrapeRequest = { url: string; format: Array<"markdown"> };
+type SteelScrapeResponse = { content?: { markdown?: string }; links?: string[] };
+type Material = { url: string; markdown: string };
+
+async function scrapeUrlToMarkdown(url: string): Promise<Material> {
+  const res = await fetchWithTimeout(config.steel.scrapeEndpoint, {
+    method: "POST",
+    headers: {
+      "Steel-Api-Key": config.steel.apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url, format: ["markdown"] } as SteelScrapeRequest),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Steel.dev scrape failed", {
+      status: res.status,
+      statusText: res.statusText,
+      url,
+      response: text?.slice(0, 1000),
+    });
+    throw new Error(`Steel.dev scrape failed for ${url}: ${res.status} ${res.statusText}`);
+  }
+
+  const payload = (await res.json()) as SteelScrapeResponse;
+  const markdown = payload?.content?.markdown;
+  if (!markdown) throw new Error(`Steel.dev response missing markdown content for ${url}`);
+  return { url, markdown };
+}
+
+async function scrapeUrlsToMarkdown(urls: string[], concurrency = 2, takeTop = 3) {
+  const topUrls = urls.slice(0, takeTop);
+  const out: Material[] = [];
+  let i = 0;
+  while (i < topUrls.length) {
+    const batch = topUrls.slice(i, i + concurrency);
+    const results = await Promise.allSettled(batch.map((u) => scrapeUrlToMarkdown(u)));
+    for (const r of results) {
+      if (r.status === "fulfilled") out.push(r.value);
+      else console.warn("Scrape failed", (r as any).reason?.message);
+    }
+    if (config.steel.timeout > 0) await new Promise((r) => setTimeout(r, config.steel.timeout));
+    i += concurrency;
+  }
+  return out;
+}
+
+// ----- Synthesis -----
+async function synthesizeWithCitations(input: { query: string; materials: Material[] }) {
+  const contextHeader =
+    "Context materials (each item shows [index] and URL, followed by markdown content)";
+  const contextLines: string[] = [contextHeader];
+  input.materials.forEach((m, i) => {
+    const idx = i + 1;
+    contextLines.push(`\n[${idx}] ${m.url}\n---\n${m.markdown}\n`);
+  });
+
+  const system = `<goal>
+You are Perplexity. Write concise, well-cited answers using [n] markers that correspond to the source order.
+Only cite when a statement is supported by a source. Prefer recent, authoritative sources.
+</goal>`;
+
+  const user = [`User query: ${input.query}`, "", contextLines.join("\n")].join("\n");
+
+  const completion = await openai.chat.completions.create({
+    model: config.openai.model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  });
+
+  const answer = completion.choices?.[0]?.message?.content?.trim() ?? "";
+  const sources = input.materials.map((m, i) => ({ index: i + 1, url: m.url }));
+  return { answer, sources, _raw: completion };
+}
+
+// ----- Main -----
+async function main() {
+  const started = Date.now();
+
+  const query = config.query;
+  const topK = config.search.topK;
+  const concurrency = config.concurrency;
+
+  console.info("Search request received", { query, topK });
+
+  const { urls } = await multiQueryBraveSearch(query, topK * 2);
+  if (urls.length === 0) {
+    console.error("No URLs found for the given query.");
+    return;
+  }
+
+  const materials = await scrapeUrlsToMarkdown(urls, concurrency, topK);
+  if (materials.length === 0) {
+    console.error("Failed to scrape all URLs. Try again or refine your query.");
+  }
+
+  const synthesis = await synthesizeWithCitations({ query, materials });
+  const tookMs = Date.now() - started;
+
+  const response = {
+    query,
+    answer: synthesis.answer,
+    citations: synthesis.sources,
+    model: config.openai.model,
+    meta: { tookMs },
+  };
+
+  console.log(JSON.stringify(response, null, 2));
+}
+
+main().catch((err) => {
+  console.error("Task execution failed:", err);
+  process.exit(1);
+});
+```
+</FullCodeExample>
+
+<NextSteps>
+  - GitHub example: https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-perplexity-clone
+  - Steel Documentation: https://docs.steel.dev
+  - API Reference: https://docs.steel.dev/api-reference
+  - Discord Community: https://discord.gg/steel-dev
+</NextSteps>
