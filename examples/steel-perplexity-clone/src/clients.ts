@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { config } from "./config";
+import ora from "ora";
 
 /**
  * Centralized OpenAI and Steel.dev clients and helpers.
@@ -96,9 +97,6 @@ export async function searchTopRelevantUrls(
   }
 
   if (urls.length === 0) {
-    console.warn("No URLs returned from Brave, attempting salvage from raw", {
-      raw: JSON.stringify(data).slice(0, 1000),
-    });
     const rawText = JSON.stringify(data);
     const regex = /\bhttps?:\/\/[^\s"'<>]+/gi;
     const salvaged = (rawText.match(regex) ?? []) as string[];
@@ -109,8 +107,6 @@ export async function searchTopRelevantUrls(
   const normalized = Array.from(new Set(urls.map((u) => u.trim())))
     .filter(Boolean)
     .slice(0, topK);
-
-  console.info("Collected URLs from Brave", { count: normalized.length });
 
   return {
     urls: normalized,
@@ -146,6 +142,7 @@ export async function multiQueryBraveSearch(
   userQuery: string,
   topKPerQuery = config.search.topK,
 ): Promise<MultiQuerySearchResult> {
+  const spinner = ora("Searching...").start();
   // 1) Ask OpenAI to produce exactly 3 queries as strict JSON.
   const prompt = [
     "You are a search strategist.",
@@ -200,8 +197,6 @@ export async function multiQueryBraveSearch(
     else queries.push(`${userQuery} ${queries.length + 1}`);
   }
   queries = queries.slice(0, 3);
-
-  console.info("Generated queries", { queries });
 
   // 2) For each query, call Brave Search with a 1s delay between calls.
   const perQueryUrls: string[][] = [];
@@ -268,9 +263,7 @@ export async function multiQueryBraveSearch(
       return aBest - bBest;
     });
 
-  console.info("Ranked URLs across multi-query search", {
-    unique: ranked.length,
-  });
+  spinner.succeed("Search complete");
 
   return {
     queries,
@@ -396,6 +389,7 @@ export async function scrapeUrlsToMarkdown(
   concurrency = 2,
   topK = 10,
 ): Promise<ScrapeResult[]> {
+  const spinner = ora("Scraping URLs...").start();
   const results: ScrapeResult[] = [];
   const queue = [...urls];
 
@@ -422,6 +416,8 @@ export async function scrapeUrlsToMarkdown(
     length: Math.max(1, Math.min(concurrency, urls.length)),
   }).map(() => worker());
   await Promise.all(workers);
+
+  spinner.succeed("Scraping complete");
 
   // Preserve input order in output where possible
   const byUrl = new Map(results.map((r) => [r.url, r]));
@@ -454,6 +450,7 @@ export interface SynthesisOutput {
 export async function synthesizeWithCitations(
   input: SynthesisInput,
 ): Promise<SynthesisOutput> {
+  const spinner = ora("Synthesizing answer...").start();
   // Build context block
   const contextHeader =
     "Context materials (each item shows [index] and URL, followed by markdown content)";
@@ -524,6 +521,8 @@ export async function synthesizeWithCitations(
   const user = [`User query: ${input.query}`, "", contextLines.join("\n")].join(
     "\n",
   );
+  let answer = "";
+  let started = false;
 
   const completion = await openai.chat.completions.create({
     model: config.openai.model,
@@ -531,15 +530,28 @@ export async function synthesizeWithCitations(
       { role: "system", content: system },
       { role: "user", content: user },
     ],
+    stream: true,
   });
 
-  const answer = completion.choices?.[0]?.message?.content?.trim() ?? "";
+  for await (const chunk of completion) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      if (!started) {
+        started = true;
+        spinner.succeed("Answer synthesized");
+        process.stdout.write("\n");
+      }
+      answer += content;
+      process.stdout.write(content);
+    }
+  }
 
   // Collect sources in index order for convenience
   const sources = input.materials.map((m, i) => ({ index: i + 1, url: m.url }));
 
-  console.info("Synthesis complete", {
-    answerPreview: answer.slice(0, 160),
+  console.log("\n\nSources:");
+  sources.forEach((source) => {
+    console.log(`[${source.index}] ${source.url}`);
   });
 
   return {

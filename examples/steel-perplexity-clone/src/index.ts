@@ -22,10 +22,7 @@ async function main() {
   const topK = config.search.topK;
   const concurrency = config.concurrency;
 
-  console.info("Search request received", {
-    query,
-    topK,
-  });
+  console.log("Searching for: ", query);
 
   // 1) Use Brave to get top relevant URLs (do double to get more relevant results to search)
   const { urls } = await multiQueryBraveSearch(query, topK * 2);
@@ -61,7 +58,8 @@ async function main() {
     meta: { tookMs },
   };
 
-  console.log(response);
+  // console.log(response);
+  return response;
 }
 
 // Execute the demo
