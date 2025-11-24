@@ -94,6 +94,53 @@ class Agent:
     def _split_keys(self, k: Optional[str]) -> List[str]:
         return [s.strip() for s in k.split("+")] if k else []
 
+    def _normalize_key(self, key: str) -> str:
+        if not isinstance(key, str) or not key:
+            return key
+        k = key.strip()
+        upper = k.upper()
+        synonyms = {
+            "ENTER": "Enter",
+            "RETURN": "Enter",
+            "ESC": "Escape",
+            "ESCAPE": "Escape",
+            "TAB": "Tab",
+            "BACKSPACE": "Backspace",
+            "BKSP": "Backspace",
+            "DELETE": "Delete",
+            "DEL": "Delete",
+            "SPACE": "Space",
+            "CTRL": "Control",
+            "CONTROL": "Control",
+            "ALT": "Alt",
+            "SHIFT": "Shift",
+            "META": "Meta",
+            "SUPER": "Meta",
+            "CMD": "Meta",
+            "COMMAND": "Meta",
+            "UP": "ArrowUp",
+            "DOWN": "ArrowDown",
+            "LEFT": "ArrowLeft",
+            "RIGHT": "ArrowRight",
+            "ARROWUP": "ArrowUp",
+            "ARROWDOWN": "ArrowDown",
+            "ARROWLEFT": "ArrowLeft",
+            "ARROWRIGHT": "ArrowRight",
+            "HOME": "Home",
+            "END": "End",
+            "PAGEUP": "PageUp",
+            "PAGEDOWN": "PageDown",
+            "INSERT": "Insert",
+        }
+        if upper in synonyms:
+            return synonyms[upper]
+        if upper.startswith("F") and upper[1:].isdigit():
+            return "F" + upper[1:]
+        return k
+
+    def _normalize_keys(self, keys: List[str]) -> List[str]:
+        return [self._normalize_key(k) for k in keys]
+
     def initialize(self) -> None:
         width = self.viewport_width
         height = self.viewport_height
@@ -228,6 +275,7 @@ class Agent:
 
         elif action == "hold_key":
             keys = self._split_keys(text or "")
+            keys = self._normalize_keys(keys)
             body = {
                 "action": "press_key",
                 "keys": keys or [],
@@ -237,6 +285,7 @@ class Agent:
 
         elif action == "key":
             keys = self._split_keys(text or "")
+            keys = self._normalize_keys(keys)
             body = {
                 "action": "press_key",
                 "keys": keys or [],

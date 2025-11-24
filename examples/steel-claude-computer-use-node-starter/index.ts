@@ -52,7 +52,6 @@ const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   - Keep your final response concise and focused on fulfilling the task (e.g., a brief summary of findings or results).
   </TASK_EXECUTION>`;
 
-// Define precise types for Steel computer action payloads to avoid `as any`
 type Coordinates = [number, number];
 interface BaseActionRequest {
   screenshot?: boolean;
@@ -152,6 +151,54 @@ class Agent {
           .map((s) => s.trim())
           .filter(Boolean)
       : [];
+  }
+
+  private normalizeKey(key: string): string {
+    if (!key) return key;
+    const k = String(key).trim();
+    const upper = k.toUpperCase();
+    const synonyms: Record<string, string> = {
+      ENTER: "Enter",
+      RETURN: "Enter",
+      ESC: "Escape",
+      ESCAPE: "Escape",
+      TAB: "Tab",
+      BACKSPACE: "Backspace",
+      BKSP: "Backspace",
+      DELETE: "Delete",
+      DEL: "Delete",
+      SPACE: "Space",
+      CTRL: "Control",
+      CONTROL: "Control",
+      ALT: "Alt",
+      SHIFT: "Shift",
+      META: "Meta",
+      SUPER: "Meta",
+      CMD: "Meta",
+      COMMAND: "Meta",
+      UP: "ArrowUp",
+      DOWN: "ArrowDown",
+      LEFT: "ArrowLeft",
+      RIGHT: "ArrowRight",
+      ARROWUP: "ArrowUp",
+      ARROWDOWN: "ArrowDown",
+      ARROWLEFT: "ArrowLeft",
+      ARROWRIGHT: "ArrowRight",
+      HOME: "Home",
+      END: "End",
+      PAGEUP: "PageUp",
+      PAGEDOWN: "PageDown",
+      INSERT: "Insert",
+    };
+    if (upper in synonyms) return synonyms[upper];
+    if (upper.startsWith("F") && /^\d+$/.test(upper.slice(1))) {
+      return "F" + upper.slice(1);
+    }
+    return k;
+  }
+
+  private normalizeKeys(keys: string[]): string[] {
+    return keys.map((k) => this.normalizeKey(k));
   }
 
   async initialize(): Promise<void> {
@@ -296,9 +343,10 @@ class Agent {
       }
       case "hold_key": {
         const keys = this.splitKeys(text);
+        const normalized = this.normalizeKeys(keys);
         body = {
           action: "press_key",
-          keys,
+          keys: normalized,
           duration,
           screenshot: true,
         };
@@ -306,9 +354,10 @@ class Agent {
       }
       case "key": {
         const keys = this.splitKeys(text);
+        const normalized = this.normalizeKeys(keys);
         body = {
           action: "press_key",
-          keys,
+          keys: normalized,
           screenshot: true,
         };
         break;
