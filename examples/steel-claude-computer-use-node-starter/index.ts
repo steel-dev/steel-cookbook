@@ -52,6 +52,59 @@ const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   - Keep your final response concise and focused on fulfilling the task (e.g., a brief summary of findings or results).
   </TASK_EXECUTION>`;
 
+// Define precise types for Steel computer action payloads to avoid `as any`
+type Coordinates = [number, number];
+interface BaseActionRequest {
+  screenshot?: boolean;
+  hold_keys?: string[];
+}
+type MoveMouseRequest = BaseActionRequest & {
+  action: "move_mouse";
+  coordinates: Coordinates;
+};
+type ClickMouseRequest = BaseActionRequest & {
+  action: "click_mouse";
+  button: "left" | "right" | "middle";
+  coordinates: Coordinates;
+  num_clicks?: number;
+  click_type?: "down" | "up";
+};
+type DragMouseRequest = BaseActionRequest & {
+  action: "drag_mouse";
+  path: Coordinates[];
+};
+type ScrollRequest = BaseActionRequest & {
+  action: "scroll";
+  coordinates: Coordinates;
+  delta_x: number;
+  delta_y: number;
+};
+type PressKeyRequest = BaseActionRequest & {
+  action: "press_key";
+  keys: string[];
+  duration?: number;
+};
+type TypeTextRequest = BaseActionRequest & {
+  action: "type_text";
+  text: string;
+};
+type WaitRequest = BaseActionRequest & {
+  action: "wait";
+  duration: number;
+};
+type GetCursorPositionRequest = {
+  action: "get_cursor_position";
+};
+type ComputerActionRequest =
+  | MoveMouseRequest
+  | ClickMouseRequest
+  | DragMouseRequest
+  | ScrollRequest
+  | PressKeyRequest
+  | TypeTextRequest
+  | WaitRequest
+  | GetCursorPositionRequest;
+
 class Agent {
   private client: Anthropic;
   private steel: Steel;
@@ -141,35 +194,35 @@ class Agent {
     duration?: number,
     key?: string
   ): Promise<string> {
-    const coords =
+    const coords: Coordinates =
       coordinate && Array.isArray(coordinate) && coordinate.length === 2
         ? [coordinate[0], coordinate[1]]
         : this.center();
 
-    let body: Record<string, any> | null = null;
+    let body: ComputerActionRequest | null = null;
 
     switch (action) {
       case "mouse_move": {
+        const hk = this.splitKeys(key);
         body = {
           action: "move_mouse",
           coordinates: coords,
           screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        const hk = this.splitKeys(key);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "left_mouse_down":
       case "left_mouse_up": {
+        const hk = this.splitKeys(key);
         body = {
           action: "click_mouse",
           button: "left",
           click_type: action === "left_mouse_down" ? "down" : "up",
           coordinates: coords,
           screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        const hk = this.splitKeys(key);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "left_click":
@@ -177,7 +230,14 @@ class Agent {
       case "middle_click":
       case "double_click":
       case "triple_click": {
-        const buttonMap: Record<string, string> = {
+        const buttonMap: Record<
+          | "left_click"
+          | "right_click"
+          | "middle_click"
+          | "double_click"
+          | "triple_click",
+          "left" | "right" | "middle"
+        > = {
           left_click: "left",
           right_click: "right",
           middle_click: "middle",
@@ -186,20 +246,21 @@ class Agent {
         };
         const clicks =
           action === "double_click" ? 2 : action === "triple_click" ? 3 : 1;
+        const hk = this.splitKeys(key);
         body = {
           action: "click_mouse",
-          button: buttonMap[action],
+          button: buttonMap[action as keyof typeof buttonMap],
           coordinates: coords,
           screenshot: true,
+          ...(clicks > 1 ? { num_clicks: clicks } : {}),
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        if (clicks > 1) body.num_clicks = clicks;
-        const hk = this.splitKeys(key);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "left_click_drag": {
-        const [endX, endY] = coords as [number, number];
+        const [endX, endY] = coords;
         const [startX, startY] = this.center();
+        const hk = this.splitKeys(key);
         body = {
           action: "drag_mouse",
           path: [
@@ -207,29 +268,30 @@ class Agent {
             [endX, endY],
           ],
           screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        const hk = this.splitKeys(key);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "scroll": {
         const step = 100;
-        const map: Record<string, [number, number]> = {
+        type ScrollDir = "up" | "down" | "left" | "right";
+        const map: Record<ScrollDir, [number, number]> = {
           down: [0, step * (scrollAmount as number)],
           up: [0, -step * (scrollAmount as number)],
           right: [step * (scrollAmount as number), 0],
           left: [-(step * (scrollAmount as number)), 0],
         };
-        const [delta_x, delta_y] = map[scrollDirection as string];
+        const dir: ScrollDir = (scrollDirection || "down") as ScrollDir;
+        const [delta_x, delta_y] = map[dir];
+        const hk = this.splitKeys(text);
         body = {
           action: "scroll",
           coordinates: coords,
           delta_x,
           delta_y,
           screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        const hk = this.splitKeys(text);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "hold_key": {
@@ -252,19 +314,19 @@ class Agent {
         break;
       }
       case "type": {
+        const hk = this.splitKeys(key);
         body = {
           action: "type_text",
-          text,
+          text: text ?? "",
           screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
         };
-        const hk = this.splitKeys(key);
-        if (hk.length) body.hold_keys = hk;
         break;
       }
       case "wait": {
         body = {
           action: "wait",
-          duration,
+          duration: duration ?? 1000,
           screenshot: true,
         };
         break;
@@ -284,7 +346,7 @@ class Agent {
 
     const resp: any = await this.steel.sessions.computer(
       this.session!.id,
-      body! as any
+      body!
     );
     const img: string | undefined = resp?.base64_image;
     if (img) return img;
