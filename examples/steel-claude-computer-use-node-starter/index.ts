@@ -12,9 +12,7 @@ dotenv.config();
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 const ANTHROPIC_API_KEY =
   process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
-const TASK =
-  process.env.TASK ||
-  "Go to Wikipedia and search for machine learning, summarize the best answer";
+const TASK = process.env.TASK || "Go to Steel.dev and find the latest news";
 
 function formatToday(): string {
   return new Intl.DateTimeFormat("en-US", {

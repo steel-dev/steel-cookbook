@@ -1,14 +1,8 @@
-# Steel + OpenAI Computer Use Assistant in Node.js
+# Steel + OpenAI Computer Use Node.js Starter
 
-This example integrates Steel with OpenAI's Computer Use Assistant API to create a browser automation agent that reads tasks from environment variables and executes them autonomously.
+Connect OpenAI's Computer Use Assistant to a Steel browser session for autonomous web interactions.
 
-## Prerequisites
-
-- Steel API key — [Get one here](https://app.steel.dev/settings/api-keys)
-- OpenAI API key with Computer Use Assistant access
-- Node.js 18+
-
-## Installation
+## Setup
 
 ```bash
 git clone https://github.com/steel-dev/steel-cookbook
@@ -17,53 +11,36 @@ cd steel-cookbook/examples/steel-oai-computer-use-node-starter
 npm install
 ```
 
-## Setup
+Create `.env`:
 
-Create a `.env` file:
-
-```
+```env
 STEEL_API_KEY=your_steel_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
-TASK=Search for the latest news about artificial intelligence and summarize the top 3 articles
+TASK=Go to Steel.dev and find the latest news
 ```
+
+Get keys: [Steel](https://app.steel.dev/settings/api-keys) | [OpenAI](https://platform.openai.com/)
 
 ## Usage
 
 ```bash
-export TASK="Find the current weather in New York City"
+# Run with default task
 npm start
+
+# Custom task
+TASK="Find the current weather in New York City" npm start
 ```
 
-Or inline:
-
-```bash
-TASK="Go to Wikipedia and search for machine learning" npm start
-```
-
-## How it Works
+## How it works
 
 1. Creates a Steel browser session
-2. Uses OpenAI's Computer Use Assistant to analyze screenshots
-3. Executes browser actions (click, type, scroll) autonomously
-4. Provides task completion summary
+2. Takes screenshots, sends to OpenAI's Computer Use model
+3. Model analyzes and returns browser actions (click, type, scroll)
+4. Executes actions via Steel's Input API
+5. Repeats until task is complete
 
-The agent uses a specialized system prompt for single-task automation and includes safety checks, error handling, and iteration limits to prevent infinite loops.
+## Links
 
-## Configuration
-
-Customize the agent behavior:
-
-```typescript
-const agent = new Agent(
-  "computer-use-preview",
-  computer,
-  [],
-  true // Auto-acknowledge safety checks
-);
-```
-
-## Support
-
-- [Steel Documentation](https://docs.steel.dev)
-- [OpenAI Computer Use Documentation](https://platform.openai.com/docs/guides/computer-use)
-- [Discord Community](https://discord.gg/steel-dev)
+- [Steel docs](https://docs.steel.dev)
+- [OpenAI Computer Use](https://platform.openai.com/docs/guides/computer-use)
+- [Discord](https://discord.gg/steel-dev)

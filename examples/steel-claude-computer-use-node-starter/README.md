@@ -1,6 +1,6 @@
 # Steel + Claude Computer Use Node.js Starter
 
-Connect Claude to a Steel browser session for automated web interactions.
+Connect Claude to a Steel browser session for autonomous web interactions.
 
 ## Setup
 
@@ -16,6 +16,7 @@ Create `.env`:
 ```env
 STEEL_API_KEY=your_steel_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+TASK=Go to Steel.dev and find the latest news
 ```
 
 Get keys: [Steel](https://app.steel.dev/settings/api-keys) | [Anthropic](https://console.anthropic.com/)
@@ -23,35 +24,23 @@ Get keys: [Steel](https://app.steel.dev/settings/api-keys) | [Anthropic](https:/
 ## Usage
 
 ```bash
-# Default model
+# Run with default task
 npm start
 
-# Specific model
-npm start -- --model claude-3-7-sonnet-20250219
-
-# List models
-npm start -- --list-models
+# Custom task
+TASK="Find the current weather in New York City" npm start
 ```
 
 ## How it works
 
-1. Launches Steel browser session
-2. Takes screenshot, sends to Claude
-3. Claude analyzes and returns actions
-4. Executes actions in browser
-5. Repeat until done
-
-## Models
-
-| Model                        | Notes            |
-| ---------------------------- | ---------------- |
-| `claude-3-5-sonnet-20241022` | Stable (default) |
-| `claude-3-7-sonnet-20250219` | Newer features   |
-| `claude-sonnet-4-20250514`   | Latest           |
-| `claude-opus-4-20250514`     | Most capable     |
+1. Creates a Steel browser session
+2. Takes screenshots, sends to Claude
+3. Claude analyzes and returns browser actions (click, type, scroll)
+4. Executes actions via Steel's Input API
+5. Repeats until task is complete
 
 ## Links
 
 - [Steel docs](https://docs.steel.dev)
-- [Anthropic docs](https://docs.anthropic.com)
-- [Discord](https://discord.gg/steel)
+- [Anthropic Computer Use](https://docs.anthropic.com/claude/docs/computer-use)
+- [Discord](https://discord.gg/steel-dev)

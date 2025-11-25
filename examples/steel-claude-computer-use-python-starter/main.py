@@ -19,10 +19,7 @@ load_dotenv(override=True)
 
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "your-anthropic-api-key-here"
-TASK = (
-    os.getenv("TASK")
-    or "Go to Google and search for machine learning, summarize the best answer"
-)
+TASK = os.getenv("TASK") or "Go to Steel.dev and find the latest news"
 
 
 def format_today() -> str:
