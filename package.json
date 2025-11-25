@@ -42,9 +42,9 @@
     "@cloudflare/workers-types": "^4.20250430.0",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^24.0.14",
+    "@types/semver": "^7.5.8",
     "cross-spawn": "^7.0.6",
     "mri": "^1.2.0",
-    "@types/semver": "^7.5.8",
     "picocolors": "^1.1.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
@@ -67,8 +67,8 @@
     "remark-rehype": "^11.1.2",
     "remark-smartypants": "^3.0.2",
     "remark-unwrap-images": "^4.0.1",
+    "semver": "^7.6.3",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0",
-    "semver": "^7.6.3"
+    "unist-util-visit": "^5.0.0"
   }
 }
