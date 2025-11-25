@@ -1,86 +1,110 @@
 # Steel Cookbook & Starter Projects
 
-This repository contains official starter projects and recipes for building web automations with Steel. It is also the home of `create-steel-app`, a CLI tool that helps you quickly set up new Steel projects.
+Official starter projects and recipes for building web automations with Steel. This repository is also home to `create-steel-app`, a CLI tool for quickly scaffolding new Steel projects.
 
 ## Quick Start
-
-The fastest way to get started with Steel & any of these recipes is using `create-steel-app`. Simply run:
 
 ```bash
 npx create-steel-app@latest
 ```
 
-Then follow the prompts!
-
-Works with pure Python projects too as long as you have a node package manager (like `npm`) installed.
-
-Using a different package manager? See detailed installation instructions below.
+Follow the prompts to select your preferred framework. Works with Python projects too—just need a Node package manager installed.
 
 ## Starter Projects
 
-Choose the starter that matches your preferred automation framework:
+### Browser Automation
 
-### JavaScript/TypeScript
+**JavaScript/TypeScript**
 
-- [Steel + Puppeteer Starter](examples/steel-puppeteer-starter) - Use Steel with Puppeteer
-- [Steel + Playwright Starter](examples/steel-playwright-starter) - Use Steel with Playwright
-- [Reusing auth state between sessions](examples/reuse_auth_context_example) - Example script that uses Steel's context endpoint to reuse browser state between sessions to, in this case, stay logged into a website.
-- [Steel + OpenAI CUA Starter (Node)](examples/steel-oai-computer-use-node-starter/) - Simple command line app that allows OpenAI's computer-use agent to accept a user task then execute it in a Steel browser session.
-- [Steel Files API Starter](examples/steel-files-api-starter/) - Use Steel Files API
+- [Steel + Playwright](examples/steel-playwright-starter) - Playwright with TypeScript
+- [Steel + Playwright (JS)](examples/steel-playwright-starter-js) - Playwright with JavaScript
+- [Steel + Puppeteer](examples/steel-puppeteer-starter) - Puppeteer with TypeScript
+- [Steel + Puppeteer (JS)](examples/steel-puppeteer-starter-js) - Puppeteer with JavaScript
+- [Steel + Stagehand](examples/steel-stagehand-node-starter) - AI-powered browser automation with Stagehand
 
-### Python
+**Python**
 
-- [Steel + Playwright Python Starter](examples/steel-playwright-python-starter) - Use Steel with Playwright in Python
-- [Steel + Selenium Starter](examples/steel-selenium-starter) - Use Steel with Selenium in Python
-- [Steel + Browser Use Starter](examples/steel-browser-use-starter) - Use [Browser-use](https://github.com/browser-use/browser-use) to let an agent interact with a Steel Session
-- [Steel + OpenAI CUA Starter (Python)](examples/steel-oai-computer-use-python-starter/) - Simple command line app that allows OpenAI's computer-use agent to accept a user task then execute it in a Steel browser session.
+- [Steel + Playwright](examples/steel-playwright-python-starter) - Playwright with Python
+- [Steel + Selenium](examples/steel-selenium-starter) - Selenium with Python
+- [Steel + Stagehand](examples/steel-stagehand-python-starter) - Stagehand with Python
 
-## Create Steel App - Detailed Instructions
+### AI Computer Use Agents
 
-`create-steel-app` is a command-line tool that helps you bootstrap Steel projects with your preferred automation framework.
+**JavaScript/TypeScript**
 
-Compatible with Node.js versions 18.0.0+, 20.0.0+, and 22.0.0+.
+- [Steel + Claude Computer Use](examples/steel-claude-computer-use-node-starter) - Anthropic Claude computer use
+- [Steel + Claude Computer Use (Mobile)](examples/steel-claude-computer-use-mobile) - Claude computer use for mobile viewports
+- [Steel + OpenAI Computer Use](examples/steel-oai-computer-use-node-starter) - OpenAI computer use agent
+- [Steel + Gemini Computer Use](examples/steel-gemini-computer-use-node-starter) - Google Gemini computer use
 
-### Installation with Various Package Managers
+**Python**
+
+- [Steel + Claude Computer Use](examples/steel-claude-computer-use-python-starter) - Anthropic Claude computer use
+- [Steel + OpenAI Computer Use](examples/steel-oai-computer-use-python-starter) - OpenAI computer use agent
+- [Steel + Gemini Computer Use](examples/steel-gemini-computer-use-python-starter) - Google Gemini computer use
+- [Steel + Browser Use](examples/steel-browser-use-starter) - [Browser-use](https://github.com/browser-use/browser-use) agent framework
+- [Steel + Browser Use + Captcha Solver](examples/steel-browser-use-captcha-solver-starter) - Browser-use with captcha solving
+
+### AI Agent Frameworks
+
+**JavaScript/TypeScript**
+
+- [Steel + Agent Kit](examples/steel-agent-kit-starter) - Coinbase AgentKit integration
+- [Steel + Magnitude](examples/steel-magnitude-starter) - Magnitude AI testing framework
+
+**Python**
+
+- [Steel + Agno](examples/steel-agno-starter) - Agno agent framework
+- [Steel + CrewAI](examples/steel-crew-ai-starter) - CrewAI multi-agent framework
+- [Steel + Notte](examples/steel-notte-starter) - Notte browser agent
+
+### Steel Features
+
+- [Auth Context](examples/steel-auth-context-starter) - Reuse browser state between sessions
+- [Credentials](examples/steel-credentials-starter) - Manage and inject credentials
+- [Extensions](examples/steel-extensions-starter) - Load browser extensions
+- [Files API](examples/steel-files-api-starter) - Upload and download files
+- [Profiles](examples/steel-profiles-starter) - Persistent browser profiles
+
+## Create Steel App
+
+Bootstrap projects with your preferred framework using `create-steel-app`.
+
+**Requirements:** Node.js 18+
+
+### Package Managers
 
 ```bash
-# Using npm
 npm create steel-app@latest
-
-# Using yarn
 yarn create steel-app
-
-# Using pnpm
 pnpm create steel-app
-
-# Using bun
 bun create steel-app
 ```
 
 ### Direct Template Usage
 
-You can also directly specify the project name and the template you want to use via additional command line options. For example, to scaffold a Steel + Playwright project with TypeScript, run:
+Skip the prompts by specifying a template directly:
 
 ```bash
-# npm 7+, extra double-dash is needed:
-npm create steel-app@latest my-steel-app -- --template steel-playwright-starter
+# npm 7+ (extra double-dash needed)
+npm create steel-app@latest my-project -- --template steel-playwright-starter
 
 # yarn
-yarn create steel-app my-steel-app --template steel-playwright-starter
+yarn create steel-app my-project --template steel-playwright-starter
 
 # pnpm
-pnpm create steel-app my-steel-app --template steel-playwright-starter
+pnpm create steel-app my-project --template steel-playwright-starter
 
-# Bun
-bun create steel-app my-steel-app --template steel-playwright-starter
+# bun
+bun create steel-app my-project --template steel-playwright-starter
 ```
 
 ## Contributing
 
-See our [Contributing Guide](CONTRIBUTING.md) for information on adding new recipes and examples.
+See the [Contributing Guide](CONTRIBUTING.md) for information on adding new recipes.
 
 ## Support
 
 - [Documentation](https://docs.steel.dev)
 - [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/steel-dev)
+- [Discord](https://discord.gg/steel-dev)
