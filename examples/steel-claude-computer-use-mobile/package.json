@@ -21,8 +21,7 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
-    "steel_preview": "github:stainless-sdks/steel_preview-node",
-    "steel-sdk": "^0.10",
+    "steel-sdk": "^0.15.0",
     "typescript": "^5.6.3"
   },
   "devDependencies": {
