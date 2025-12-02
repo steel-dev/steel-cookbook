@@ -131,146 +131,40 @@ export interface MultiQuerySearchResult {
   _raw?: unknown;
 }
 
-/**
- * Generate 3 specific, high-signal search queries with OpenAI,
- * run them against Brave Search (1s staggered),
- * and rank URLs by a combination of frequency and position across results.
- *
- * Scoring: Reciprocal Rank Sum (1/rank) across queries.
- * Ties broken by total occurrences then by best (lowest) rank.
- */
-export async function multiQueryBraveSearch(
+export async function singleQueryBraveSearch(
   userQuery: string,
   topKPerQuery = config.search.topK,
 ): Promise<MultiQuerySearchResult> {
   const spinner = ora("Searching...").start();
-  // 1) Ask OpenAI to produce exactly 3 queries as strict JSON.
-  const prompt = [
-    "You are a search strategist.",
-    "Given the user's query, generate exactly 3 search queries that maximize the likelihood of finding relevant, recent, and factual information.",
-    "Avoid generic questions; use specific keywords.",
-    "",
-    "Return strict JSON with this shape:",
-    '{ "queries": ["...", "...", "..."] }',
-    "",
-    `User query: ${userQuery}`,
-  ].join("\n");
+  const normalizedQuery = userQuery.trim() || userQuery;
+  const queries = [normalizedQuery];
 
-  const completion = await openai.chat.completions.create({
-    model: config.openai.model,
-    messages: [
-      { role: "system", content: "You produce JSON only. No prose." },
-      { role: "user", content: prompt },
-    ],
-  });
-
-  const rawContent =
-    completion.choices?.[0]?.message?.content?.trim() ?? '{"queries": []}';
-
-  let queries: string[] = [];
   try {
-    const parsed = JSON.parse(rawContent);
-    if (Array.isArray(parsed?.queries)) {
-      queries = parsed.queries.map((q: unknown) =>
-        typeof q === "string" ? q.trim() : "",
-      );
-    }
-  } catch {
-    // Fallback: split lines
-    queries = rawContent
-      .split("\n")
-      .map((l) => l.replace(/^[-*\d.)\s]+/, "").trim())
-      .filter(Boolean)
-      .slice(0, 3);
-  }
+    const { urls } = await searchTopRelevantUrls(
+      normalizedQuery,
+      topKPerQuery ?? config.search.topK,
+    );
 
-  // Ensure exactly 3 queries, fall back to the original user query variations if needed
-  queries = Array.from(
-    new Set(
-      queries
-        .filter(Boolean)
-        .map((q) => q.replace(/\s+/g, " ").trim())
-        .slice(0, 3),
-    ),
-  );
-  while (queries.length < 3) {
-    if (queries.length === 0) queries.push(userQuery);
-    else queries.push(`${userQuery} ${queries.length + 1}`);
-  }
-  queries = queries.slice(0, 3);
+    spinner.succeed("Search complete");
 
-  // 2) For each query, call Brave Search with a 1s delay between calls.
-  const perQueryUrls: string[][] = [];
-  for (let i = 0; i < queries.length; i++) {
-    const q = queries[i];
-    if (q == null) {
-      perQueryUrls.push([]);
-      continue;
-    }
-    if (i > 0) {
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    try {
-      const { urls } = await searchTopRelevantUrls(
-        q,
-        topKPerQuery ?? config.search.topK,
-      );
-      perQueryUrls.push(urls);
-    } catch (err) {
-      console.warn("Brave search failed for generated query", {
-        query: q,
-        err: (err as Error)?.message,
-      });
-      perQueryUrls.push([]);
-    }
-  }
-
-  // 3) Rank aggregation: reciprocal rank sum + frequency and best rank tiebreakers
-  type Acc = {
-    score: number;
-    occurrences: number;
-    ranks: number[];
-  };
-  const scores = new Map<string, Acc>();
-
-  perQueryUrls.forEach((urls) => {
-    urls.forEach((u, idx) => {
-      const url = u.trim();
-      if (!url) return;
-      const rank = idx + 1; // 1-based
-      const inc = 1 / rank; // reciprocal rank
-      const prev = scores.get(url) ?? { score: 0, occurrences: 0, ranks: [] };
-      prev.score += inc;
-      prev.occurrences += 1;
-      prev.ranks.push(rank);
-      scores.set(url, prev);
-    });
-  });
-
-  // 4) Deduplicate and sort
-  const ranked: RankedUrl[] = Array.from(scores.entries())
-    .map(([url, acc]) => ({
-      url,
-      score: acc.score,
-      occurrences: acc.occurrences,
-      ranks: acc.ranks.sort((a, b) => a - b),
-    }))
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score; // primary: score
-      if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences; // secondary: frequency
-      // tertiary: best (lowest) rank
-      const aBest = a.ranks[0] ?? Number.POSITIVE_INFINITY;
-      const bBest = b.ranks[0] ?? Number.POSITIVE_INFINITY;
-      return aBest - bBest;
+    return {
+      queries,
+      urls,
+      _raw: { perQueryUrls: [urls] },
+    };
+  } catch (err) {
+    spinner.fail("Search failed");
+    console.warn("Brave search failed for query", {
+      query: normalizedQuery,
+      err: (err as Error)?.message,
     });
 
-  spinner.succeed("Search complete");
-
-  return {
-    queries,
-    urls: ranked.map((url) => url.url),
-    _raw: { openai: completion, perQueryUrls },
-  };
+    return {
+      queries,
+      urls: [],
+      _raw: { error: err },
+    };
+  }
 }
 
 // ---------- Steel.dev Scraper ----------
@@ -346,7 +240,10 @@ export async function scrapeUrlToMarkdown(
   url: string,
 ): Promise<ScrapeResult | null> {
   try {
-    const client = new Steel({ steelAPIKey: config.steel.apiKey });
+    const client = new Steel({
+      steelAPIKey: config.steel.apiKey,
+      timeout: config.requestTimeoutMs,
+    });
 
     const res = await client.scrape({
       url,
@@ -371,7 +268,7 @@ export async function scrapeUrlToMarkdown(
  */
 export async function scrapeUrlsToMarkdown(
   urls: string[],
-  concurrency = 2,
+  concurrency = 5,
   topK = 10,
 ): Promise<ScrapeResult[]> {
   const spinner = ora("Scraping URLs...").start();
@@ -387,7 +284,6 @@ export async function scrapeUrlsToMarkdown(
         if (scraped) {
           results.push(scraped);
         }
-        setTimeout(() => {}, config.steel.timeout); // Can only do 20 requests per minute on hobby plan
       } catch (err) {
         console.warn("Failed to scrape URL", {
           url: next,

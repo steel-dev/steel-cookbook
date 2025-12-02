@@ -4,16 +4,6 @@ import { z } from "zod";
 // Load environment variables from .env files into process.env as early as possible
 dotenv.config();
 
-const logLevels = [
-  "fatal",
-  "error",
-  "warn",
-  "info",
-  "debug",
-  "trace",
-  "silent",
-] as const;
-
 const envSchema = z.object({
   // Runtime
   NODE_ENV: z
@@ -28,8 +18,6 @@ const envSchema = z.object({
     .transform((v) => (v ? v : undefined)),
   // A cost-effective model with websearch capability enabled via tool usage at runtime
   OPENAI_MODEL: z.string().default("gpt-5-nano"),
-  // Feature flag to enable web search where supported
-  OPENAI_ENABLE_WEB_SEARCH: z.coerce.boolean().default(true),
 
   // Steel.dev
   STEEL_API_KEY: z.string().min(1, "STEEL_API_KEY is required"),
@@ -37,7 +25,6 @@ const envSchema = z.object({
     .string()
     .url()
     .default("https://api.steel.dev/v1/scrape"),
-  STEEL_TIMEOUT: z.coerce.number().int().min(1).default(3000),
 
   // Brave Search
   BRAVE_API_KEY: z.string().min(1, "BRAVE_API_KEY is required"),
@@ -51,8 +38,8 @@ const envSchema = z.object({
 
   // Search behavior
   SEARCH_TOP_K: z.coerce.number().int().min(1).default(10),
-  REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1).default(30000),
-  CONCURRENCY: z.coerce.number().int().min(1).default(2),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1).default(5000),
+  CONCURRENCY: z.coerce.number().int().min(1).default(5),
   QUERY: z
     .string()
     .default(
@@ -96,14 +83,12 @@ export const config = {
     apiKey: env.OPENAI_API_KEY,
     orgId: env.OPENAI_ORG_ID,
     model: env.OPENAI_MODEL,
-    enableWebSearch: env.OPENAI_ENABLE_WEB_SEARCH,
   },
 
   // Steel.dev
   steel: {
     apiKey: env.STEEL_API_KEY,
     scrapeEndpoint: env.STEEL_SCRAPE_ENDPOINT,
-    timeout: env.STEEL_TIMEOUT,
   },
   // Brave Search
   brave: {

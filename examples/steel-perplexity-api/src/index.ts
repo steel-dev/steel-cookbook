@@ -2,7 +2,7 @@ import { config } from "./config";
 import {
   scrapeUrlsToMarkdown,
   synthesizeWithCitations,
-  multiQueryBraveSearch,
+  singleQueryBraveSearch,
 } from "./clients";
 
 type SearchResponse = {
@@ -25,18 +25,14 @@ async function main() {
   console.log("Searching for: ", query);
 
   // 1) Use Brave to get top relevant URLs (do double to get more relevant results to search)
-  const { urls } = await multiQueryBraveSearch(query, topK * 2);
-  // const searchRes = await searchTopRelevantUrls(query, requestedTopK * 2);
-  // const urls = (searchRes.urls || []).slice(0, requestedTopK * 2);
-
-  // console.log(urls, urls.length);
+  const { urls } = await singleQueryBraveSearch(query, topK * 2);
 
   if (urls.length === 0) {
     return console.error("No URLs found for the given query.");
   }
 
   // 2) Scrape each URL into markdown using Steel.dev
-  const materials = await scrapeUrlsToMarkdown(urls, concurrency, topK);
+  const materials = await scrapeUrlsToMarkdown(urls, concurrency);
 
   if (materials.length === 0) {
     console.error("Failed to scrape all URLs. Try again or refine your query.");
