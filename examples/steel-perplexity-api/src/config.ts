@@ -52,15 +52,6 @@ const envSchema = z.object({
 
 type Env = z.infer<typeof envSchema>;
 
-function parseCorsOrigins(input: string): string[] {
-  // If wildcard, keep as ['*'] for downstream consumers to handle properly.
-  if (input.trim() === "*") return ["*"];
-  return input
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   const formatted = parsed.error.issues
@@ -110,12 +101,6 @@ export const config = {
   query: env.QUERY,
   // Concurrency
   concurrency: env.CONCURRENCY,
-
-  // CORS
-  cors: {
-    raw: env.CORS_ORIGINS,
-    origins: parseCorsOrigins(env.CORS_ORIGINS),
-  },
 } as const;
 
 export type AppConfig = typeof config;
@@ -129,6 +114,5 @@ export function getSanitizedConfig(): Record<string, unknown> {
     env: config.env,
     search: config.search,
     requestTimeoutMs: config.requestTimeoutMs,
-    cors: config.cors,
   };
 }
