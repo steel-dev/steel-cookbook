@@ -7,7 +7,7 @@ import ora from "ora";
  * Centralized OpenAI and Steel.dev clients and helpers.
  *
  * Responsibilities:
- * - searchTopRelevantUrls: Use an economical OpenAI model to produce top-K relevant URLs (JSON)
+ * - searchTopRelevantUrls: Use Brave Search API to return URLs
  * - scrapeUrlsToMarkdown: Use Steel.dev scrape API to get Markdown for each URL
  * - synthesizeWithCitations: Use OpenAI to synthesize an answer from scrapes with inline citations
  */
@@ -43,8 +43,6 @@ async function fetchWithTimeout(
 
 export interface UrlSearchResult {
   urls: string[];
-  // Raw model output (for debugging or logging)
-  _raw?: unknown;
 }
 
 /**
@@ -111,7 +109,6 @@ export async function searchTopRelevantUrls(
 
   return {
     urls: normalized,
-    _raw: data,
   };
 }
 
@@ -127,8 +124,6 @@ export interface RankedUrl {
 export interface MultiQuerySearchResult {
   queries: string[];
   urls: string[];
-  // Raw OpenAI generation and Brave responses for debugging
-  _raw?: unknown;
 }
 
 export async function singleQueryBraveSearch(
@@ -150,7 +145,6 @@ export async function singleQueryBraveSearch(
     return {
       queries,
       urls,
-      _raw: { perQueryUrls: [urls] },
     };
   } catch (err) {
     spinner.fail("Search failed");
@@ -162,7 +156,6 @@ export async function singleQueryBraveSearch(
     return {
       queries,
       urls: [],
-      _raw: { error: err },
     };
   }
 }
@@ -177,16 +170,12 @@ export interface ScrapeResult {
 
 export interface SteelScrapeRequest {
   url: string;
-  // Many scraping APIs accept an output/format parameter for markdown.
-  // Using a generic "format" to request markdown; if Steel requires a different key, adjust as needed.
   format?: Array<"markdown" | "html" | "text">;
   screenshot?: boolean;
   pdf?: boolean;
   delay?: number;
   useProxy?: boolean;
   region?: string;
-  // Optional flags for future extension
-  // [key: string]: unknown;
 }
 
 export interface SteelScrapeResponse {
@@ -317,8 +306,6 @@ export interface SynthesisInput {
 export interface SynthesisOutput {
   answer: string;
   sources: Array<{ index: number; url: string }>;
-  // raw model message for debugging
-  _raw?: unknown;
 }
 
 /**
@@ -464,6 +451,5 @@ export async function synthesizeWithCitations(
   return {
     answer,
     sources,
-    _raw: completion,
   };
 }
