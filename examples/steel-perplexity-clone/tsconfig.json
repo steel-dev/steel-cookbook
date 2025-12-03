@@ -22,6 +22,6 @@
     "incremental": true,
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo"
   },
-  "include": ["src", "config.ts"],
+  "include": ["config.ts", "index.ts", "clients.ts"],
   "exclude": ["node_modules", "dist"]
 }
