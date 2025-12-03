@@ -54,7 +54,6 @@ async function main() {
     meta: { tookMs },
   };
 
-  // console.log(response);
   return response;
 }
 

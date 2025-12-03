@@ -32,15 +32,11 @@ npm install
 - OPENAI_MODEL: Model used for search + synthesis (default: gpt-5-nano)
 
 - STEEL_API_KEY: Your Steel.dev API key (required)
-- STEEL_SCRAPE_ENDPOINT: Steel.dev scrape endpoint (default: https://api.steel.dev/v1/scrape)
-- STEEL_TIMEOUT: Tiemout in between scrape requests
 
 - SEARCH_TOP_K: Maximum number of URLs to search/scrape (default: 3, min: 1, max: 10)
 - REQUEST_TIMEOUT_MS: Timeout for outbound requests (default: 30000)
 
 - QUERY: What you want to search for
-
-- CORS_ORIGINS: Comma-separated list of allowed origins or * (default: *)
 
 Example .env:
 ~~~env
@@ -55,9 +51,7 @@ STEEL_API_KEY=steel_...
 QUERY="How do prediction markets provide hedging oppurtunities and potential liquidity against broader market positions?"
 
 SEARCH_TOP_K=3
-REQUEST_TIMEOUT_MS=30000
-
-CORS_ORIGINS=*
+REQUEST_TIMEOUT_MS=5000
 ~~~
 
 Request body:
@@ -68,26 +62,13 @@ QUERY: "What are the latest improvements in WebAssembly and their benefits?"
 - query: string (required)
 
 Response:
-~~~json
-{
-  "query": "What are the latest improvements in WebAssembly and their benefits?",
-  "requestedTopK": 3,
-  "urls": [
-    "https://example.com/article-1",
-    "https://example.com/article-2",
-    "https://example.com/article-3"
-  ],
-  "materialsCount": 3,
-  "answer": "Recent WebAssembly updates improved component model support and tooling, enabling easier interop and faster iterations [1][2]. The benefits include smaller bundles, better portability, and improved performance for non-JS languages targeting the web [2][3].",
-  "citations": [
-    { "index": 1, "url": "https://example.com/article-1" },
-    { "index": 2, "url": "https://example.com/article-2" },
-    { "index": 3, "url": "https://example.com/article-3" }
-  ],
-  "model": "gpt-5-nano",
-  "meta": { "tookMs": 12345 }
-}
-~~~
+```bash
+✔ Search complete
+✔ Scraping complete
+✔ Answer synthesized
+
+Prediction markets offer a practical way to hedge specific risks and to add liquidity to broader market positions by turning uncertain outcomes into tradable, cash-settled contracts. Their price signals aggregate diverse information in real time, creating hedging tools and a more liquid trading environment than many traditional markets. [1]
+...
 
 ## How it works
 

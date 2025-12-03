@@ -21,10 +21,6 @@ const envSchema = z.object({
 
   // Steel.dev
   STEEL_API_KEY: z.string().min(1, "STEEL_API_KEY is required"),
-  STEEL_SCRAPE_ENDPOINT: z
-    .string()
-    .url()
-    .default("https://api.steel.dev/v1/scrape"),
 
   // Brave Search
   BRAVE_API_KEY: z.string().min(1, "BRAVE_API_KEY is required"),
@@ -45,9 +41,6 @@ const envSchema = z.object({
     .default(
       "How do prediction markets provide hedging opportunities and potential liquidity against broader market positions?",
     ),
-
-  // CORS
-  CORS_ORIGINS: z.string().default("*"),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -79,7 +72,6 @@ export const config = {
   // Steel.dev
   steel: {
     apiKey: env.STEEL_API_KEY,
-    scrapeEndpoint: env.STEEL_SCRAPE_ENDPOINT,
   },
   // Brave Search
   brave: {
