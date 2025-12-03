@@ -9,7 +9,7 @@
   },
   "type": "commonjs",
   "scripts": {
-    "start": "tsx src/index.ts"
+    "start": "tsx index.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
