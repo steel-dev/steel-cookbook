@@ -112,8 +112,6 @@ export async function searchTopRelevantUrls(
   };
 }
 
-// ---------- Multi-query Brave Search ----------
-
 export interface RankedUrl {
   url: string;
   score: number;
