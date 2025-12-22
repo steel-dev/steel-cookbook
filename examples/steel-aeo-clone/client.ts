@@ -15,9 +15,7 @@ export type ProviderKey =
   | "qwen"
   | "perplexity"
   | "grok"
-  | "meta"
   | "gemini"
-  | "google_overview"
   | "claude";
 
 export interface ProviderSpec {
@@ -48,7 +46,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
     openrouterModel: "qwen/qwen3-vl-8b-instruct",
     inputSelectors: ['textarea[id="chat-input"]', ...DefaultSelectors.input],
     outputSelectors: [
-      'div[class="response-message-content"]',
+      'div[class="chat-response-message"]',
       // ...DefaultSelectors.output,
     ],
   },
@@ -72,25 +70,8 @@ export const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
       ...DefaultSelectors.input,
     ],
     outputSelectors: [
-      'div[id*="response"]',
+      'div[class*="m"]',
       // ...DefaultSelectors.output
-    ],
-  },
-  meta: {
-    key: "meta",
-    name: "Meta AI",
-    url: "https://www.meta.ai/",
-    openrouterModel: "meta-llama/llama-4-scout",
-    inputSelectors: [
-      "textarea",
-      '[contenteditable="true"]',
-      ...DefaultSelectors.input,
-    ],
-    outputSelectors: [
-      "main",
-      '[role="main"]',
-      "article",
-      ...DefaultSelectors.output,
     ],
   },
   gemini: {
@@ -107,13 +88,6 @@ export const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
       // ...DefaultSelectors.output,
     ],
   },
-  google_overview: {
-    key: "google_overview",
-    name: "Google AI Overview",
-    url: "https://www.google.com",
-    inputSelectors: [...DefaultSelectors.input],
-    outputSelectors: [...DefaultSelectors.output],
-  },
   claude: {
     key: "claude",
     name: "Claude",
@@ -129,12 +103,11 @@ export const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
  */
 export const DEFAULT_AUTOMATION_PROVIDERS: ProviderKey[] = [
   "chatgpt",
-  "gemini",
-  "qwen",
+  // "gemini",
+  // "qwen",
   "grok",
-  "claude",
-  "perplexity",
-  // "meta",
+  // "claude",
+  // "perplexity",
 ];
 
 /**

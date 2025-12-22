@@ -288,7 +288,7 @@ async function waitForResponseContent(
   let bestText = "";
 
   // Minimal grace period to let response start rendering
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(15000);
 
   while (Date.now() - start < timeoutMs) {
     // Try to read content from any of the selectors
