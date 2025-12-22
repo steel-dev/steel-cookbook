@@ -103,11 +103,11 @@ export const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
  */
 export const DEFAULT_AUTOMATION_PROVIDERS: ProviderKey[] = [
   "chatgpt",
-  // "gemini",
-  // "qwen",
+  "gemini",
+  "qwen",
   "grok",
-  // "claude",
-  // "perplexity",
+  "claude",
+  "perplexity",
 ];
 
 /**
