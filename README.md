@@ -1,6 +1,6 @@
 [![Documentation](https://img.shields.io/badge/doc-reference-blue)](https://docs.steel.dev)
 [![Discord](https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=fff)](https://discord.gg/steel-dev)
-[![X](https://img.shields.io/twitter/follow/steel_dev.svg?style=social&label=Follow)](https://x.com/intent/follow?screen_name=steel_dev)
+[![X](https://img.shields.io/twitter/follow/steel_dev.svg?style=social&label=Follow)](https://x.com/intent/follow?screen_name=steeldotdev)
 
 # Steel Cookbook
 
@@ -213,7 +213,7 @@ Stay connected with the Steel community:
 
 - **[Discord](https://discord.gg/steel-dev)** - Get help, share feedback, and connect with other developers
 - **[Documentation](https://docs.steel.dev)** - Comprehensive guides and API reference
-- **[X/Twitter](https://x.com/steel_dev)** - Stay updated with the latest news and features
+- **[X/Twitter](https://x.com/steeldotdev)** - Stay updated with the latest news and features
 
 This is the perfect place to ask questions, share your automations, and learn from the community!
 
