@@ -1,0 +1,4 @@
+steel-sdk>=0.16.0
+browser-use==0.11.9
+python-dotenv>=1.0.0
+asyncio>=3.4.3
