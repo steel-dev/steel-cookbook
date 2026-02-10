@@ -95,7 +95,7 @@ def _log_task_status(task: Dict[str, Any], page_url: str) -> None:
         "but not solved. Returns once the reCAPTCHA v2 is solved or a timeout is reached."
     )
 )
-def solve_recaptcha_v2_manual() -> str:
+async def solve_recaptcha_v2_manual() -> str:
     """
     Poll Steel's CAPTCHA status endpoint, detect reCAPTCHA v2 tasks,
     manually trigger solve, and wait for completion.
@@ -115,7 +115,7 @@ def solve_recaptcha_v2_manual() -> str:
         f"   Max attempts: {MAX_POLL_ATTEMPTS} | Interval: {POLL_INTERVAL_SECS}s\n")
 
     for attempt in range(1, MAX_POLL_ATTEMPTS + 1):
-        time.sleep(POLL_INTERVAL_SECS)
+        await asyncio.sleep(POLL_INTERVAL_SECS)
 
         try:
             status_response = client.sessions.captchas.status(session_id)
@@ -301,7 +301,7 @@ async def main() -> None:
         model = ChatGoogle(
             model="gemini-3-pro-preview",
             temperature=0.3,
-            api_key=os.environ.get("GEMINI_API_KEY"),
+            api_key=GEMINI_API_KEY,
         )
 
         agent = Agent(
