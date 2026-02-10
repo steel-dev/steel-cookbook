@@ -6,7 +6,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 
 - Seamless integration between Steel and browser-use
 - Cloud-based browser automation with Steel sessions
-- AI-powered browser interaction using OpenAI GPT-4o
+- AI-powered browser interaction using Google Gemini
 - Captcha Solving capabilities with Steel
 - Automatic cleanup of resources
 - Robust error handling and session management
@@ -16,7 +16,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 - Python 3.11 or higher
 - Python package manager (Recommended `uv`: `pip install uv`)
 - Steel API key (Get 100 free browser hours [here.](https://app.steel.dev/sign-up))
-- OpenAI API key
+- Gemini API key
 
 ## Installation
 
@@ -52,7 +52,7 @@ This example demonstrates how to integrate Steel with the [browser-use](https://
 
    ```env
    STEEL_API_KEY=your_steel_api_key_here
-   OPENAI_API_KEY=your_openai_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
 ## Usage
@@ -79,7 +79,7 @@ The script will:
 3. **AI Agent Setup**: A browser-use Agent is created with:
 
    - The specified task
-   - OpenAI GPT-4o language model
+   - Google Gemini language model
    - Browser instance connected to Steel
    - Captcha Solving tools
 
@@ -106,7 +106,7 @@ You can modify the example by:
 2. Adjusting Steel session parameters
 3. Configuring different browser-use settings
 4. Adjusting Steel Captcha solving tools
-5. Using a different OpenAI model or adjusting model parameters
+5. Using a different model or adjusting model parameters
 
 ## Contributing
 
