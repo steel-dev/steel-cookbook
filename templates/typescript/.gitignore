@@ -1,0 +1,8 @@
+.env
+.env.test.local
+node_modules/
+out/
+*.log
+coverage/
+vitest.config.ts.snap
+
