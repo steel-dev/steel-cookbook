@@ -1,5 +1,13 @@
 """
-Tool call example for browser-use 0.7.7. Based on https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use-starter
+Steel + Browser-Use: Automatic CAPTCHA Solver
+
+This example demonstrates how to automatically solve CAPTCHAs using Steel's CAPTCHA
+solving capabilities with the browser-use framework.
+
+When the agent encounters a CAPTCHA, it can call the wait_for_captcha_solution tool
+which will automatically wait for Steel to solve the CAPTCHA before proceeding.
+
+Based on: https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use-starter
 """
 
 import os
@@ -9,23 +17,23 @@ import asyncio
 from dotenv import load_dotenv
 from steel import Steel
 from browser_use import Agent, BrowserSession, Tools
-from browser_use.llm import ChatOpenAI
-# from session_store import SESSION_CACHE
+from browser_use.llm import ChatGoogle
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 load_dotenv()
 
 # Replace with your own API keys
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 
 # Replace with your own task
 TASK = """
-1. Go to https://recaptcha-demo.appspot.com/recaptcha-v2-checkbox.php
-2. If you see a CAPTCHA box, use the wait_for_captcha_solution tool to solve it
-3. Once the CAPTCHA is solved, submit the form
-4. Return the result
+1. Navigate to https://recaptcha-demo.appspot.com/recaptcha-v2-checkbox.php
+2. When you encounter a CAPTCHA (you'll see a checkbox or challenge), call the wait_for_captcha_solution tool
+3. The tool will automatically wait for the CAPTCHA to be solved by Steel
+4. After the CAPTCHA is solved (the tool returns success), submit the form by clicking the submit button
+5. Return the success message or result from the page
 """
 
 tools = Tools()
@@ -86,11 +94,20 @@ def _summarize_states(states: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 @tools.action(
     description=(
-        "You need to invoke this tool when you encounter a CAPTCHA. It will get a human to solve the CAPTCHA and wait until the CAPTCHA is solved."
+        "Wait for CAPTCHA to be solved by Steel. "
+        "Call this tool when you encounter any CAPTCHA challenge. Steel will automatically detect and solve the CAPTCHA. "
+        "This tool will poll the CAPTCHA status and return once all CAPTCHAs on the page are solved. "
+        "Returns a success message when CAPTCHAs are solved, or an error if timeout/failure occurs."
     )
 )
-def wait_for_captcha_solution() -> Dict[str, Any]:
+async def wait_for_captcha_solution() -> str:
+    """
+    Poll Steel's CAPTCHA status endpoint and wait for all CAPTCHAs to be solved.
+    """
     session_id = SESSION_CACHE.get("session_id")
+    if not session_id:
+        return "❌ Error: No active Steel session. Cannot check CAPTCHA status."
+
     timeout_ms = 60000
     poll_interval_ms = 1000
 
@@ -98,59 +115,35 @@ def wait_for_captcha_solution() -> Dict[str, Any]:
     end_deadline = start + (timeout_ms / 1000.0)
     last_states: List[Dict[str, Any]] = []
 
+    print("\n🔐 Waiting for CAPTCHA to be solved...")
+
     while True:
         now = time.monotonic()
         if now > end_deadline:
             duration_ms = int((now - start) * 1000)
-            return {
-                "success": False,
-                "message": "Timeout waiting for CAPTCHAs to be solved",
-                "duration_ms": duration_ms,
-                "last_status": _summarize_states(last_states) if last_states else {},
-            }
+            return f"⏱️ Timeout: CAPTCHA was not solved within {duration_ms}ms. Please try again or check the page."
+
         try:
-            # Convert CapchaStatusResponseItems to dict
+            # Get CAPTCHA status from Steel
             last_states = [
                 state.to_dict() for state in client.sessions.captchas.status(session_id)
             ]
 
-        except Exception:
+        except Exception as e:
             duration_ms = int((time.monotonic() - start) * 1000)
-            print(
-                {
-                    "success": False,
-                    "message": "Failed to get CAPTCHA status; please try again",
-                    "duration_ms": duration_ms,
-                    "last_status": {},
-                }
-            )
-            return "Failed to get CAPTCHA status; please try again"
+            return f"❌ Error: Failed to get CAPTCHA status after {duration_ms}ms. Exception: {str(e)}"
 
         if not last_states:
             duration_ms = int((time.monotonic() - start) * 1000)
-            print(
-                {
-                    "success": True,
-                    "message": "No active CAPTCHAs",
-                    "duration_ms": duration_ms,
-                    "last_status": {},
-                }
-            )
-            return "No active CAPTCHAs"
+            return f"✅ Success: No CAPTCHAs detected on the page after {duration_ms}ms. You can proceed with the task."
 
         if not _has_active_captcha(last_states):
             duration_ms = int((time.monotonic() - start) * 1000)
-            print(
-                {
-                    "success": True,
-                    "message": "All CAPTCHAs solved",
-                    "duration_ms": duration_ms,
-                    "last_status": _summarize_states(last_states),
-                }
-            )
-            return "All CAPTCHAs solved"
+            summary = _summarize_states(last_states)
+            print(f"✅ All CAPTCHAs solved in {duration_ms}ms")
+            return f"✅ Success: All CAPTCHAs have been solved after {duration_ms}ms. Summary: {summary}. You can now proceed to submit the form or continue with the task."
 
-        time.sleep(poll_interval_ms / 1000.0)
+        await asyncio.sleep(poll_interval_ms / 1000.0)
 
 
 async def main():
@@ -164,11 +157,11 @@ async def main():
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
-    if OPENAI_API_KEY == "your-openai-api-key-here":
+    if GEMINI_API_KEY == "your-gemini-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+            "⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
         )
-        print("   Get your API key at: https://platform.openai.com/api-keys")
+        print("   Get your API key at: https://aistudio.google.com/app/apikey")
         sys.exit(1)
 
     print("\nStarting Steel browser session...")
@@ -188,7 +181,8 @@ async def main():
 
         cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
-        model = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=OPENAI_API_KEY)
+        model = ChatGoogle(model="gemini-3-pro-preview", temperature=0.3, api_key=GEMINI_API_KEY)
+
         agent = Agent(
             task=TASK,
             llm=model,
