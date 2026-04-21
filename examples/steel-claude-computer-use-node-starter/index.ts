@@ -2,10 +2,10 @@ import * as dotenv from "dotenv";
 import { Steel } from "steel-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type {
-  MessageParam,
-  ToolResultBlockParam,
-  Message,
-} from "@anthropic-ai/sdk/resources/messages";
+  BetaMessageParam,
+  BetaToolResultBlockParam,
+  BetaMessage,
+} from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
 dotenv.config();
 
@@ -106,7 +106,7 @@ class Agent {
   private client: Anthropic;
   private steel: Steel;
   private session: Steel.Session | null = null;
-  private messages: MessageParam[];
+  private messages: BetaMessageParam[];
   private tools: any[];
   private model: string;
   private systemPrompt: string;
@@ -116,7 +116,7 @@ class Agent {
   constructor() {
     this.client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "claude-sonnet-4-5";
+    this.model = "claude-opus-4-7";
     this.messages = [];
 
     this.viewportWidth = 1280;
@@ -126,7 +126,7 @@ class Agent {
 
     this.tools = [
       {
-        type: "computer_20250124",
+        type: "computer_20251124",
         name: "computer",
         display_width_px: this.viewportWidth,
         display_height_px: this.viewportHeight,
@@ -216,7 +216,7 @@ class Agent {
       console.log("Releasing Steel session...");
       await this.steel.sessions.release(this.session.id);
       console.log(
-        `Session completed. View replay at ${this.session.sessionViewerUrl}`
+        `Session completed. View replay at ${this.session.sessionViewerUrl}`,
       );
     }
   }
@@ -230,14 +230,14 @@ class Agent {
     return img;
   }
 
-  async executeComputerAction(
+  private async executeComputerAction(
     action: string,
     text?: string,
     coordinate?: [number, number] | number[],
     scrollDirection?: "up" | "down" | "left" | "right",
     scrollAmount?: number,
     duration?: number,
-    key?: string
+    key?: string,
   ): Promise<string> {
     const coords: Coordinates =
       coordinate && Array.isArray(coordinate) && coordinate.length === 2
@@ -393,21 +393,31 @@ class Agent {
 
     const resp: any = await this.steel.sessions.computer(
       this.session!.id,
-      body!
+      body!,
     );
     const img: string | undefined = resp?.base64_image;
     if (img) return img;
     return this.takeScreenshot();
   }
 
-  async processResponse(message: Message): Promise<string> {
+  private async processResponse(
+    message: BetaMessage,
+  ): Promise<{ text: string; hasActions: boolean }> {
     let responseText = "";
+    let hasActions = false;
+    const toolResults: BetaToolResultBlockParam[] = [];
+
+    this.messages.push({
+      role: "assistant",
+      content: message.content as any,
+    });
 
     for (const block of message.content) {
       if (block.type === "text") {
         responseText += block.text;
         console.log(block.text);
       } else if (block.type === "tool_use") {
+        hasActions = true;
         const toolName = block.name;
         const toolInput = block.input as any;
 
@@ -415,27 +425,17 @@ class Agent {
 
         if (toolName === "computer") {
           const action = toolInput.action;
-          const params = {
-            text: toolInput.text,
-            coordinate: toolInput.coordinate,
-            scrollDirection: toolInput.scroll_direction,
-            scrollAmount: toolInput.scroll_amount,
-            duration: toolInput.duration,
-            key: toolInput.key,
-          };
-
           try {
             const screenshotBase64 = await this.executeComputerAction(
               action,
-              params.text,
-              params.coordinate,
-              params.scrollDirection,
-              params.scrollAmount,
-              params.duration,
-              params.key
+              toolInput.text,
+              toolInput.coordinate,
+              toolInput.scroll_direction,
+              toolInput.scroll_amount,
+              toolInput.duration,
+              toolInput.key,
             );
-
-            const toolResult: ToolResultBlockParam = {
+            toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
               content: [
@@ -448,78 +448,34 @@ class Agent {
                   },
                 },
               ],
-            };
-
-            this.messages.push({
-              role: "assistant",
-              content: [block],
             });
-            this.messages.push({
-              role: "user",
-              content: [toolResult],
-            });
-
-            return this.getClaudeResponse();
           } catch (error) {
             console.log(`❌ Error executing ${action}: ${error}`);
-            const toolResult: ToolResultBlockParam = {
+            toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
               content: `Error executing ${action}: ${String(error)}`,
               is_error: true,
-            };
-
-            this.messages.push({
-              role: "assistant",
-              content: [block],
             });
-            this.messages.push({
-              role: "user",
-              content: [toolResult],
-            });
-
-            return this.getClaudeResponse();
           }
         }
       }
     }
 
-    if (
-      responseText &&
-      !message.content.some((block) => block.type === "tool_use")
-    ) {
+    if (toolResults.length > 0) {
       this.messages.push({
-        role: "assistant",
-        content: responseText,
+        role: "user",
+        content: toolResults,
       });
     }
 
-    return responseText;
-  }
-
-  async getClaudeResponse(): Promise<string> {
-    try {
-      const response = await this.client.beta.messages.create({
-        model: this.model,
-        max_tokens: 4096,
-        messages: this.messages,
-        tools: this.tools,
-        betas: ["computer-use-2025-01-24"],
-      });
-
-      return this.processResponse(response);
-    } catch (error) {
-      const errorMsg = `Error communicating with Claude: ${error}`;
-      console.log(`❌ ${errorMsg}`);
-      return errorMsg;
-    }
+    return { text: responseText, hasActions };
   }
 
   async executeTask(
     task: string,
     printSteps: boolean = true,
-    debug: boolean = false,
-    maxIterations: number = 50
+    maxIterations: number = 50,
   ): Promise<string> {
     this.messages = [
       {
@@ -533,7 +489,6 @@ class Agent {
     ];
 
     let iterations = 0;
-    let consecutiveNoActions = 0;
     let lastAssistantMessages: string[] = [];
 
     console.log(`🎯 Executing task: ${task}`);
@@ -548,35 +503,40 @@ class Agent {
         return commonWords.length / Math.max(words1.length, words2.length);
       };
       return lastAssistantMessages.some(
-        (prevMessage) => similarity(newMessage, prevMessage) > 0.8
+        (prevMessage) => similarity(newMessage, prevMessage) > 0.8,
       );
     };
 
+    const extractText = (content: any): string => {
+      if (typeof content === "string") return content;
+      if (!Array.isArray(content)) return "";
+      return content
+        .filter((b: any) => b?.type === "text")
+        .map((b: any) => b.text ?? "")
+        .join("");
+    };
+
+    let finalText = "";
+
     while (iterations < maxIterations) {
       iterations++;
-      let hasActions = false;
 
       if (this.messages.length > 0) {
         const lastMessage = this.messages[this.messages.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          typeof lastMessage.content === "string"
-        ) {
-          const content = lastMessage.content;
-          if (detectRepetition(content)) {
-            console.log("🔄 Repetition detected - stopping execution");
+        if (lastMessage?.role === "assistant") {
+          const content = extractText(lastMessage.content);
+          if (content) {
+            if (detectRepetition(content)) {
+              console.log("🔄 Repetition detected - stopping execution");
+              finalText = content;
+              break;
+            }
             lastAssistantMessages.push(content);
-            break;
-          }
-          lastAssistantMessages.push(content);
-          if (lastAssistantMessages.length > 3) {
-            lastAssistantMessages.shift();
+            if (lastAssistantMessages.length > 3) {
+              lastAssistantMessages.shift();
+            }
           }
         }
-      }
-
-      if (debug) {
-        console.log(JSON.stringify(this.messages, null, 2));
       }
 
       try {
@@ -585,31 +545,15 @@ class Agent {
           max_tokens: 4096,
           messages: this.messages,
           tools: this.tools,
-          betas: ["computer-use-2025-01-24"],
+          betas: ["computer-use-2025-11-24"],
         });
 
-        if (debug) {
-          console.log(JSON.stringify(response, null, 2));
-        }
-
-        for (const block of response.content) {
-          if (block.type === "tool_use") {
-            hasActions = true;
-          }
-        }
-
-        await this.processResponse(response);
+        const { text, hasActions } = await this.processResponse(response);
 
         if (!hasActions) {
-          consecutiveNoActions++;
-          if (consecutiveNoActions >= 3) {
-            console.log(
-              "⚠️  No actions for 3 consecutive iterations - stopping"
-            );
-            break;
-          }
-        } else {
-          consecutiveNoActions = 0;
+          console.log("✅ Task complete - no further actions requested");
+          finalText = text;
+          break;
         }
       } catch (error) {
         console.error(`❌ Error during task execution: ${error}`);
@@ -619,20 +563,11 @@ class Agent {
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️  Task execution stopped after ${maxIterations} iterations`
+        `⚠️  Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
-    const assistantMessages = this.messages.filter(
-      (item) => item.role === "assistant"
-    );
-    const finalMessage = assistantMessages[assistantMessages.length - 1];
-
-    if (finalMessage && typeof finalMessage.content === "string") {
-      return finalMessage.content;
-    }
-
-    return "Task execution completed (no final message)";
+    return finalText || "Task execution completed (no final message)";
   }
 }
 
@@ -642,17 +577,17 @@ async function main(): Promise<void> {
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
-      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+      "   Get your API key at: https://app.steel.dev/settings/api-keys",
     );
     throw new Error("Set STEEL_API_KEY");
   }
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");
@@ -669,7 +604,7 @@ async function main(): Promise<void> {
     const startTime = Date.now();
 
     try {
-      const result = await agent.executeTask(TASK, true, false, 50);
+      const result = await agent.executeTask(TASK, true, 50);
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 

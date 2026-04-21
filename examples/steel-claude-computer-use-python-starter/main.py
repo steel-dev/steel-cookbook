@@ -59,15 +59,11 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   </TASK_EXECUTION>"""
 
 
-def pp(obj) -> None:
-    print(json.dumps(obj, indent=2))
-
-
 class Agent:
     def __init__(self):
         self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
-        self.model = "claude-sonnet-4-5"
+        self.model = "claude-opus-4-7"
         self.messages: List[BetaMessageParam] = []
         self.session = None
 
@@ -77,7 +73,7 @@ class Agent:
         self.system_prompt = BROWSER_SYSTEM_PROMPT
         self.tools = [
             {
-                "type": "computer_20250124",
+                "type": "computer_20251124",
                 "name": "computer",
                 "display_width_px": self.viewport_width,
                 "display_height_px": self.viewport_height,
@@ -85,13 +81,13 @@ class Agent:
             }
         ]
 
-    def _center(self) -> Tuple[int, int]:
+    def center(self) -> Tuple[int, int]:
         return (self.viewport_width // 2, self.viewport_height // 2)
 
-    def _split_keys(self, k: Optional[str]) -> List[str]:
+    def split_keys(self, k: Optional[str]) -> List[str]:
         return [s.strip() for s in k.split("+")] if k else []
 
-    def _normalize_key(self, key: str) -> str:
+    def normalize_key(self, key: str) -> str:
         if not isinstance(key, str) or not key:
             return key
         k = key.strip()
@@ -135,8 +131,8 @@ class Agent:
             return "F" + upper[1:]
         return k
 
-    def _normalize_keys(self, keys: List[str]) -> List[str]:
-        return [self._normalize_key(k) for k in keys]
+    def normalize_keys(self, keys: List[str]) -> List[str]:
+        return [self.normalize_key(k) for k in keys]
 
     def initialize(self) -> None:
         width = self.viewport_width
@@ -181,7 +177,7 @@ class Agent:
         ):
             coords = (int(coordinate[0]), int(coordinate[1]))
         else:
-            coords = self._center()
+            coords = self.center()
 
         body: Optional[dict] = None
 
@@ -191,7 +187,7 @@ class Agent:
                 "coordinates": [coords[0], coords[1]],
                 "screenshot": True,
             }
-            hk = self._split_keys(key)
+            hk = self.split_keys(key)
             if hk:
                 body["hold_keys"] = hk
 
@@ -203,7 +199,7 @@ class Agent:
                 "coordinates": [coords[0], coords[1]],
                 "screenshot": True,
             }
-            hk = self._split_keys(key)
+            hk = self.split_keys(key)
             if hk:
                 body["hold_keys"] = hk
 
@@ -232,19 +228,19 @@ class Agent:
             }
             if clicks > 1:
                 body["num_clicks"] = clicks
-            hk = self._split_keys(key)
+            hk = self.split_keys(key)
             if hk:
                 body["hold_keys"] = hk
 
         elif action == "left_click_drag":
-            start_x, start_y = self._center()
+            start_x, start_y = self.center()
             end_x, end_y = coords
             body = {
                 "action": "drag_mouse",
                 "path": [[start_x, start_y], [end_x, end_y]],
                 "screenshot": True,
             }
-            hk = self._split_keys(key)
+            hk = self.split_keys(key)
             if hk:
                 body["hold_keys"] = hk
 
@@ -266,13 +262,13 @@ class Agent:
                 "delta_y": dy,
                 "screenshot": True,
             }
-            hk = self._split_keys(text)
+            hk = self.split_keys(text)
             if hk:
                 body["hold_keys"] = hk
 
         elif action == "hold_key":
-            keys = self._split_keys(text or "")
-            keys = self._normalize_keys(keys)
+            keys = self.split_keys(text or "")
+            keys = self.normalize_keys(keys)
             body = {
                 "action": "press_key",
                 "keys": keys or [],
@@ -281,8 +277,8 @@ class Agent:
             }
 
         elif action == "key":
-            keys = self._split_keys(text or "")
-            keys = self._normalize_keys(keys)
+            keys = self.split_keys(text or "")
+            keys = self.normalize_keys(keys)
             body = {
                 "action": "press_key",
                 "keys": keys or [],
@@ -295,7 +291,7 @@ class Agent:
                 "text": text,
                 "screenshot": True,
             }
-            hk = self._split_keys(key)
+            hk = self.split_keys(key)
             if hk:
                 body["hold_keys"] = hk
 
@@ -323,126 +319,79 @@ class Agent:
             return img
         return self.take_screenshot()
 
-    def process_response(self, message) -> str:
+    def process_response(self, message) -> Tuple[str, bool]:
         response_text = ""
+        has_actions = False
+        tool_results = []
+
+        assistant_content = []
         for block in message.content:
             if block.type == "text":
                 response_text += block.text
                 print(block.text)
+                assistant_content.append({"type": "text", "text": block.text})
             elif block.type == "tool_use":
+                has_actions = True
+                assistant_content.append(
+                    {
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input,
+                    }
+                )
                 tool_name = block.name
                 tool_input = block.input
                 print(f"🔧 {tool_name}({json.dumps(tool_input)})")
                 if tool_name == "computer":
                     action = tool_input.get("action")
-                    params = {
-                        "text": tool_input.get("text"),
-                        "coordinate": tool_input.get("coordinate"),
-                        "scroll_direction": tool_input.get("scroll_direction"),
-                        "scroll_amount": tool_input.get("scroll_amount"),
-                        "duration": tool_input.get("duration"),
-                        "key": tool_input.get("key"),
-                    }
                     try:
                         screenshot_base64 = self.execute_computer_action(
                             action=action,
-                            text=params["text"],
-                            coordinate=params["coordinate"],
-                            scroll_direction=params["scroll_direction"],
-                            scroll_amount=params["scroll_amount"],
-                            duration=params["duration"],
-                            key=params["key"],
+                            text=tool_input.get("text"),
+                            coordinate=tool_input.get("coordinate"),
+                            scroll_direction=tool_input.get("scroll_direction"),
+                            scroll_amount=tool_input.get("scroll_amount"),
+                            duration=tool_input.get("duration"),
+                            key=tool_input.get("key"),
                         )
-                        self.messages.append(
+                        tool_results.append(
                             {
-                                "role": "assistant",
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
                                 "content": [
                                     {
-                                        "type": "tool_use",
-                                        "id": block.id,
-                                        "name": block.name,
-                                        "input": tool_input,
+                                        "type": "image",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": "image/png",
+                                            "data": screenshot_base64,
+                                        },
                                     }
                                 ],
                             }
                         )
-                        self.messages.append(
-                            {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "tool_result",
-                                        "tool_use_id": block.id,
-                                        "content": [
-                                            {
-                                                "type": "image",
-                                                "source": {
-                                                    "type": "base64",
-                                                    "media_type": "image/png",
-                                                    "data": screenshot_base64,
-                                                },
-                                            }
-                                        ],
-                                    }
-                                ],
-                            }
-                        )
-                        return self.get_claude_response()
                     except Exception as e:
                         print(f"❌ Error executing {action}: {e}")
-                        self.messages.append(
+                        tool_results.append(
                             {
-                                "role": "assistant",
-                                "content": [
-                                    {
-                                        "type": "tool_use",
-                                        "id": block.id,
-                                        "name": block.name,
-                                        "input": tool_input,
-                                    }
-                                ],
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": f"Error executing {action}: {e}",
+                                "is_error": True,
                             }
                         )
-                        self.messages.append(
-                            {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "tool_result",
-                                        "tool_use_id": block.id,
-                                        "content": f"Error executing {action}: {e}",
-                                        "is_error": True,
-                                    }
-                                ],
-                            }
-                        )
-                        return self.get_claude_response()
 
-        if response_text and not any(b.type == "tool_use" for b in message.content):
-            self.messages.append({"role": "assistant", "content": response_text})
+        self.messages.append({"role": "assistant", "content": assistant_content})
+        if tool_results:
+            self.messages.append({"role": "user", "content": tool_results})
 
-        return response_text
-
-    def get_claude_response(self) -> str:
-        try:
-            response = self.client.beta.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                messages=self.messages,
-                tools=self.tools,
-                betas=["computer-use-2025-01-24"],
-            )
-            return self.process_response(response)
-        except Exception as e:
-            err = f"Error communicating with Claude: {e}"
-            print(f"❌ {err}")
-            return err
+        return response_text, has_actions
 
     def execute_task(
         self,
         task: str,
         print_steps: bool = True,
-        debug: bool = False,
         max_iterations: int = 50,
     ) -> str:
         self.messages = [
@@ -451,7 +400,6 @@ class Agent:
         ]
 
         iterations = 0
-        consecutive_no_actions = 0
         last_assistant_messages: List[str] = []
 
         print(f"🎯 Executing task: {task}")
@@ -468,28 +416,32 @@ class Agent:
                 for prev in last_assistant_messages
             )
 
+        def extract_text(content) -> str:
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return "".join(
+                    b.get("text", "") for b in content if b.get("type") == "text"
+                )
+            return ""
+
+        final_text = ""
+
         while iterations < max_iterations:
             iterations += 1
-            has_actions = False
 
-            last_assistant = None
-            for msg in reversed(self.messages):
-                if msg.get("role") == "assistant" and isinstance(
-                    msg.get("content"), str
-                ):
-                    last_assistant = msg.get("content")
-                    break
-            if isinstance(last_assistant, str):
-                if detect_repetition(last_assistant):
-                    print("🔄 Repetition detected - stopping execution")
-                    last_assistant_messages.append(last_assistant)
-                    break
-                last_assistant_messages.append(last_assistant)
-                if len(last_assistant_messages) > 3:
-                    last_assistant_messages.pop(0)
-
-            if debug:
-                pp(self.messages)
+            if self.messages:
+                last_message = self.messages[-1]
+                if last_message.get("role") == "assistant":
+                    content = extract_text(last_message.get("content"))
+                    if content:
+                        if detect_repetition(content):
+                            print("🔄 Repetition detected - stopping execution")
+                            final_text = content
+                            break
+                        last_assistant_messages.append(content)
+                        if len(last_assistant_messages) > 3:
+                            last_assistant_messages.pop(0)
 
             try:
                 response = self.client.beta.messages.create(
@@ -497,24 +449,15 @@ class Agent:
                     max_tokens=4096,
                     messages=self.messages,
                     tools=self.tools,
-                    betas=["computer-use-2025-01-24"],
+                    betas=["computer-use-2025-11-24"],
                 )
-                if debug:
-                    pp(response)
 
-                for block in response.content:
-                    if block.type == "tool_use":
-                        has_actions = True
-
-                self.process_response(response)
+                text, has_actions = self.process_response(response)
 
                 if not has_actions:
-                    consecutive_no_actions += 1
-                    if consecutive_no_actions >= 3:
-                        print("⚠️  No actions for 3 consecutive iterations - stopping")
-                        break
-                else:
-                    consecutive_no_actions = 0
+                    print("✅ Task complete - no further actions requested")
+                    final_text = text
+                    break
             except Exception as e:
                 print(f"❌ Error during task execution: {e}")
                 raise e
@@ -522,11 +465,7 @@ class Agent:
         if iterations >= max_iterations:
             print(f"⚠️  Task execution stopped after {max_iterations} iterations")
 
-        assistant_messages = [m for m in self.messages if m.get("role") == "assistant"]
-        final_message = assistant_messages[-1] if assistant_messages else None
-        if final_message and isinstance(final_message.get("content"), str):
-            return final_message["content"]
-        return "Task execution completed (no final message)"
+        return final_text or "Task execution completed (no final message)"
 
 
 def main():
@@ -556,7 +495,7 @@ def main():
         start_time = time.time()
 
         try:
-            result = agent.execute_task(TASK, True, False, 50)
+            result = agent.execute_task(TASK, True, 50)
             duration = f"{(time.time() - start_time):.1f}"
             print("\n" + "=" * 60)
             print("🎉 TASK EXECUTION COMPLETED")

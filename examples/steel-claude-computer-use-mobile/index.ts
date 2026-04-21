@@ -1,6 +1,6 @@
 /*
  * Claude AI agent for autonomous web task execution with Steel browsers.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-mobile-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-mobile
  */
 
 import * as dotenv from "dotenv";
@@ -9,10 +9,10 @@ import type { Browser, Page } from "playwright";
 import { Steel } from "steel-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type {
-  MessageParam,
-  ToolResultBlockParam,
-  Message,
-} from "@anthropic-ai/sdk/resources/messages";
+  BetaMessageParam,
+  BetaToolResultBlockParam,
+  BetaMessage,
+} from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
 dotenv.config();
 
@@ -22,10 +22,11 @@ const ANTHROPIC_API_KEY =
   process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
 
 // Replace with your own task
-const TASK = process.env.TASK || `Go to amazon.com, search for 'iPhone 16 Pro Max', find the product page,
+const TASK =
+  process.env.TASK ||
+  `Go to amazon.com, search for 'iPhone 16 Pro Max', find the product page,
     and extract the current price and availability status
     Note: Don't open new tabs or pages, always stay in the same page.`;
-
 
 const SYSTEM_PROMPT = `You are an expert browser automation assistant operating in an iterative execution loop. Your goal is to efficiently complete tasks using a Chrome browser with full internet access.
 
@@ -97,28 +98,9 @@ const BLOCKED_DOMAINS = [
   "ilanbigio.com",
 ];
 
-const MODEL_CONFIGS = {
-  "claude-3-7-sonnet-20250219": {
-    toolType: "computer_20250124",
-    betaFlag: "computer-use-2025-01-24",
-    description: "Claude 3.7 Sonnet (newer)",
-  },
-  "claude-sonnet-4-20250514": {
-    toolType: "computer_20250124",
-    betaFlag: "computer-use-2025-01-24",
-    description: "Claude 4 Sonnet (newest)",
-  },
-  "claude-opus-4-20250514": {
-    toolType: "computer_20250124",
-    betaFlag: "computer-use-2025-01-24",
-    description: "Claude 4 Opus (newest)",
-  },
-  "claude-sonnet-4-5-20250929": {
-    toolType: "computer_20250124",
-    betaFlag: "computer-use-2025-01-24",
-    description: "Claude 4 Sonnet 4.5 (latest)",
-  }
-};
+const MODEL = "claude-opus-4-7";
+const TOOL_TYPE = "computer_20251124";
+const BETA_FLAG = "computer-use-2025-11-24";
 
 const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
   "/": "Divide",
@@ -196,14 +178,6 @@ const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
   slash: "/",
 };
 
-type ModelName = keyof typeof MODEL_CONFIGS;
-
-interface ModelConfig {
-  toolType: string;
-  betaFlag: string;
-  description: string;
-}
-
 function chunks(s: string, chunkSize: number): string[] {
   const result: string[] = [];
   for (let i = 0; i < s.length; i += chunkSize) {
@@ -220,7 +194,7 @@ function checkBlocklistedUrl(url: string): void {
   try {
     const hostname = new URL(url).hostname || "";
     const isBlocked = BLOCKED_DOMAINS.some(
-      (blocked) => hostname === blocked || hostname.endsWith(`.${blocked}`)
+      (blocked) => hostname === blocked || hostname.endsWith(`.${blocked}`),
     );
     if (isBlocked) {
       throw new Error(`Blocked URL: ${url}`);
@@ -241,9 +215,7 @@ class SteelBrowser {
   private startUrl: string;
   private lastMousePosition: [number, number] | null = null;
 
-  constructor(
-    startUrl: string = "https://amazon.com"
-  ) {
+  constructor(startUrl: string = "https://amazon.com") {
     this.client = new Steel({
       steelAPIKey: STEEL_API_KEY,
     });
@@ -264,8 +236,8 @@ class SteelBrowser {
       apiTimeout: 900000,
       solveCaptcha: false,
       deviceConfig: {
-        device: 'mobile'
-      }
+        device: "mobile",
+      },
     };
 
     this.session = await this.client.sessions.create(sessionParams);
@@ -273,7 +245,10 @@ class SteelBrowser {
     console.log(`View live session at: ${this.session.sessionViewerUrl}`);
 
     // Set dimensions based on the session
-    this.dimensions = [this.session.dimensions.width, this.session.dimensions.height];
+    this.dimensions = [
+      this.session.dimensions.width,
+      this.session.dimensions.height,
+    ];
 
     const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
 
@@ -316,7 +291,7 @@ class SteelBrowser {
       console.log("Releasing Steel session...");
       await this.client.sessions.release(this.session.id);
       console.log(
-        `Session completed. View replay at ${this.session.sessionViewerUrl}`
+        `Session completed. View replay at ${this.session.sessionViewerUrl}`,
       );
     }
   }
@@ -350,14 +325,14 @@ class SteelBrowser {
   }
 
   private validateAndGetCoordinates(
-    coordinate: [number, number] | number[]
+    coordinate: [number, number] | number[],
   ): [number, number] {
     if (!Array.isArray(coordinate) || coordinate.length !== 2) {
       throw new Error(`${coordinate} must be a tuple or list of length 2`);
     }
     if (!coordinate.every((i) => typeof i === "number" && i >= 0)) {
       throw new Error(
-        `${coordinate} must be a tuple/list of non-negative numbers`
+        `${coordinate} must be a tuple/list of non-negative numbers`,
       );
     }
 
@@ -372,7 +347,7 @@ class SteelBrowser {
 
     if (x !== clampedX || y !== clampedY) {
       console.log(
-        `⚠️  Coordinate clamped: (${x}, ${y}) → (${clampedX}, ${clampedY})`
+        `⚠️  Coordinate clamped: (${x}, ${y}) → (${clampedX}, ${clampedY})`,
       );
     }
 
@@ -386,7 +361,7 @@ class SteelBrowser {
     scrollDirection?: "up" | "down" | "left" | "right",
     scrollAmount?: number,
     duration?: number,
-    key?: string
+    key?: string,
   ): Promise<string> {
     if (!this.page) throw new Error("Page not initialized");
 
@@ -410,7 +385,7 @@ class SteelBrowser {
         !["up", "down", "left", "right"].includes(scrollDirection)
       ) {
         throw new Error(
-          "scroll_direction must be 'up', 'down', 'left', or 'right'"
+          "scroll_direction must be 'up', 'down', 'left', or 'right'",
         );
       }
       if (scrollAmount === undefined || scrollAmount < 0) {
@@ -635,32 +610,20 @@ class SteelBrowser {
 class ClaudeAgent {
   private client: Anthropic;
   private computer: SteelBrowser;
-  private messages: MessageParam[];
-  private model: ModelName;
-  private modelConfig: ModelConfig;
+  private messages: BetaMessageParam[];
+  private model: string;
   private tools: any[];
   private systemPrompt: string;
   private viewportWidth: number;
   private viewportHeight: number;
 
-  constructor(
-    computer: SteelBrowser,
-    model: ModelName = "claude-sonnet-4-5-20250929"
-  ) {
+  constructor(computer: SteelBrowser) {
     this.client = new Anthropic({
       apiKey: ANTHROPIC_API_KEY,
     });
     this.computer = computer;
-    this.model = model;
+    this.model = MODEL;
     this.messages = [];
-
-    if (!(model in MODEL_CONFIGS)) {
-      throw new Error(
-        `Unsupported model: ${model}. Available models: ${Object.keys(MODEL_CONFIGS)}`
-      );
-    }
-
-    this.modelConfig = MODEL_CONFIGS[model];
 
     const [width, height] = computer.getDimensions();
     this.viewportWidth = width;
@@ -670,12 +633,12 @@ class ClaudeAgent {
       "<COORDINATE_SYSTEM>",
       `<COORDINATE_SYSTEM>
 * The browser viewport dimensions are ${width}x${height} pixels
-* The browser viewport has specific dimensions that you must respect`
+* The browser viewport has specific dimensions that you must respect`,
     );
 
     this.tools = [
       {
-        type: this.modelConfig.toolType,
+        type: TOOL_TYPE,
         name: "computer",
         display_width_px: width,
         display_height_px: height,
@@ -723,14 +686,24 @@ class ClaudeAgent {
     }
   }
 
-  async processResponse(message: Message): Promise<string> {
+  async processResponse(
+    message: BetaMessage,
+  ): Promise<{ text: string; hasActions: boolean }> {
     let responseText = "";
+    let hasActions = false;
+    const toolResults: BetaToolResultBlockParam[] = [];
+
+    this.messages.push({
+      role: "assistant",
+      content: message.content as any,
+    });
 
     for (const block of message.content) {
       if (block.type === "text") {
         responseText += block.text;
         console.log(block.text);
       } else if (block.type === "tool_use") {
+        hasActions = true;
         const toolName = block.name;
         const toolInput = block.input as any;
 
@@ -738,31 +711,22 @@ class ClaudeAgent {
 
         if (toolName === "computer") {
           const action = toolInput.action;
-          const params = {
-            text: toolInput.text,
-            coordinate: toolInput.coordinate,
-            scrollDirection: toolInput.scroll_direction,
-            scrollAmount: toolInput.scroll_amount,
-            duration: toolInput.duration,
-            key: toolInput.key,
-          };
-
           try {
             const screenshotBase64 = await this.computer.executeComputerAction(
               action,
-              params.text,
-              params.coordinate,
-              params.scrollDirection,
-              params.scrollAmount,
-              params.duration,
-              params.key
+              toolInput.text,
+              toolInput.coordinate,
+              toolInput.scroll_direction,
+              toolInput.scroll_amount,
+              toolInput.duration,
+              toolInput.key,
             );
 
             if (action === "screenshot") {
               this.validateScreenshotDimensions(screenshotBase64);
             }
 
-            const toolResult: ToolResultBlockParam = {
+            toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
               content: [
@@ -775,84 +739,35 @@ class ClaudeAgent {
                   },
                 },
               ],
-            };
-
-            this.messages.push({
-              role: "assistant",
-              content: [block],
             });
-            this.messages.push({
-              role: "user",
-              content: [toolResult],
-            });
-
-            return this.getClaudeResponse();
           } catch (error) {
             console.log(`❌ Error executing ${action}: ${error}`);
-            const toolResult: ToolResultBlockParam = {
+            toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
               content: `Error executing ${action}: ${String(error)}`,
               is_error: true,
-            };
-
-            this.messages.push({
-              role: "assistant",
-              content: [block],
             });
-            this.messages.push({
-              role: "user",
-              content: [toolResult],
-            });
-
-            return this.getClaudeResponse();
           }
         }
       }
     }
 
-    if (
-      responseText &&
-      !message.content.some((block) => block.type === "tool_use")
-    ) {
+    if (toolResults.length > 0) {
       this.messages.push({
-        role: "assistant",
-        content: responseText,
+        role: "user",
+        content: toolResults,
       });
     }
 
-    return responseText;
-  }
-
-  async getClaudeResponse(): Promise<string> {
-    try {
-      const response = await this.client.beta.messages.create(
-        {
-          model: this.model,
-          max_tokens: 4096,
-          messages: this.messages,
-          tools: this.tools,
-        },
-        {
-          headers: {
-            "anthropic-beta": this.modelConfig.betaFlag,
-          },
-        }
-      );
-
-      return this.processResponse(response);
-    } catch (error) {
-      const errorMsg = `Error communicating with Claude: ${error}`;
-      console.log(`❌ ${errorMsg}`);
-      return errorMsg;
-    }
+    return { text: responseText, hasActions };
   }
 
   async executeTask(
     task: string,
     printSteps: boolean = true,
     debug: boolean = false,
-    maxIterations: number = 50
+    maxIterations: number = 50,
   ): Promise<string> {
     this.messages = [
       {
@@ -866,14 +781,13 @@ class ClaudeAgent {
     ];
 
     let iterations = 0;
-    let consecutiveNoActions = 0;
     let lastAssistantMessages: string[] = [];
 
     console.log(`🎯 Executing task: ${task}`);
     console.log("=".repeat(60));
 
     const isTaskComplete = (
-      content: string
+      content: string,
     ): { completed: boolean; reason?: string } => {
       if (content.includes("TASK_COMPLETED:")) {
         return { completed: true, reason: "explicit_completion" };
@@ -925,37 +839,46 @@ class ClaudeAgent {
       };
 
       return lastAssistantMessages.some(
-        (prevMessage) => similarity(newMessage, prevMessage) > 0.8
+        (prevMessage) => similarity(newMessage, prevMessage) > 0.8,
       );
     };
 
+    const extractText = (content: any): string => {
+      if (typeof content === "string") return content;
+      if (!Array.isArray(content)) return "";
+      return content
+        .filter((b: any) => b?.type === "text")
+        .map((b: any) => b.text ?? "")
+        .join("");
+    };
+
+    let finalText = "";
+
     while (iterations < maxIterations) {
       iterations++;
-      let hasActions = false;
 
       if (this.messages.length > 0) {
         const lastMessage = this.messages[this.messages.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          typeof lastMessage.content === "string"
-        ) {
-          const content = lastMessage.content;
+        if (lastMessage?.role === "assistant") {
+          const content = extractText(lastMessage.content);
+          if (content) {
+            const completion = isTaskComplete(content);
+            if (completion.completed) {
+              console.log(`✅ Task completed (${completion.reason})`);
+              finalText = content;
+              break;
+            }
 
-          const completion = isTaskComplete(content);
-          if (completion.completed) {
-            console.log(`✅ Task completed (${completion.reason})`);
-            break;
-          }
+            if (detectRepetition(content)) {
+              console.log("🔄 Repetition detected - stopping execution");
+              finalText = content;
+              break;
+            }
 
-          if (detectRepetition(content)) {
-            console.log("🔄 Repetition detected - stopping execution");
             lastAssistantMessages.push(content);
-            break;
-          }
-
-          lastAssistantMessages.push(content);
-          if (lastAssistantMessages.length > 3) {
-            lastAssistantMessages.shift();
+            if (lastAssistantMessages.length > 3) {
+              lastAssistantMessages.shift();
+            }
           }
         }
       }
@@ -974,33 +897,21 @@ class ClaudeAgent {
           },
           {
             headers: {
-              "anthropic-beta": this.modelConfig.betaFlag,
+              "anthropic-beta": BETA_FLAG,
             },
-          }
+          },
         );
 
         if (debug) {
           pp(response);
         }
 
-        for (const block of response.content) {
-          if (block.type === "tool_use") {
-            hasActions = true;
-          }
-        }
-
-        await this.processResponse(response);
+        const { text, hasActions } = await this.processResponse(response);
 
         if (!hasActions) {
-          consecutiveNoActions++;
-          if (consecutiveNoActions >= 3) {
-            console.log(
-              "⚠️  No actions for 3 consecutive iterations - stopping"
-            );
-            break;
-          }
-        } else {
-          consecutiveNoActions = 0;
+          console.log("✅ Task complete - no further actions requested");
+          finalText = text;
+          break;
         }
       } catch (error) {
         console.error(`❌ Error during task execution: ${error}`);
@@ -1010,20 +921,11 @@ class ClaudeAgent {
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️  Task execution stopped after ${maxIterations} iterations`
+        `⚠️  Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
-    const assistantMessages = this.messages.filter(
-      (item) => item.role === "assistant"
-    );
-    const finalMessage = assistantMessages[assistantMessages.length - 1];
-
-    if (finalMessage && typeof finalMessage.content === "string") {
-      return finalMessage.content;
-    }
-
-    return "Task execution completed (no final message)";
+    return finalText || "Task execution completed (no final message)";
   }
 }
 
@@ -1033,17 +935,17 @@ async function main(): Promise<void> {
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
-      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+      "   Get your API key at: https://app.steel.dev/settings/api-keys",
     );
     throw new Error("Set STEEL_API_KEY");
   }
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");
@@ -1057,7 +959,7 @@ async function main(): Promise<void> {
     await computer.initialize();
     console.log("✅ Steel browser session started!");
 
-    const agent = new ClaudeAgent(computer, "claude-sonnet-4-5-20250929");
+    const agent = new ClaudeAgent(computer);
 
     const startTime = Date.now();
 

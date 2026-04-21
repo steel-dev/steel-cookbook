@@ -74,19 +74,12 @@ class Agent:
     def __init__(self):
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
         self.session = None
-        self.model = "computer-use-preview"
+        self.model = "gpt-5.4"
 
-        self.viewport_width = 1280
-        self.viewport_height = 768
+        self.viewport_width = 1440
+        self.viewport_height = 900
         self.system_prompt = BROWSER_SYSTEM_PROMPT
-        self.tools = [
-            {
-                "type": "computer-preview",
-                "display_width": self.viewport_width,
-                "display_height": self.viewport_height,
-                "environment": "browser",
-            }
-        ]
+        self.tools = [{"type": "computer"}]
 
         self.print_steps = True
         self.auto_acknowledge_safety = True
@@ -161,6 +154,8 @@ class Agent:
             return synonyms[upper]
         if upper.startswith("F") and upper[1:].isdigit():
             return "F" + upper[1:]
+        if len(k) == 1 and k.isalpha() and k.isupper():
+            return k.lower()
         return k
 
     def normalize_keys(self, keys: List[str]) -> List[str]:
@@ -291,139 +286,115 @@ class Agent:
         img = getattr(resp, "base64_image", None)
         return img if img else self.take_screenshot()
 
-    def handle_item(self, item: Dict[str, Any]) -> List[Dict[str, Any]]:
-        if item["type"] == "message":
-            if self.print_steps and item.get("content") and len(item["content"]) > 0:
-                print(item["content"][0].get("text", ""))
-            return []
-
-        if item["type"] == "function_call":
-            if self.print_steps:
-                print(f"{item['name']}({item['arguments']})")
-            return [
-                {
-                    "type": "function_call_output",
-                    "call_id": item["call_id"],
-                    "output": "success",
-                }
-            ]
-
-        if item["type"] == "computer_call":
-            action = item["action"]
-            action_type = action["type"]
-            action_args = {k: v for k, v in action.items() if k != "type"}
-
-            if self.print_steps:
-                print(f"{action_type}({json.dumps(action_args)})")
-
-            screenshot_base64 = self.execute_computer_action(action_type, action_args)
-
-            pending_checks = item.get("pending_safety_checks", []) or []
-            for check in pending_checks:
-                if self.auto_acknowledge_safety:
-                    print(f"⚠️  Auto-acknowledging safety check: {check.get('message')}")
-                else:
-                    raise RuntimeError(f"Safety check failed: {check.get('message')}")
-
-            call_output = {
-                "type": "computer_call_output",
-                "call_id": item["call_id"],
-                "acknowledged_safety_checks": pending_checks,
-                "output": {
-                    "type": "input_image",
-                    "image_url": f"data:image/png;base64,{screenshot_base64}",
-                },
-            }
-            return [call_output]
-
-        return []
-
     def execute_task(
         self,
         task: str,
         print_steps: bool = True,
-        debug: bool = False,
         max_iterations: int = 50,
     ) -> str:
         self.print_steps = print_steps
 
-        input_items: List[Dict[str, Any]] = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": task},
-        ]
-
-        new_items: List[Dict[str, Any]] = []
-        iterations = 0
-        consecutive_no_actions = 0
-        last_assistant_texts: List[str] = []
+        previous_response_id: Optional[str] = None
+        next_input: Any = [{"role": "user", "content": task}]
+        final_message = ""
 
         print(f"🎯 Executing task: {task}")
         print("=" * 60)
 
-        def detect_repetition(text: str) -> bool:
-            if len(last_assistant_texts) < 2:
-                return False
-            words1 = text.lower().split()
-            for prev in last_assistant_texts:
-                words2 = prev.lower().split()
-                common = [w for w in words1 if w in words2]
-                if len(common) / max(len(words1), len(words2)) > 0.8:
-                    return True
-            return False
+        for turn in range(max_iterations):
+            params: Dict[str, Any] = {
+                "model": self.model,
+                "instructions": self.system_prompt,
+                "input": next_input,
+                "tools": self.tools,
+                "reasoning": {"effort": "medium"},
+                "truncation": "auto",
+            }
+            if previous_response_id:
+                params["previous_response_id"] = previous_response_id
 
-        while iterations < max_iterations:
-            iterations += 1
-            has_actions = False
+            response = create_response(**params)
+            if "output" not in response:
+                raise RuntimeError("No output from model")
+            previous_response_id = response.get("id")
 
-            if new_items and new_items[-1].get("role") == "assistant":
-                content = new_items[-1].get("content", [])
-                last_text = content[0].get("text") if content else None
-                if isinstance(last_text, str) and last_text:
-                    if detect_repetition(last_text):
-                        print("🔄 Repetition detected - stopping execution")
-                        last_assistant_texts.append(last_text)
-                        break
-                    last_assistant_texts.append(last_text)
-                    if len(last_assistant_texts) > 3:
-                        last_assistant_texts.pop(0)
+            tool_outputs: List[Dict[str, Any]] = []
 
-            try:
-                response = create_response(
-                    model=self.model,
-                    input=[*input_items, *new_items],
-                    tools=self.tools,
-                    truncation="auto",
-                )
+            for item in response["output"]:
+                item_type = item.get("type")
 
-                if "output" not in response:
-                    raise RuntimeError("No output from model")
+                if item_type == "message":
+                    content = item.get("content") or []
+                    text = content[0].get("text", "") if content else ""
+                    if self.print_steps and text:
+                        print(text)
+                    if text:
+                        final_message = text
+                    continue
 
-                for item in response["output"]:
-                    new_items.append(item)
-                    if item.get("type") in ("computer_call", "function_call"):
-                        has_actions = True
-                    new_items.extend(self.handle_item(item))
+                if item_type == "reasoning":
+                    summary = " ".join(
+                        s.get("text", "")
+                        for s in (item.get("summary") or [])
+                        if s.get("text")
+                    )
+                    if self.print_steps and summary:
+                        print(f"💭 {summary}")
+                    continue
 
-                if not has_actions:
-                    consecutive_no_actions += 1
-                    if consecutive_no_actions >= 3:
-                        print("⚠️  No actions for 3 consecutive iterations - stopping")
-                        break
-                else:
-                    consecutive_no_actions = 0
-            except Exception as error:
-                print(f"❌ Error during task execution: {error}")
-                raise
+                if item_type == "function_call":
+                    if self.print_steps:
+                        print(f"{item['name']}({item['arguments']})")
+                    tool_outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": item["call_id"],
+                            "output": "success",
+                        }
+                    )
+                    continue
 
-        if iterations >= max_iterations:
-            print(f"⚠️  Task execution stopped after {max_iterations} iterations")
+                if item_type == "computer_call":
+                    actions = item.get("actions") or (
+                        [item["action"]] if item.get("action") else []
+                    )
 
-        assistant_messages = [i for i in new_items if i.get("role") == "assistant"]
-        if assistant_messages:
-            content = assistant_messages[-1].get("content") or []
-            if content and content[0].get("text"):
-                return content[0]["text"]
-        return "Task execution completed (no final message)"
+                    for action in actions:
+                        action_type = action.get("type")
+                        action_args = {k: v for k, v in action.items() if k != "type"}
+                        if self.print_steps:
+                            print(f"{action_type}({json.dumps(action_args)})")
+                        self.execute_computer_action(action_type, action_args)
+
+                    pending_checks = item.get("pending_safety_checks", []) or []
+                    for check in pending_checks:
+                        if self.auto_acknowledge_safety:
+                            print(
+                                f"⚠️  Auto-acknowledging safety check: {check.get('message')}"
+                            )
+                        else:
+                            raise RuntimeError(
+                                f"Safety check failed: {check.get('message')}"
+                            )
+
+                    screenshot_base64 = self.take_screenshot()
+                    tool_outputs.append(
+                        {
+                            "type": "computer_call_output",
+                            "call_id": item["call_id"],
+                            "acknowledged_safety_checks": pending_checks,
+                            "output": {
+                                "type": "computer_screenshot",
+                                "image_url": f"data:image/png;base64,{screenshot_base64}",
+                            },
+                        }
+                    )
+
+            if not tool_outputs:
+                break
+            next_input = tool_outputs
+
+        return final_message or "Task execution completed (no final message)"
 
 
 def main():
@@ -451,7 +422,7 @@ def main():
 
         start_time = time.time()
         try:
-            result = agent.execute_task(TASK, True, False, 50)
+            result = agent.execute_task(TASK, True, 50)
             duration = f"{(time.time() - start_time):.1f}"
             print("\n" + "=" * 60)
             print("🎉 TASK EXECUTION COMPLETED")

@@ -7,16 +7,18 @@ import * as dotenv from "dotenv";
 import { Steel } from "steel-sdk";
 import {
   GoogleGenAI,
+  FunctionResponse,
+  Environment,
+  FinishReason,
+} from "@google/genai";
+import type {
   Content,
   Part,
   FunctionCall,
-  FunctionResponse,
   Tool,
-  Environment,
   GenerateContentConfig,
   GenerateContentResponse,
   Candidate,
-  FinishReason,
 } from "@google/genai";
 
 dotenv.config();
@@ -25,7 +27,6 @@ const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "your-gemini-api-key-here";
 const TASK = process.env.TASK || "Go to Steel.dev and find the latest news";
 
-const MODEL = "gemini-2.5-computer-use-preview-10-2025";
 const MAX_COORDINATE = 1000;
 
 function formatToday(): string {
@@ -136,6 +137,7 @@ interface ActionResult {
 class Agent {
   private client: GoogleGenAI;
   private steel: Steel;
+  private model: string;
   private session: Steel.Session | null = null;
   private contents: Content[];
   private tools: Tool[];
@@ -147,11 +149,12 @@ class Agent {
   constructor() {
     this.client = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
+    this.model = "gemini-3-flash-preview";
     this.contents = [];
     this.currentUrl = "about:blank";
 
-    this.viewportWidth = 1280;
-    this.viewportHeight = 768;
+    this.viewportWidth = 1440;
+    this.viewportHeight = 900;
 
     this.tools = [
       {
@@ -181,6 +184,15 @@ class Agent {
     ];
   }
 
+  private splitKeys(k?: string): string[] {
+    return k
+      ? k
+          .split("+")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+  }
+
   private normalizeKey(key: string): string {
     if (!key) return key;
     const k = key.trim();
@@ -192,13 +204,16 @@ class Agent {
       ESCAPE: "Escape",
       TAB: "Tab",
       BACKSPACE: "Backspace",
+      BKSP: "Backspace",
       DELETE: "Delete",
+      DEL: "Delete",
       SPACE: "Space",
       CTRL: "Control",
       CONTROL: "Control",
       ALT: "Alt",
       SHIFT: "Shift",
       META: "Meta",
+      SUPER: "Meta",
       CMD: "Meta",
       COMMAND: "Meta",
       UP: "ArrowUp",
@@ -241,7 +256,7 @@ class Agent {
       console.log("Releasing Steel session...");
       await this.steel.sessions.release(this.session.id);
       console.log(
-        `Session completed. View replay at ${this.session.sessionViewerUrl}`
+        `Session completed. View replay at ${this.session.sessionViewerUrl}`,
       );
       this.session = null;
     }
@@ -257,7 +272,7 @@ class Agent {
   }
 
   private async executeComputerAction(
-    functionCall: FunctionCall
+    functionCall: FunctionCall,
   ): Promise<ActionResult> {
     const name = functionCall.name ?? "";
     const args = (functionCall.args ?? {}) as Record<string, unknown>;
@@ -472,8 +487,7 @@ class Agent {
 
       case "key_combination": {
         const keysStr = args.keys as string;
-        const keys = keysStr.split("+").map((k) => k.trim());
-        const normalizedKeys = this.normalizeKeys(keys);
+        const normalizedKeys = this.normalizeKeys(this.splitKeys(keysStr));
         body = {
           action: "press_key",
           keys: normalizedKeys,
@@ -508,7 +522,7 @@ class Agent {
     if (body) {
       const resp = (await this.steel.sessions.computer(
         this.session!.id,
-        body
+        body,
       )) as SteelComputerResponse;
       const img = resp?.base64_image;
       if (img) {
@@ -536,7 +550,9 @@ class Agent {
     if (!candidate.content?.parts) return "";
     const texts: string[] = [];
     for (const part of candidate.content.parts) {
-      if (part.text) {
+      // Gemini 3 Flash occasionally emits stray digit/whitespace-only text
+      // parts (e.g. "0", "00") alongside the real response. Skip them.
+      if (part.text && !/^[\s\d]*$/.test(part.text)) {
         texts.push(part.text);
       }
     }
@@ -545,7 +561,7 @@ class Agent {
 
   private buildFunctionResponseParts(
     functionCalls: FunctionCall[],
-    results: ActionResult[]
+    results: ActionResult[],
   ): Part[] {
     const parts: Part[] = [];
 
@@ -573,7 +589,7 @@ class Agent {
   async executeTask(
     task: string,
     printSteps: boolean = true,
-    maxIterations: number = 50
+    maxIterations: number = 50,
   ): Promise<string> {
     this.contents = [
       {
@@ -594,7 +610,7 @@ class Agent {
       try {
         const response: GenerateContentResponse =
           await this.client.models.generateContent({
-            model: MODEL,
+            model: this.model,
             contents: this.contents,
             config: this.config,
           });
@@ -633,7 +649,7 @@ class Agent {
           consecutiveNoActions++;
           if (consecutiveNoActions >= 3) {
             console.log(
-              "⚠️ No actions for 3 consecutive iterations - stopping"
+              "⚠️ No actions for 3 consecutive iterations - stopping",
             );
             break;
           }
@@ -660,7 +676,7 @@ class Agent {
               | undefined;
             if (safetyDecision?.decision === "require_confirmation") {
               console.log(
-                `⚠️ Safety confirmation required: ${safetyDecision.explanation}`
+                `⚠️ Safety confirmation required: ${safetyDecision.explanation}`,
               );
               console.log("✅ Auto-acknowledging safety check");
             }
@@ -672,7 +688,7 @@ class Agent {
 
         const functionResponseParts = this.buildFunctionResponseParts(
           functionCalls,
-          results
+          results,
         );
         this.contents.push({
           role: "user",
@@ -686,7 +702,7 @@ class Agent {
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️ Task execution stopped after ${maxIterations} iterations`
+        `⚠️ Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
@@ -694,7 +710,7 @@ class Agent {
       const content = this.contents[i];
       if (content.role === "model") {
         const text = content.parts
-          ?.filter((p) => p.text)
+          ?.filter((p) => p.text && !/^[\s\d]*$/.test(p.text))
           .map((p) => p.text)
           .join(" ")
           .trim();
@@ -714,17 +730,17 @@ async function main(): Promise<void> {
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️ WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "⚠️ WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
-      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+      "   Get your API key at: https://app.steel.dev/settings/api-keys",
     );
     throw new Error("Set STEEL_API_KEY");
   }
 
   if (GEMINI_API_KEY === "your-gemini-api-key-here") {
     console.warn(
-      "⚠️ WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
+      "⚠️ WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key",
     );
     console.warn("   Get your API key at: https://aistudio.google.com/apikey");
     throw new Error("Set GEMINI_API_KEY");

@@ -4,6 +4,7 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-gemini-comp
 """
 
 import os
+import re
 import sys
 import time
 import json
@@ -31,7 +32,6 @@ STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 TASK = os.getenv("TASK") or "Go to Steel.dev and find the latest news"
 
-MODEL = "gemini-2.5-computer-use-preview-10-2025"
 MAX_COORDINATE = 1000
 
 
@@ -71,12 +71,13 @@ class Agent:
     def __init__(self):
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
+        self.model = "gemini-3-flash-preview"
         self.session = None
         self.contents: List[Content] = []
         self.current_url = "about:blank"
 
-        self.viewport_width = 1280
-        self.viewport_height = 768
+        self.viewport_width = 1440
+        self.viewport_height = 900
 
         self.tools: List[Tool] = [
             Tool(
@@ -88,16 +89,19 @@ class Agent:
 
         self.config = GenerateContentConfig(tools=self.tools)
 
-    def _denormalize_x(self, x: int) -> int:
+    def denormalize_x(self, x: int) -> int:
         return int(x / MAX_COORDINATE * self.viewport_width)
 
-    def _denormalize_y(self, y: int) -> int:
+    def denormalize_y(self, y: int) -> int:
         return int(y / MAX_COORDINATE * self.viewport_height)
 
-    def _center(self) -> Tuple[int, int]:
+    def center(self) -> Tuple[int, int]:
         return (self.viewport_width // 2, self.viewport_height // 2)
 
-    def _normalize_key(self, key: str) -> str:
+    def split_keys(self, k: Optional[str]) -> List[str]:
+        return [s.strip() for s in k.split("+") if s.strip()] if k else []
+
+    def normalize_key(self, key: str) -> str:
         if not isinstance(key, str) or not key:
             return key
         k = key.strip()
@@ -109,13 +113,16 @@ class Agent:
             "ESCAPE": "Escape",
             "TAB": "Tab",
             "BACKSPACE": "Backspace",
+            "BKSP": "Backspace",
             "DELETE": "Delete",
+            "DEL": "Delete",
             "SPACE": "Space",
             "CTRL": "Control",
             "CONTROL": "Control",
             "ALT": "Alt",
             "SHIFT": "Shift",
             "META": "Meta",
+            "SUPER": "Meta",
             "CMD": "Meta",
             "COMMAND": "Meta",
             "UP": "ArrowUp",
@@ -138,8 +145,8 @@ class Agent:
             return "F" + upper[1:]
         return k
 
-    def _normalize_keys(self, keys: List[str]) -> List[str]:
-        return [self._normalize_key(k) for k in keys]
+    def normalize_keys(self, keys: List[str]) -> List[str]:
+        return [self.normalize_key(k) for k in keys]
 
     def initialize(self) -> None:
         self.session = self.steel.sessions.create(
@@ -159,14 +166,14 @@ class Agent:
             )
             self.session = None
 
-    def _take_screenshot(self) -> str:
+    def take_screenshot(self) -> str:
         resp = self.steel.sessions.computer(self.session.id, action="take_screenshot")
         img = getattr(resp, "base64_image", None)
         if not img:
             raise RuntimeError("No screenshot returned from Steel")
         return img
 
-    def _execute_computer_action(
+    def execute_computer_action(
         self, function_call: FunctionCall
     ) -> Tuple[str, Optional[str]]:
         """Execute a computer action and return (screenshot_base64, url)."""
@@ -174,12 +181,12 @@ class Agent:
         args: Dict[str, Any] = function_call.args or {}
 
         if name == "open_web_browser":
-            screenshot = self._take_screenshot()
+            screenshot = self.take_screenshot()
             return screenshot, self.current_url
 
         elif name == "click_at":
-            x = self._denormalize_x(args.get("x", 0))
-            y = self._denormalize_y(args.get("y", 0))
+            x = self.denormalize_x(args.get("x", 0))
+            y = self.denormalize_y(args.get("y", 0))
             resp = self.steel.sessions.computer(
                 self.session.id,
                 action="click_mouse",
@@ -188,11 +195,11 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "hover_at":
-            x = self._denormalize_x(args.get("x", 0))
-            y = self._denormalize_y(args.get("y", 0))
+            x = self.denormalize_x(args.get("x", 0))
+            y = self.denormalize_y(args.get("y", 0))
             resp = self.steel.sessions.computer(
                 self.session.id,
                 action="move_mouse",
@@ -200,11 +207,11 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "type_text_at":
-            x = self._denormalize_x(args.get("x", 0))
-            y = self._denormalize_y(args.get("y", 0))
+            x = self.denormalize_x(args.get("x", 0))
+            y = self.denormalize_y(args.get("y", 0))
             text = args.get("text", "")
             press_enter = args.get("press_enter", True)
             clear_before_typing = args.get("clear_before_typing", True)
@@ -247,7 +254,7 @@ class Agent:
                 duration=1,
             )
 
-            screenshot = self._take_screenshot()
+            screenshot = self.take_screenshot()
             return screenshot, self.current_url
 
         elif name == "scroll_document":
@@ -257,7 +264,7 @@ class Agent:
             elif direction == "up":
                 keys = ["PageUp"]
             elif direction in ("left", "right"):
-                cx, cy = self._center()
+                cx, cy = self.center()
                 delta = -400 if direction == "left" else 400
                 resp = self.steel.sessions.computer(
                     self.session.id,
@@ -268,7 +275,7 @@ class Agent:
                     screenshot=True,
                 )
                 img = getattr(resp, "base64_image", None)
-                return img or self._take_screenshot(), self.current_url
+                return img or self.take_screenshot(), self.current_url
             else:
                 keys = ["PageDown"]
 
@@ -279,13 +286,13 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "scroll_at":
-            x = self._denormalize_x(args.get("x", 0))
-            y = self._denormalize_y(args.get("y", 0))
+            x = self.denormalize_x(args.get("x", 0))
+            y = self.denormalize_y(args.get("y", 0))
             direction = args.get("direction", "down")
-            magnitude = self._denormalize_y(args.get("magnitude", 800))
+            magnitude = self.denormalize_y(args.get("magnitude", 800))
 
             delta_x, delta_y = 0, 0
             if direction == "down":
@@ -306,7 +313,7 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "wait_5_seconds":
             resp = self.steel.sessions.computer(
@@ -316,7 +323,7 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "go_back":
             resp = self.steel.sessions.computer(
@@ -326,7 +333,7 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "go_forward":
             resp = self.steel.sessions.computer(
@@ -336,7 +343,7 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "search":
             self.steel.sessions.computer(
@@ -360,7 +367,7 @@ class Agent:
                 duration=2,
             )
             self.current_url = "https://www.google.com"
-            screenshot = self._take_screenshot()
+            screenshot = self.take_screenshot()
             return screenshot, self.current_url
 
         elif name == "navigate":
@@ -389,13 +396,12 @@ class Agent:
                 duration=2,
             )
             self.current_url = url
-            screenshot = self._take_screenshot()
+            screenshot = self.take_screenshot()
             return screenshot, self.current_url
 
         elif name == "key_combination":
             keys_str = args.get("keys", "")
-            keys = [k.strip() for k in keys_str.split("+")]
-            normalized_keys = self._normalize_keys(keys)
+            normalized_keys = self.normalize_keys(self.split_keys(keys_str))
             resp = self.steel.sessions.computer(
                 self.session.id,
                 action="press_key",
@@ -403,13 +409,13 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         elif name == "drag_and_drop":
-            start_x = self._denormalize_x(args.get("x", 0))
-            start_y = self._denormalize_y(args.get("y", 0))
-            end_x = self._denormalize_x(args.get("destination_x", 0))
-            end_y = self._denormalize_y(args.get("destination_y", 0))
+            start_x = self.denormalize_x(args.get("x", 0))
+            start_y = self.denormalize_y(args.get("y", 0))
+            end_x = self.denormalize_x(args.get("destination_x", 0))
+            end_y = self.denormalize_y(args.get("destination_y", 0))
             resp = self.steel.sessions.computer(
                 self.session.id,
                 action="drag_mouse",
@@ -417,14 +423,14 @@ class Agent:
                 screenshot=True,
             )
             img = getattr(resp, "base64_image", None)
-            return img or self._take_screenshot(), self.current_url
+            return img or self.take_screenshot(), self.current_url
 
         else:
             print(f"Unknown action: {name}, taking screenshot")
-            screenshot = self._take_screenshot()
+            screenshot = self.take_screenshot()
             return screenshot, self.current_url
 
-    def _extract_function_calls(self, candidate: Candidate) -> List[FunctionCall]:
+    def extract_function_calls(self, candidate: Candidate) -> List[FunctionCall]:
         function_calls: List[FunctionCall] = []
         if not candidate.content or not candidate.content.parts:
             return function_calls
@@ -433,16 +439,18 @@ class Agent:
                 function_calls.append(part.function_call)
         return function_calls
 
-    def _extract_text(self, candidate: Candidate) -> str:
+    def extract_text(self, candidate: Candidate) -> str:
         if not candidate.content or not candidate.content.parts:
             return ""
         texts: List[str] = []
         for part in candidate.content.parts:
-            if part.text:
+            # Gemini 3 Flash occasionally emits stray digit/whitespace-only
+            # text parts (e.g. "0", "00") alongside the real response.
+            if part.text and not re.fullmatch(r"[\s\d]*", part.text):
                 texts.append(part.text)
         return " ".join(texts).strip()
 
-    def _build_function_response_parts(
+    def build_function_response_parts(
         self,
         function_calls: List[FunctionCall],
         results: List[Tuple[str, Optional[str]]],
@@ -493,7 +501,7 @@ class Agent:
 
             try:
                 response = self.client.models.generate_content(
-                    model=MODEL,
+                    model=self.model,
                     contents=self.contents,
                     config=self.config,
                 )
@@ -507,8 +515,8 @@ class Agent:
                 if candidate.content:
                     self.contents.append(candidate.content)
 
-                reasoning = self._extract_text(candidate)
-                function_calls = self._extract_function_calls(candidate)
+                reasoning = self.extract_text(candidate)
+                function_calls = self.extract_function_calls(candidate)
 
                 if (
                     not function_calls
@@ -554,10 +562,10 @@ class Agent:
                             )
                             print("✅ Auto-acknowledging safety check")
 
-                    result = self._execute_computer_action(fc)
+                    result = self.execute_computer_action(fc)
                     results.append(result)
 
-                function_response_parts = self._build_function_response_parts(
+                function_response_parts = self.build_function_response_parts(
                     function_calls, results
                 )
                 self.contents.append(
@@ -573,7 +581,11 @@ class Agent:
 
         for content in reversed(self.contents):
             if content.role == "model" and content.parts:
-                text_parts = [p.text for p in content.parts if p.text]
+                text_parts = [
+                    p.text
+                    for p in content.parts
+                    if p.text and not re.fullmatch(r"[\s\d]*", p.text)
+                ]
                 if text_parts:
                     return " ".join(text_parts).strip()
 

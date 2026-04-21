@@ -102,6 +102,7 @@ async function createResponse(params: any): Promise<ResponseItem> {
   });
   if (!response.ok) {
     const errorText = await response.text();
+    console.error("Failed request body:", JSON.stringify(params, null, 2));
     throw new Error(`OpenAI API Error: ${response.status} ${errorText}`);
   }
   return (await response.json()) as ResponseItem;
@@ -172,18 +173,11 @@ class Agent {
 
   constructor() {
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "computer-use-preview";
-    this.viewportWidth = 1280;
-    this.viewportHeight = 768;
+    this.model = "gpt-5.4";
+    this.viewportWidth = 1440;
+    this.viewportHeight = 900;
     this.systemPrompt = BROWSER_SYSTEM_PROMPT;
-    this.tools = [
-      {
-        type: "computer-preview",
-        display_width: this.viewportWidth,
-        display_height: this.viewportHeight,
-        environment: "browser",
-      },
-    ];
+    this.tools = [{ type: "computer" }];
   }
 
   private center(): [number, number] {
@@ -206,38 +200,6 @@ class Agent {
     const xx = this.toNumber(x, this.center()[0]);
     const yy = this.toNumber(y, this.center()[1]);
     return [xx, yy];
-  }
-
-  async initialize(): Promise<void> {
-    const width = this.viewportWidth;
-    const height = this.viewportHeight;
-    this.session = await this.steel.sessions.create({
-      dimensions: { width, height },
-      blockAds: true,
-      timeout: 900000,
-    });
-    console.log("Steel Session created successfully!");
-    console.log(`View live session at: ${this.session.sessionViewerUrl}`);
-  }
-
-  async cleanup(): Promise<void> {
-    if (this.session) {
-      console.log("Releasing Steel session...");
-      await this.steel.sessions.release(this.session.id);
-      console.log(
-        `Session completed. View replay at ${this.session.sessionViewerUrl}`
-      );
-      this.session = null;
-    }
-  }
-
-  private async takeScreenshot(): Promise<string> {
-    const resp: any = await this.steel.sessions.computer(this.session!.id, {
-      action: "take_screenshot",
-    });
-    const img: string | undefined = resp?.base64_image;
-    if (!img) throw new Error("No screenshot returned from Steel");
-    return img;
   }
 
   private splitKeys(k?: string | string[]): string[] {
@@ -297,6 +259,7 @@ class Agent {
     if (upper.startsWith("F") && /^\d+$/.test(upper.slice(1))) {
       return "F" + upper.slice(1);
     }
+    if (k.length === 1 && /[A-Z]/.test(k)) return k.toLowerCase();
     return k;
   }
 
@@ -304,9 +267,41 @@ class Agent {
     return keys.map((k) => this.normalizeKey(k));
   }
 
+  async initialize(): Promise<void> {
+    const width = this.viewportWidth;
+    const height = this.viewportHeight;
+    this.session = await this.steel.sessions.create({
+      dimensions: { width, height },
+      blockAds: true,
+      timeout: 900000,
+    });
+    console.log("Steel Session created successfully!");
+    console.log(`View live session at: ${this.session.sessionViewerUrl}`);
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.session) {
+      console.log("Releasing Steel session...");
+      await this.steel.sessions.release(this.session.id);
+      console.log(
+        `Session completed. View replay at ${this.session.sessionViewerUrl}`,
+      );
+      this.session = null;
+    }
+  }
+
+  private async takeScreenshot(): Promise<string> {
+    const resp: any = await this.steel.sessions.computer(this.session!.id, {
+      action: "take_screenshot",
+    });
+    const img: string | undefined = resp?.base64_image;
+    if (!img) throw new Error("No screenshot returned from Steel");
+    return img;
+  }
+
   private async executeComputerAction(
     actionType: string,
-    actionArgs: any
+    actionArgs: any,
   ): Promise<string> {
     let body: ComputerActionRequest | null = null;
 
@@ -348,7 +343,7 @@ class Agent {
       case "drag": {
         const path = Array.isArray(actionArgs.path) ? actionArgs.path : [];
         const steelPath: Coordinates[] = path.map((p: any) =>
-          this.toCoords(p.x, p.y)
+          this.toCoords(p.x, p.y),
         );
         if (steelPath.length < 2) {
           const [cx, cy] = this.center();
@@ -418,182 +413,112 @@ class Agent {
 
     const resp: any = await this.steel.sessions.computer(
       this.session!.id,
-      body!
+      body!,
     );
     const img: string | undefined = resp?.base64_image;
     if (img) return img;
     return this.takeScreenshot();
   }
 
-  private async handleItem(
-    item: MessageItem | FunctionCallItem | ComputerCallItem
-  ): Promise<OutputItem[]> {
-    if (item.type === "message") {
-      if (this.printSteps) {
-        console.log(item.content[0].text);
-      }
-      return [];
-    }
-    if (item.type === "function_call") {
-      if (this.printSteps) {
-        console.log(`${item.name}(${item.arguments})`);
-      }
-      return [
-        {
-          type: "function_call_output",
-          call_id: item.call_id,
-          output: "success",
-        },
-      ];
-    }
-    if (item.type === "computer_call") {
-      const { action } = item;
-      const actionType = action.type;
-      const { type, ...actionArgs } = action;
-
-      if (this.printSteps) {
-        console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
-      }
-
-      const screenshotBase64 = await this.executeComputerAction(
-        actionType,
-        actionArgs
-      );
-
-      const pendingChecks = item.pending_safety_checks || [];
-      for (const check of pendingChecks) {
-        if (this.autoAcknowledgeSafety) {
-          console.log(`⚠️  Auto-acknowledging safety check: ${check.message}`);
-        } else {
-          throw new Error(`Safety check failed: ${check.message}`);
-        }
-      }
-
-      const callOutput: OutputItem = {
-        type: "computer_call_output",
-        call_id: item.call_id,
-        acknowledged_safety_checks: pendingChecks,
-        output: {
-          type: "input_image",
-          image_url: `data:image/png;base64,${screenshotBase64}`,
-        },
-      };
-      return [callOutput];
-    }
-    return [];
-  }
-
   async executeTask(
     task: string,
     printSteps: boolean = true,
-    debug: boolean = false,
-    maxIterations: number = 50
+    maxIterations: number = 50,
   ): Promise<string> {
     this.printSteps = printSteps;
 
-    const inputItems = [
-      {
-        role: "system",
-        content: this.systemPrompt,
-      },
-      {
-        role: "user",
-        content: task,
-      },
-    ];
-
-    let newItems: any[] = [];
-    let iterations = 0;
-    let consecutiveNoActions = 0;
-    let lastAssistantTexts: string[] = [];
+    let previousResponseId: string | undefined;
+    let nextInput: any = [{ role: "user", content: task }];
+    let finalMessage = "";
 
     console.log(`🎯 Executing task: ${task}`);
     console.log("=".repeat(60));
 
-    const detectRepetition = (text: string): boolean => {
-      if (lastAssistantTexts.length < 2) return false;
-      const words1 = text.toLowerCase().split(/\s+/);
-      return lastAssistantTexts.some((prev) => {
-        const words2 = prev.toLowerCase().split(/\s+/);
-        const common = words1.filter((w) => words2.includes(w));
-        return common.length / Math.max(words1.length, words2.length) > 0.8;
+    for (let turn = 0; turn < maxIterations; turn++) {
+      const response = await createResponse({
+        model: this.model,
+        instructions: this.systemPrompt,
+        input: nextInput,
+        tools: this.tools,
+        previous_response_id: previousResponseId,
+        reasoning: { effort: "medium" },
+        truncation: "auto",
       });
-    };
 
-    while (iterations < maxIterations) {
-      iterations++;
-      let hasActions = false;
+      if (!response.output) throw new Error("No output from model");
+      previousResponseId = response.id;
 
-      if (
-        newItems.length > 0 &&
-        newItems[newItems.length - 1]?.role === "assistant"
-      ) {
-        const last = newItems[newItems.length - 1];
-        const content = last.content?.[0]?.text;
-        if (content) {
-          if (detectRepetition(content)) {
-            console.log("🔄 Repetition detected - stopping execution");
-            lastAssistantTexts.push(content);
-            break;
+      const output = response.output as any[];
+      const toolOutputs: any[] = [];
+
+      for (const item of output) {
+        if (item.type === "message") {
+          const text = item.content?.[0]?.text ?? "";
+          if (this.printSteps && text) console.log(text);
+          finalMessage = text || finalMessage;
+          continue;
+        }
+
+        if (item.type === "reasoning") {
+          const summary = item.summary
+            ?.map((s: any) => s.text)
+            .filter(Boolean)
+            .join(" ");
+          if (this.printSteps && summary) console.log(`💭 ${summary}`);
+          continue;
+        }
+
+        if (item.type === "function_call") {
+          if (this.printSteps) console.log(`${item.name}(${item.arguments})`);
+          toolOutputs.push({
+            type: "function_call_output",
+            call_id: item.call_id,
+            output: "success",
+          });
+          continue;
+        }
+
+        if (item.type === "computer_call") {
+          const actions: any[] =
+            item.actions ?? (item.action ? [item.action] : []);
+
+          for (const action of actions) {
+            const { type: actionType, ...actionArgs } = action;
+            if (this.printSteps) {
+              console.log(`${actionType}(${JSON.stringify(actionArgs)})`);
+            }
+            await this.executeComputerAction(actionType, actionArgs);
           }
-          lastAssistantTexts.push(content);
-          if (lastAssistantTexts.length > 3) lastAssistantTexts.shift();
+
+          const pendingChecks = item.pending_safety_checks ?? [];
+          for (const check of pendingChecks) {
+            if (this.autoAcknowledgeSafety) {
+              console.log(
+                `⚠️  Auto-acknowledging safety check: ${check.message}`,
+              );
+            } else {
+              throw new Error(`Safety check failed: ${check.message}`);
+            }
+          }
+
+          const screenshotBase64 = await this.takeScreenshot();
+          toolOutputs.push({
+            type: "computer_call_output",
+            call_id: item.call_id,
+            acknowledged_safety_checks: pendingChecks,
+            output: {
+              type: "computer_screenshot",
+              image_url: `data:image/png;base64,${screenshotBase64}`,
+            },
+          });
         }
       }
 
-      try {
-        const response = await createResponse({
-          model: this.model,
-          input: [...inputItems, ...newItems],
-          tools: this.tools,
-          truncation: "auto",
-        });
-
-        if (!response.output) {
-          throw new Error("No output from model");
-        }
-
-        newItems.push(...response.output);
-
-        for (const item of response.output) {
-          if (item.type === "computer_call" || item.type === "function_call") {
-            hasActions = true;
-          }
-          const handleResult = await this.handleItem(item);
-          newItems.push(...handleResult);
-        }
-
-        if (!hasActions) {
-          consecutiveNoActions++;
-          if (consecutiveNoActions >= 3) {
-            console.log(
-              "⚠️  No actions for 3 consecutive iterations - stopping"
-            );
-            break;
-          }
-        } else {
-          consecutiveNoActions = 0;
-        }
-      } catch (error) {
-        console.error(`❌ Error during task execution: ${error}`);
-        throw error;
-      }
+      if (toolOutputs.length === 0) break;
+      nextInput = toolOutputs;
     }
 
-    if (iterations >= maxIterations) {
-      console.warn(
-        `⚠️  Task execution stopped after ${maxIterations} iterations`
-      );
-    }
-
-    const assistantMessages = newItems.filter(
-      (item) => item.role === "assistant"
-    );
-    const finalMessage = assistantMessages[assistantMessages.length - 1];
-    return (
-      finalMessage?.content?.[0]?.text ||
-      "Task execution completed (no final message)"
-    );
+    return finalMessage || "Task execution completed (no final message)";
   }
 }
 
@@ -603,16 +528,16 @@ async function main(): Promise<void> {
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
-      "   Get your API key at: https://app.steel.dev/settings/api-keys"
+      "   Get your API key at: https://app.steel.dev/settings/api-keys",
     );
     throw new Error("Set STEEL_API_KEY");
   }
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key",
     );
     console.warn("   Get your API key at: https://platform.openai.com/");
     throw new Error("Set OPENAI_API_KEY");
@@ -626,7 +551,7 @@ async function main(): Promise<void> {
     console.log("✅ Steel session started!");
 
     const startTime = Date.now();
-    const result = await agent.executeTask(TASK, true, false, 50);
+    const result = await agent.executeTask(TASK, true, 50);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
     console.log("\n" + "=".repeat(60));

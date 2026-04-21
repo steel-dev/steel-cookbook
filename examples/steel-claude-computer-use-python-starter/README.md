@@ -44,5 +44,5 @@ TASK="Find the current weather in New York City" python main.py
 ## Links
 
 - [Steel docs](https://docs.steel.dev)
-- [Anthropic Computer Use](https://docs.anthropic.com/claude/docs/computer-use)
+- [Anthropic Computer Use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
 - [Discord](https://discord.gg/steel-dev)
