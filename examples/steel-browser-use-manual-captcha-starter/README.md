@@ -24,7 +24,7 @@ Unlike the auto-solving approach, this example gives you full control over the s
 
 - Python 3.11 or higher
 - Steel API key ([Get 100 free browser hours](https://app.steel.dev/sign-up))
-- Gemini API key ([Get your key](https://aistudio.google.com/app/api-keys))
+- OpenAI API key ([Get your key](https://platform.openai.com/api-keys))
 
 ## Installation
 
@@ -58,7 +58,7 @@ Unlike the auto-solving approach, this example gives you full control over the s
 
    ```env
    STEEL_API_KEY=your_steel_api_key_here
-   GEMINI_API_KEY=your_gemini_api_key_here
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 ## Usage
@@ -83,7 +83,7 @@ session = client.sessions.create(
 
 ### 2. Browser-Use Agent
 
-The AI agent (powered by Gemini 3 Pro) connects to the Steel session via CDP WebSocket and opens multiple CAPTCHA demo pages in separate tabs:
+The AI agent (powered by OpenAI GPT-5) connects to the Steel session via CDP WebSocket and opens multiple CAPTCHA demo pages in separate tabs:
 
 - Google reCAPTCHA v2 demo
 - Google reCAPTCHA v3 demo

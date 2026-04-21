@@ -1,5 +1,5 @@
-steel-sdk>=0.9.0
-notte==1.6.0
+steel-sdk>=0.16.0
+notte==1.8.13
 python-dotenv>=1.0.0
-pydantic>=2.0.0 
-patchright>=1.0.0
+pydantic>=2.0.0
+patchright>=1.55.0

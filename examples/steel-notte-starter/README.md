@@ -38,4 +38,4 @@ Set these in `.env`:
 - `NOTTE_API_KEY` - Your Notte API key
 - `TASK` - What you want the AI to do (default: search Wikipedia for machine learning)
 
-You can also modify the reasoning model in `main.py` (supports gpt-4o, claude-3-sonnet, etc.).
+You can also modify the reasoning model in `main.py` (supports `gemini/gemini-2.5-flash`, `openai/gpt-5`, `anthropic/claude-sonnet-4-6`, etc.).

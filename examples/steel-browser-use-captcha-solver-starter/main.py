@@ -17,7 +17,7 @@ import asyncio
 from dotenv import load_dotenv
 from steel import Steel
 from browser_use import Agent, BrowserSession, Tools
-from browser_use.llm import ChatGoogle
+from browser_use.llm import ChatOpenAI
 
 from typing import Any, Dict, List
 
@@ -25,7 +25,7 @@ load_dotenv()
 
 # Replace with your own API keys
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 # Replace with your own task
 TASK = """
@@ -157,11 +157,11 @@ async def main():
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
-    if GEMINI_API_KEY == "your-gemini-api-key-here":
+    if OPENAI_API_KEY == "your-openai-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
+            "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
         )
-        print("   Get your API key at: https://aistudio.google.com/app/apikey")
+        print("   Get your API key at: https://platform.openai.com/api-keys")
         sys.exit(1)
 
     print("\nStarting Steel browser session...")
@@ -181,7 +181,7 @@ async def main():
 
         cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
-        model = ChatGoogle(model="gemini-3-pro-preview", temperature=0.3, api_key=GEMINI_API_KEY)
+        model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
 
         agent = Agent(
             task=TASK,

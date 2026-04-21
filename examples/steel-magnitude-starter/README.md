@@ -36,7 +36,7 @@ const agent = await startBrowserAgent({
   llm: {
     provider: "anthropic",
     options: {
-      model: "claude-3-7-sonnet-latest",
+      model: "claude-sonnet-4-6",
       apiKey: process.env.ANTHROPIC_API_KEY,
     },
   },

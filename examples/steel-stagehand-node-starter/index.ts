@@ -5,8 +5,12 @@
 
 import { Stagehand } from "@browserbasehq/stagehand";
 import Steel from "steel-sdk";
-import { z } from "zod/v3";
+import { z } from "zod";
 import dotenv from "dotenv";
+
+// gpt-5 is a reasoning model and doesn't accept `temperature`; silence the
+// AI SDK warning that Stagehand triggers by passing a default temperature.
+(globalThis as any).AI_SDK_LOG_WARNINGS = false;
 
 dotenv.config();
 
@@ -41,7 +45,7 @@ async function main() {
   }
 
   let session;
-  let stagehand;
+  let stagehand: Stagehand | undefined;
 
   try {
     console.log("\nCreating Steel session...");
@@ -66,8 +70,8 @@ async function main() {
       localBrowserLaunchOptions: {
         cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
       },
-      enableCaching: false,
-      modelClientOptions: {
+      model: {
+        modelName: "openai/gpt-5",
         apiKey: OPENAI_API_KEY,
       },
     });
@@ -77,40 +81,37 @@ async function main() {
 
     console.log("Connected to browser via Stagehand");
 
+    const page = await stagehand.context.awaitActivePage();
+
     console.log("Navigating to Hacker News...");
-    await stagehand.page.goto("https://news.ycombinator.com");
+    await page.goto("https://news.ycombinator.com");
 
     console.log("Extracting top stories using AI...");
 
-    const stories = await stagehand.page.extract({
-      instruction: "extract the titles of the first 5 stories on the page",
-      schema: z.object({
+    const stories = await stagehand.extract(
+      "extract the titles and ranks of the first 5 stories on the page",
+      z.object({
         stories: z.array(
           z.object({
             title: z.string(),
             rank: z.number(),
           })
         ),
-      }),
-    });
+      })
+    );
 
     console.log("\n\x1b[1;92mTop 5 Hacker News Stories:\x1b[0m");
-    stories.stories?.forEach((story: any, index: number) => {
-      console.log(`${index + 1}. ${story.title}`);
+    stories.stories?.forEach((story) => {
+      console.log(`${story.rank}. ${story.title}`);
     });
 
-    console.log("\nLooking for search functionality...");
+    console.log("\nNavigating to HN's 'new' section via a natural-language click...");
 
     try {
-      await stagehand.page.act(
-        "find and click on the search link or button if it exists"
-      );
-      console.log("Found search functionality!");
-
-      await stagehand.page.act("type 'AI' in the search box");
-      console.log("Typed 'AI' in search box");
+      await stagehand.act("click the 'new' link in the top navigation");
+      console.log("Navigated to new stories!");
     } catch (error) {
-      console.log("No search functionality found or accessible");
+      console.log("Could not navigate to new stories:", error);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 2000));

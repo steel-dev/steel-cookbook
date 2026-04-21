@@ -69,7 +69,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
       narrate: true,
       llm: {
         provider: "anthropic",
-        options: { model: "claude-3-7-sonnet-latest", apiKey: ANTHROPIC_API_KEY },
+        options: { model: "claude-sonnet-4-6", apiKey: ANTHROPIC_API_KEY },
       },
       browser: {
         cdp: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
@@ -177,7 +177,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
         llm: {
           provider: "anthropic",
           options: {
-            model: "claude-3-7-sonnet-latest",
+            model: "claude-sonnet-4-6",
             apiKey: process.env.ANTHROPIC_API_KEY,
           },
         },

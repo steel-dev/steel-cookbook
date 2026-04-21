@@ -1,7 +1,7 @@
 [project]
-name = "steel-browser-use-starter"
+name = "steel-browser-use-manual-captcha-starter"
 version = "0.1.0"
-description = "Add your description here"
+description = "Steel + Browser-Use: Manual reCAPTCHA v2 solver"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

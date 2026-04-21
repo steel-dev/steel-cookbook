@@ -60,7 +60,7 @@ async def main():
                 agent = notte.Agent(
                     session=notte_session,
                     max_steps=5,
-                    reasoning_model="gemini/gemini-2.0-flash"
+                    reasoning_model="gemini/gemini-2.5-flash"
                 )
                 response = agent.run(task=TASK)
 

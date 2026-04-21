@@ -4,6 +4,8 @@ Use Steel with Stagehand for AI-powered browser automation.
 
 Stagehand lets you interact with web pages using natural language - click buttons, extract data, fill forms without writing selectors.
 
+This starter targets **Stagehand v3** (Python package `stagehand`, published on PyPI). The legacy `stagehand-py` package is deprecated.
+
 ## Setup
 
 ```bash
@@ -29,38 +31,74 @@ python main.py
 
 ## Configuration
 
+Stagehand v3 runs an embedded local server that drives the browser. To drive a Steel-hosted browser, pass the Steel CDP URL into `sessions.start`:
+
 ```python
-config = StagehandConfig(
-    env="LOCAL",
-    model_name="gpt-4o-mini",
+from stagehand import AsyncStagehand
+
+stagehand = AsyncStagehand(
+    server="local",
     model_api_key=OPENAI_API_KEY,
-    cdp_url=f"wss://connect.steel.dev?apiKey={STEEL_API_KEY}&sessionId={session.id}",
 )
-stagehand = Stagehand(config)
+
+stagehand_session = await stagehand.sessions.start(
+    model_name="openai/gpt-5",
+    browser={
+        "type": "local",
+        "launchOptions": {
+            "cdpUrl": f"{session.websocket_url}&apiKey={STEEL_API_KEY}",
+        },
+    },
+)
+session_id = stagehand_session.data.session_id
 ```
 
 ## Examples
 
-Extract data:
+Extract data with a JSON schema:
 
 ```python
-from pydantic import BaseModel, Field
+PRODUCTS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "products": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "price": {"type": "string"},
+                },
+            },
+        }
+    },
+}
 
-class Product(BaseModel):
-    name: str = Field(..., description="Product name")
-    price: str = Field(..., description="Product price")
-
-data = await stagehand.page.extract(
-    "extract all product names and prices",
-    schema=Products
+extract_stream = stagehand.sessions.extract(
+    id=session_id,
+    instruction="extract all product names and prices",
+    schema=PRODUCTS_SCHEMA,
+    stream_response=True,
+    x_stream_response="true",
 )
 ```
 
 Interact with elements:
 
 ```python
-await stagehand.page.act("click the 'Add to Cart' button")
-await stagehand.page.act("type user@example.com in the email field")
+await stagehand.sessions.act(
+    id=session_id,
+    instruction="click the 'Add to Cart' button",
+    stream_response=True,
+    x_stream_response="true",
+)
+
+await stagehand.sessions.act(
+    id=session_id,
+    instruction="type user@example.com in the email field",
+    stream_response=True,
+    x_stream_response="true",
+)
 ```
 
 ## Links

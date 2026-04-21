@@ -32,7 +32,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   Run the following command to install the necessary packages for Steel, browser-use, and OpenAI integration.
 
   ```bash
-  pip install steel-sdk browser-use langchain-openai
+  pip install steel-sdk browser-use python-dotenv
   ```
 </Step>
 
@@ -42,7 +42,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   ```python showLineNumbers filename="main.py" /YOUR_STEEL_API_KEY/#1
   from steel import Steel
   from browser_use import Agent, BrowserSession
-  from langchain_openai import ChatOpenAI
+  from browser_use.llm import ChatOpenAI
 
   # Initialize Steel client with API key
   client = Steel(steel_api_key="YOUR_STEEL_API_KEY")
@@ -71,8 +71,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   # You can use any browser-use compatible model you want here like Anthropic, Deepseek, Gemini, etc.
   # See supported models here: https://docs.browser-use.com/customize/supported-models
   model = ChatOpenAI(
-      model="gpt-4o",
-      temperature=0.3,
+      model="gpt-5",
       api_key=os.getenv("OPENAI_API_KEY"),
   )
 
@@ -130,7 +129,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
   import asyncio
   from steel import Steel
   from browser_use import Agent, BrowserSession
-  from langchain_openai import ChatOpenAI
+  from browser_use.llm import ChatOpenAI
   import os
   import time
 
@@ -147,8 +146,7 @@ githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/stee
 
   # Create and configure the AI agent
   model = ChatOpenAI(
-      model="gpt-4o",
-      temperature=0.3,
+      model="gpt-5",
       api_key=os.getenv("OPENAI_API_KEY"),
   )
 

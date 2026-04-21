@@ -27,13 +27,13 @@ from typing import Any, Dict, List, Set
 from dotenv import load_dotenv
 from steel import Steel
 from browser_use import Agent, BrowserSession, Tools
-from browser_use.llm import ChatGoogle
+from browser_use.llm import ChatOpenAI
 
 load_dotenv()
 
 # ── Configuration ────────────────────────────────────────────────────────────
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 CAPTCHA_PAGES = [
     {
@@ -272,9 +272,9 @@ async def main() -> None:
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
-    if GEMINI_API_KEY == "your-gemini-api-key-here":
-        print("❌ ERROR: Please set your GEMINI_API_KEY in the .env file")
-        print("   Get your API key at: https://aistudio.google.com/app/api-keys")
+    if OPENAI_API_KEY == "your-openai-api-key-here":
+        print("❌ ERROR: Please set your OPENAI_API_KEY in the .env file")
+        print("   Get your API key at: https://platform.openai.com/api-keys")
         sys.exit(1)
 
     session = None
@@ -298,10 +298,9 @@ async def main() -> None:
         # Connect browser-use
         cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
-        model = ChatGoogle(
-            model="gemini-3-pro-preview",
-            temperature=0.3,
-            api_key=GEMINI_API_KEY,
+        model = ChatOpenAI(
+            model="gpt-5",
+            api_key=OPENAI_API_KEY,
         )
 
         agent = Agent(

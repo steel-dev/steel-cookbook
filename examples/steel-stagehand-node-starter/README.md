@@ -4,6 +4,8 @@ Use Steel with Stagehand for AI-powered browser automation.
 
 Stagehand lets you interact with web pages using natural language - click buttons, extract data, fill forms without writing selectors.
 
+This starter targets **Stagehand v3** (`@browserbasehq/stagehand`).
+
 ## Setup
 
 ```bash
@@ -29,54 +31,50 @@ npm start
 
 ## Configuration
 
+In v3, `modelClientOptions` is replaced by a unified `model` field, and AI methods (`act`, `extract`, `observe`) live on the `Stagehand` instance.
+
 ```typescript
 const stagehand = new Stagehand({
   env: "LOCAL",
   localBrowserLaunchOptions: {
-    cdpUrl: `wss://connect.steel.dev?apiKey=${STEEL_API_KEY}&sessionId=${session.id}`,
+    cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
   },
-  enableCaching: true,
+  model: {
+    modelName: "openai/gpt-5",
+    apiKey: OPENAI_API_KEY,
+  },
 });
+
+await stagehand.init();
+const page = await stagehand.context.awaitActivePage();
 ```
 
 ## Examples
 
-Extract data:
+Extract data (positional `(instruction, schema)`):
 
 ```typescript
-const data = await stagehand.extract({
-  instruction: "extract all product names and prices",
-  schema: {
-    type: "object",
-    properties: {
-      products: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            price: { type: "string" },
-          },
-        },
-      },
-    },
-  },
-});
+import { z } from "zod";
+
+const data = await stagehand.extract(
+  "extract all product names and prices",
+  z.object({
+    products: z.array(
+      z.object({
+        name: z.string(),
+        price: z.string(),
+      })
+    ),
+  })
+);
 ```
 
 Interact with elements:
 
 ```typescript
-await stagehand.act({
-  action: "click",
-  instruction: "click the 'Add to Cart' button",
-});
+await stagehand.act("click the 'Add to Cart' button");
 
-await stagehand.act({
-  action: "type",
-  instruction: "enter email in the email field",
-  text: "user@example.com",
-});
+await stagehand.act("type 'user@example.com' in the email field");
 ```
 
 ## Links

@@ -1,7 +1,7 @@
 [project]
-name = "steel-browser-use-starter"
+name = "steel-browser-use-captcha-solver-starter"
 version = "0.1.0"
-description = "Add your description here"
+description = "Steel + Browser-Use: Automatic CAPTCHA solving"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

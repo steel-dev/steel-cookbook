@@ -15,9 +15,9 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "magnitude-core": "^0.3.0",
+    "magnitude-core": "^0.3.1",
     "playwright": "^1.50.0",
-    "steel-sdk": "^0.10"
+    "steel-sdk": "^0.16"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

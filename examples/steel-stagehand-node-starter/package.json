@@ -17,11 +17,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@browserbasehq/stagehand": "^2.0.0",
+    "@browserbasehq/stagehand": "^3.2.1",
     "dotenv": "^16.4.5",
-    "steel-sdk": "^0.10",
+    "steel-sdk": "^0.16",
     "typescript": "^5.6.3",
-    "zod": "^3.22.0"
+    "zod": "^3.25.76 || ^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
