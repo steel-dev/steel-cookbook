@@ -18,6 +18,7 @@ pip install -r requirements.txt
 
 ```env
 STEEL_API_KEY=your_steel_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 2. Run the example:

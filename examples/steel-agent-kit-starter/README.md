@@ -43,7 +43,7 @@ const hnNetwork = createNetwork({
   name: "hacker-news-network",
   agents: [hnAgent],
   maxIter: 2,
-  defaultModel: openai({ model: "gpt-4o-mini" }),
+  defaultModel: openai({ model: "gpt-5-nano" }),
 });
 ```
 

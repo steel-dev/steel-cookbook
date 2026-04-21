@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import log_debug, logger
 from agno.agent import Agent
+from agno.models.openai import OpenAIChat
 from playwright.sync_api import sync_playwright
 from steel import Steel
 
@@ -205,6 +206,7 @@ def main():
     tools = SteelTools(api_key=STEEL_API_KEY)
     agent = Agent(
         name="Web Scraper",
+        model=OpenAIChat(id="gpt-5-nano", api_key=OPENAI_API_KEY),
         tools=[tools],
         instructions=[
             "Extract content clearly and format nicely",

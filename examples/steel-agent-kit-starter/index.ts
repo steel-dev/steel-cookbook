@@ -132,7 +132,7 @@ const hnNetwork = createNetwork({
   agents: [hnAgent],
   maxIter: 2,
   defaultModel: openai({
-    model: "gpt-4o-mini",
+    model: "gpt-5-nano",
   }),
 });
 

@@ -1,4 +1,5 @@
-steel-sdk>=0.9.0
+steel-sdk>=0.16.0
 python-dotenv>=1.0.0
-crewai[tools]>=0.177.0
-pydantic>=2.0.0
+crewai[tools]>=1.14,<2
+pydantic>=2.11,<3
+openai>=2.0,<3
