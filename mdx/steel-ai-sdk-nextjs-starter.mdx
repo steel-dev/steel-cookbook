@@ -1,0 +1,251 @@
+---
+id: "steel-ai-sdk-nextjs-starter"
+title: "Vercel AI SDK (Next.js)"
+accentColor: "white"
+category: "AI_AUTOMATION"
+stack: "nextjs"
+description: "Next.js chat app with a Vercel AI SDK v6 browser agent on Steel, including a live session viewer"
+flags: ["cli", "guide", "playground"]
+directory: "examples/steel-ai-sdk-nextjs-starter"
+language: "typescript"
+shorthand: "ai-sdk-nextjs"
+docs: "https://docs.steel.dev/overview/integrations/ai-sdk/nextjs"
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-ai-sdk-nextjs-starter"
+---
+
+<Intro skipLink="#full-code-example">
+  A Next.js App Router chat app where a Vercel AI SDK v6 agent drives a Steel cloud browser. The route uses `streamText` + Steel tools, the page uses `useChat`, and the Steel Live View iframe is pulled from the `openSession` tool output so you watch the browser while the agent works.
+</Intro>
+
+<Step number={1} title="Install">
+  ```bash
+  git clone https://github.com/steel-dev/steel-cookbook
+  cd steel-cookbook/examples/steel-ai-sdk-nextjs-starter
+  npm install
+  npx playwright install chromium
+  ```
+</Step>
+
+<Step number={2} title="Environment variables">
+  Create `.env.local`:
+  ```text filename=".env.local"
+  STEEL_API_KEY=your-steel-api-key-here
+  ANTHROPIC_API_KEY=your-anthropic-api-key-here
+  ```
+</Step>
+
+<Step number={3} title="Define the route (app/api/chat/route.ts)">
+  `streamText` drives the loop. Tools are defined inside the handler so each request has its own Steel session held in a closure. `prepareStep` gates tools by phase, `onFinish`/`onAbort` release the session.
+
+  ```typescript showLineNumbers filename="app/api/chat/route.ts"
+  import { anthropic } from "@ai-sdk/anthropic";
+  import {
+    convertToModelMessages,
+    stepCountIs,
+    streamText,
+    tool,
+    type UIMessage,
+  } from "ai";
+  import { chromium, type Browser, type Page } from "playwright";
+  import Steel from "steel-sdk";
+  import { z } from "zod";
+
+  export const runtime = "nodejs";
+  export const maxDuration = 120;
+
+  const STEEL_API_KEY = process.env.STEEL_API_KEY!;
+
+  export async function POST(req: Request) {
+    const { messages } = (await req.json()) as { messages: UIMessage[] };
+
+    const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
+
+    let session: Awaited<ReturnType<typeof steel.sessions.create>> | null = null;
+    let browser: Browser | null = null;
+    let page: Page | null = null;
+
+    const cleanup = async () => {
+      if (browser) await browser.close().catch(() => {});
+      if (session) await steel.sessions.release(session.id).catch(() => {});
+    };
+
+    const result = streamText({
+      model: anthropic("claude-haiku-4-5"),
+      system:
+        "Open a Steel session, then navigate and extract. Don't invent data.",
+      messages: await convertToModelMessages(messages),
+      stopWhen: stepCountIs(15),
+      tools: {
+        openSession: tool({
+          description: "Open a Steel cloud browser session.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            session = await steel.sessions.create({});
+            browser = await chromium.connectOverCDP(
+              `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+            );
+            const ctx = browser.contexts()[0];
+            page = ctx.pages()[0] ?? (await ctx.newPage());
+            return {
+              sessionId: session.id,
+              liveViewUrl: session.sessionViewerUrl,
+            };
+          },
+        }),
+        navigate: tool({
+          description: "Navigate to a URL.",
+          inputSchema: z.object({ url: z.string().url() }),
+          execute: async ({ url }) => {
+            if (!page) throw new Error("openSession first.");
+            await page.goto(url, { waitUntil: "domcontentloaded" });
+            return { url: page.url(), title: await page.title() };
+          },
+        }),
+        snapshot: tool({
+          description:
+            "Return a readable snapshot of the current page: title, URL, visible text, and link list.",
+          inputSchema: z.object({
+            maxChars: z.number().int().positive().max(10_000).default(4_000),
+            maxLinks: z.number().int().positive().max(200).default(50),
+          }),
+          execute: async ({ maxChars, maxLinks }) => {
+            if (!page) throw new Error("openSession first.");
+            return (await page.evaluate(
+              ({ maxChars, maxLinks }: { maxChars: number; maxLinks: number }) => {
+                const text = (document.body.innerText || "").slice(0, maxChars);
+                const links = Array.from(document.querySelectorAll("a[href]"))
+                  .slice(0, maxLinks)
+                  .map((a) => {
+                    const anchor = a as HTMLAnchorElement;
+                    const t = (anchor.innerText || anchor.textContent || "").trim().slice(0, 120);
+                    return { text: t, href: anchor.href };
+                  })
+                  .filter((l) => l.text && l.href);
+                return { url: location.href, title: document.title, text, links };
+              },
+              { maxChars, maxLinks }
+            )) as { url: string; title: string; text: string; links: { text: string; href: string }[] };
+          },
+        }),
+        extract: tool({
+          description: "Extract rows with CSS selectors.",
+          inputSchema: z.object({
+            rowSelector: z.string(),
+            fields: z.array(z.object({
+              name: z.string(),
+              selector: z.string(),
+              attr: z.string().optional(),
+            })).min(1).max(10),
+            limit: z.number().int().positive().max(20).default(10),
+          }),
+          execute: async ({ rowSelector, fields, limit }) => {
+            if (!page) throw new Error("openSession first.");
+            // Batch inside one page.evaluate: serial CDP calls on a cloud
+            // browser are ~200-300ms each.
+            const items = (await page.evaluate(
+              ({ rowSelector, fields, limit }: {
+                rowSelector: string;
+                fields: { name: string; selector: string; attr?: string }[];
+                limit: number;
+              }) => {
+                const rows = Array.from(
+                  document.querySelectorAll(rowSelector)
+                ).slice(0, limit);
+                return rows.map((row) => {
+                  const item: Record<string, string> = {};
+                  for (const f of fields) {
+                    const el = f.selector
+                      ? (row.querySelector(f.selector) as Element | null)
+                      : row;
+                    if (!el) { item[f.name] = ""; continue; }
+                    item[f.name] = f.attr
+                      ? (el.getAttribute(f.attr) ?? "").trim()
+                      : (((el as HTMLElement).innerText ?? el.textContent ?? "")).trim();
+                  }
+                  return item;
+                });
+              },
+              { rowSelector, fields, limit }
+            )) as Record<string, string>[];
+            return { count: items.length, items };
+          },
+        }),
+      },
+      prepareStep: async ({ stepNumber, steps }) => {
+        const opened = steps.some((s: any) =>
+          s.toolCalls?.some((tc: any) => tc.toolName === "openSession")
+        );
+        if (stepNumber === 0 || !opened)
+          return { activeTools: ["openSession"] };
+        return { activeTools: ["navigate", "extract"] };
+      },
+      onFinish: cleanup,
+      onAbort: cleanup,
+    });
+
+    return result.toUIMessageStreamResponse();
+  }
+  ```
+</Step>
+
+<Step number={4} title="Build the page (app/page.tsx)">
+  `useChat` renders message parts. The Live View URL lives inside the `openSession` tool's output part (`tool-openSession`).
+
+  ```tsx showLineNumbers filename="app/page.tsx"
+  "use client";
+  import { useChat } from "@ai-sdk/react";
+  import { useMemo, useState } from "react";
+
+  export default function Page() {
+    const { messages, sendMessage, status } = useChat();
+    const [input, setInput] = useState("");
+
+    const liveViewUrl = useMemo(() => {
+      for (const m of messages) {
+        for (const part of (m.parts ?? []) as any[]) {
+          if (part?.type === "tool-openSession" && part?.output?.liveViewUrl) {
+            return part.output.liveViewUrl as string;
+          }
+        }
+      }
+      return null;
+    }, [messages]);
+
+    return (
+      <main style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", height: "100vh" }}>
+        <section>{/* messages + input */}</section>
+        <aside>
+          {liveViewUrl ? (
+            <iframe src={liveViewUrl} style={{ width: "100%", height: "100%", border: 0 }} />
+          ) : (
+            <div>Live View appears after openSession</div>
+          )}
+        </aside>
+      </main>
+    );
+  }
+  ```
+
+  See the [full page source on GitHub](https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-ai-sdk-nextjs-starter/app/page.tsx) for tool call rendering.
+</Step>
+
+<Step number={5} title="Run locally">
+  ```bash
+  npm run dev
+  ```
+  Open `http://localhost:3000` and ask:
+  > Go to https://github.com/trending/python and tell me the top 3 AI/ML repos.
+</Step>
+
+<Step number={6} title="Deploy to Vercel">
+  1. Push to GitHub and import the repo on Vercel.
+  2. Set `STEEL_API_KEY` and `ANTHROPIC_API_KEY` as Environment Variables.
+  3. Set Build Command to `npx playwright install chromium && next build`.
+</Step>
+
+### Next Steps
+
+- **Sessions API**: [https://docs.steel.dev/overview/sessions-api/overview](https://docs.steel.dev/overview/sessions-api/overview)
+- **Human-in-the-loop tools (`needsApproval`)**: [https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling#human-in-the-loop](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling#human-in-the-loop)
+- **`useChat` reference**: [https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat)
+- **This example on GitHub**: [https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-ai-sdk-nextjs-starter](https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-ai-sdk-nextjs-starter)

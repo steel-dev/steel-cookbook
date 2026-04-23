@@ -63,6 +63,8 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="agno">Agno</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-agno-starter) |
 | <a id="crew-ai">CrewAI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-crew-ai-starter) |
 | <a id="notte">Notte</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-notte-starter) |
+| <a id="ai-sdk">Vercel AI SDK v6</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-ai-sdk-starter) |
+| <a id="ai-sdk-nextjs">Vercel AI SDK v6 (Next.js)</a> | [<img src="https://skillicons.dev/icons?i=nextjs" width="24" height="24">](examples/steel-ai-sdk-nextjs-starter) |
 
 ### Advanced Features
 
@@ -96,6 +98,8 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Stagehand](examples/steel-stagehand-node-starter) - AI-powered browser automation with natural language
 - [Coinbase AgentKit](examples/steel-agent-kit-starter) - Multi-agent networks and web scraping
 - [Magnitude](examples/steel-magnitude-starter) - AI-powered testing framework
+- [Vercel AI SDK v6](examples/steel-ai-sdk-starter) - ToolLoopAgent with typed tools and structured output
+- [Vercel AI SDK v6 (Next.js)](examples/steel-ai-sdk-nextjs-starter) - Next.js chat app with streamText, useChat, and an embedded Live View
 
 **Advanced Features**
 - [Auth Context](examples/steel-auth-context-starter) - Reuse authentication across sessions

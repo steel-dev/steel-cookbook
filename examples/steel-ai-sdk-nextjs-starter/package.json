@@ -1,0 +1,28 @@
+{
+  "name": "steel-ai-sdk-nextjs-starter",
+  "version": "1.0.0",
+  "description": "Next.js chat app with a Vercel AI SDK v6 browser agent on Steel",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/react": "^2.0.0",
+    "ai": "^6.0.0",
+    "next": "^15.0.0",
+    "playwright": "^1.50.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "steel-sdk": "^0.16",
+    "zod": "^3.25.76 || ^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.4.2"
+  }
+}
