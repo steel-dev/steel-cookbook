@@ -65,6 +65,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="notte">Notte</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-notte-starter) |
 | <a id="ai-sdk">Vercel AI SDK v6</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-ai-sdk-starter) |
 | <a id="ai-sdk-nextjs">Vercel AI SDK v6 (Next.js)</a> | [<img src="https://skillicons.dev/icons?i=nextjs" width="24" height="24">](examples/steel-ai-sdk-nextjs-starter) |
+| <a id="openai-agents">OpenAI Agents SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-openai-agents-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-openai-agents-python-starter) |
 
 ### Advanced Features
 
@@ -100,6 +101,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Magnitude](examples/steel-magnitude-starter) - AI-powered testing framework
 - [Vercel AI SDK v6](examples/steel-ai-sdk-starter) - ToolLoopAgent with typed tools and structured output
 - [Vercel AI SDK v6 (Next.js)](examples/steel-ai-sdk-nextjs-starter) - Next.js chat app with streamText, useChat, and an embedded Live View
+- [OpenAI Agents SDK](examples/steel-openai-agents-node-starter) - Agent with tool() + Zod outputType for structured final answers
 
 **Advanced Features**
 - [Auth Context](examples/steel-auth-context-starter) - Reuse authentication across sessions
@@ -132,6 +134,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Agno](examples/steel-agno-starter) - Agno toolkit-based automation
 - [CrewAI](examples/steel-crew-ai-starter) - Multi-agent collaboration framework
 - [Notte](examples/steel-notte-starter) - Notte browser agent framework
+- [OpenAI Agents SDK](examples/steel-openai-agents-python-starter) - Agent with @function_tool + Pydantic output_type
 
 ---
 

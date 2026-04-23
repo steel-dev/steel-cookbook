@@ -1,0 +1,71 @@
+---
+id: "steel-openai-agents-node-starter"
+title: "OpenAI Agents SDK"
+accentColor: "white"
+category: "AI_AUTOMATION"
+stack: "nodejs"
+description: "Build a browser agent with the OpenAI Agents SDK (TypeScript) and Steel"
+flags: ["cli", "guide", "playground"]
+directory: "examples/steel-openai-agents-node-starter"
+groupId: "openai-agents-starter"
+language: "typescript"
+shorthand: "openai-agents"
+docs: "https://docs.steel.dev/overview/integrations/openai-agents-sdk/quickstart-node"
+githubLink: "https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-node-starter"
+---
+
+<Intro skipLink="#full-code-example">
+  Build a typed, tool-using browser agent with Steel and the OpenAI Agents SDK for TypeScript. Four `tool()` wrappers (`open_session`, `navigate`, `snapshot`, `extract`) expose Steel's cloud browser; the final answer is validated against a Zod schema via `outputType`.
+</Intro>
+
+<Step number={1} title="Optional: Create a new directory & environment">
+  ```bash
+  mkdir steel-openai-agents && \
+  cd steel-openai-agents && \
+  npm init -y && \
+  npm install -D typescript @types/node ts-node && \
+  npx tsc --init && \
+  npm pkg set scripts.start="ts-node index.ts" && \
+  touch index.ts .env
+  ```
+</Step>
+
+<Step number={2} title="Install Required Packages">
+  ```bash
+  npm install @openai/agents steel-sdk playwright zod dotenv
+  ```
+</Step>
+
+<Step number={3} title="Set Up Environment Variables">
+  ```text filename=".env"
+  STEEL_API_KEY=YOUR_STEEL_API_KEY
+  OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+  ```
+</Step>
+
+<Step number={4} title="Define Steel tools">
+  Each tool is a typed `tool()` with a Zod `parameters` schema. See the [full source on GitHub](https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-node-starter/index.ts).
+</Step>
+
+<Step number={5} title="Build the Agent and run">
+  OpenAI supports `outputType` (Zod) + tools together — the agent uses tools freely and still returns a validated final answer.
+
+  ```typescript showLineNumbers
+  const agent = new Agent({
+    name: "SteelResearch",
+    instructions: "...",
+    model: "gpt-5",
+    tools: [openSession, navigate, snapshot, extract],
+    outputType: FinalReport,
+  });
+
+  const result = await run(agent, "...", { maxTurns: 15 });
+  console.log(result.finalOutput);
+  ```
+</Step>
+
+### Next Steps
+
+- **OpenAI Agents SDK (TS)**: [https://openai.github.io/openai-agents-js/](https://openai.github.io/openai-agents-js/)
+- **Steel Sessions API**: [/overview/sessions-api/overview](/overview/sessions-api/overview)
+- **This example on GitHub**: [https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-node-starter](https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-node-starter)
