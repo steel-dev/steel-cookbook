@@ -59,6 +59,7 @@ export async function POST(req: Request) {
           return {
             sessionId: session.id,
             liveViewUrl: session.sessionViewerUrl,
+            debugUrl: session.debugUrl,
           };
         },
       }),

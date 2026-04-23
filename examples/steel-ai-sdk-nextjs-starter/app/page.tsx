@@ -1,28 +1,106 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useMemo, useState } from "react";
+import DOMPurify from "isomorphic-dompurify";
+import { marked } from "marked";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+marked.setOptions({ gfm: true, breaks: true });
+
+function renderMarkdown(text: string): string {
+  const html = marked.parse(text, { async: false }) as string;
+  return DOMPurify.sanitize(html);
+}
+
+const mono =
+  "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+
+const kbdStyle: React.CSSProperties = {
+  fontFamily: mono,
+  fontSize: 10,
+  padding: "1px 5px",
+  borderRadius: 4,
+  border: "1px solid #2a2a2a",
+  background: "#141414",
+  color: "#a3a3a3",
+};
+
+const examples = [
+  "Go to https://github.com/trending/python and tell me the top 3 AI/ML repos.",
+  "Visit https://news.ycombinator.com and list the top 5 front-page stories.",
+  "Navigate to https://vercel.com and summarize their homepage in 2 sentences.",
+];
+
+type DurationEntry = { start: number; end?: number };
 
 export default function Page() {
   const { messages, sendMessage, status } = useChat();
   const [input, setInput] = useState("");
 
-  // The Steel Live View URL lives inside the openSession tool's output.
-  // We walk every message part and pluck it out so the iframe updates
-  // the moment the agent opens a session.
-  const liveViewUrl = useMemo(() => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const durationsRef = useRef<Record<string, DurationEntry>>({});
+
+  // The Steel session URLs live inside the openSession tool's output.
+  // We walk every message part and pluck them out so the iframe updates
+  // the moment the agent opens a session. debugUrl is the interactive
+  // embed; liveViewUrl is the shareable viewer link.
+  const { debugUrl, liveViewUrl, sessionId } = useMemo(() => {
     for (const m of messages) {
       for (const part of (m.parts ?? []) as any[]) {
-        if (
-          part?.type === "tool-openSession" &&
-          part?.output?.liveViewUrl
-        ) {
-          return part.output.liveViewUrl as string;
+        if (part?.type === "tool-openSession" && part?.output) {
+          return {
+            debugUrl: (part.output.debugUrl ?? null) as string | null,
+            liveViewUrl: (part.output.liveViewUrl ?? null) as string | null,
+            sessionId: (part.output.sessionId ?? null) as string | null,
+          };
         }
       }
     }
-    return null;
+    return { debugUrl: null, liveViewUrl: null, sessionId: null };
   }, [messages]);
+
+  // Auto-scroll to bottom whenever messages update or status changes.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, status]);
+
+  // Track tool-call wall-clock time: record start on first sighting,
+  // end when the part transitions to output-available / output-error.
+  useEffect(() => {
+    const d = durationsRef.current;
+    for (const m of messages) {
+      for (const part of (m.parts ?? []) as any[]) {
+        const id = part?.toolCallId as string | undefined;
+        if (!id) continue;
+        if (!d[id]) d[id] = { start: Date.now() };
+        if (
+          !d[id].end &&
+          (part.state === "output-available" || part.state === "output-error")
+        ) {
+          d[id].end = Date.now();
+        }
+      }
+    }
+  }, [messages]);
+
+  const isBusy = status === "submitted" || status === "streaming";
+
+  const handleSubmit = (text: string) => {
+    const t = text.trim();
+    if (!t || isBusy) return;
+    sendMessage({ text: t });
+    setInput("");
+  };
+
+  // Auto-grow the textarea up to the CSS max-height.
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [input]);
 
   return (
     <main
@@ -44,75 +122,84 @@ export default function Page() {
           style={{
             padding: "12px 16px",
             borderBottom: "1px solid #1f1f1f",
-            fontSize: 14,
+            fontSize: 13,
+            fontFamily: mono,
+            letterSpacing: "-0.01em",
+            display: "flex",
+            alignItems: "center",
           }}
         >
-          <strong>Steel + AI SDK v6</strong>
-          <span style={{ opacity: 0.6, marginLeft: 8 }}>
-            browser agent • {status}
+          <StatusDot status={status} />
+          <strong>steel × ai-sdk v6</strong>
+          <span style={{ opacity: 0.55, marginLeft: 8 }}>
+            browser agent · {status}
           </span>
         </header>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        <div
+          ref={scrollRef}
+          style={{ flex: 1, overflowY: "auto", padding: 16 }}
+        >
           {messages.length === 0 && (
-            <div style={{ opacity: 0.6, fontSize: 14 }}>
-              <p>
-                Try:{" "}
-                <em>
-                  Go to https://github.com/trending/python and tell me the top
-                  3 AI/ML repos.
-                </em>
-              </p>
-            </div>
+            <EmptyState onPick={handleSubmit} />
           )}
           {messages.map((m) => (
-            <Message key={m.id} message={m} />
+            <Message
+              key={m.id}
+              message={m}
+              durations={durationsRef.current}
+            />
           ))}
+          {isBusy && <ThinkingIndicator />}
         </div>
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!input.trim()) return;
-            sendMessage({ text: input });
-            setInput("");
+            handleSubmit(input);
           }}
           style={{
-            padding: 12,
+            padding: 16,
             borderTop: "1px solid #1f1f1f",
-            display: "flex",
-            gap: 8,
           }}
         >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask the agent to visit a page and extract something..."
+          <div className="chat-composer">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  handleSubmit(input);
+                }
+              }}
+              placeholder="Ask the agent to visit a page..."
+              rows={1}
+            />
+            <button
+              type="submit"
+              className="chat-send"
+              disabled={isBusy || !input.trim()}
+              aria-label="Send"
+            >
+              {isBusy ? <SpinnerIcon /> : <ArrowUpIcon />}
+            </button>
+          </div>
+          <div
             style={{
-              flex: 1,
-              padding: "10px 12px",
-              borderRadius: 6,
-              border: "1px solid #333",
-              background: "#111",
-              color: "#e5e5e5",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={status === "streaming" || status === "submitted"}
-            style={{
-              padding: "10px 16px",
-              borderRadius: 6,
-              border: "1px solid #333",
-              background: "#e5e5e5",
-              color: "#0a0a0a",
-              fontWeight: 600,
-              opacity:
-                status === "streaming" || status === "submitted" ? 0.5 : 1,
+              marginTop: 8,
+              fontSize: 11,
+              opacity: 0.4,
+              fontFamily: mono,
+              textAlign: "center",
             }}
           >
-            Send
-          </button>
+            <kbd style={kbdStyle}>↵</kbd> to send
+            <span style={{ margin: "0 8px", opacity: 0.6 }}>·</span>
+            <kbd style={kbdStyle}>⇧</kbd>
+            <kbd style={{ ...kbdStyle, marginLeft: 2 }}>↵</kbd> for newline
+          </div>
         </form>
       </section>
 
@@ -127,22 +214,53 @@ export default function Page() {
           style={{
             padding: "12px 16px",
             borderBottom: "1px solid #1f1f1f",
-            fontSize: 14,
+            fontSize: 13,
+            fontFamily: mono,
+            letterSpacing: "-0.01em",
             display: "flex",
+            alignItems: "center",
             justifyContent: "space-between",
+            gap: 8,
           }}
         >
-          <strong>Live View</strong>
-          {liveViewUrl && (
-            <a href={liveViewUrl} target="_blank" rel="noreferrer">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
+              minWidth: 0,
+            }}
+          >
+            <strong>live view</strong>
+            {sessionId && (
+              <span
+                style={{
+                  opacity: 0.5,
+                  fontSize: 11,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {sessionId.slice(0, 8)}
+              </span>
+            )}
+          </div>
+          {(liveViewUrl || debugUrl) && (
+            <a
+              href={liveViewUrl ?? debugUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 12, flexShrink: 0 }}
+            >
               open in new tab ↗
             </a>
           )}
         </header>
         <div style={{ flex: 1, background: "#050505", position: "relative" }}>
-          {liveViewUrl ? (
+          {debugUrl ? (
             <iframe
-              src={liveViewUrl}
+              src={debugUrl}
               sandbox="allow-same-origin allow-scripts"
               style={{
                 border: 0,
@@ -170,7 +288,148 @@ export default function Page() {
   );
 }
 
-function Message({ message }: { message: any }) {
+function ArrowUpIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      aria-hidden
+      style={{ animation: "steel-spin 0.9s linear infinite" }}
+    >
+      <path
+        d="M7 1.5a5.5 5.5 0 1 1-5.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const color =
+    status === "error"
+      ? "#ef4444"
+      : status === "submitted" || status === "streaming"
+        ? "#f59e0b"
+        : "#22c55e";
+  const pulse = status === "submitted" || status === "streaming";
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: color,
+        display: "inline-block",
+        marginRight: 10,
+        flexShrink: 0,
+        animation: pulse ? "steel-pulse 1.4s ease-in-out infinite" : undefined,
+        boxShadow: pulse ? `0 0 8px ${color}` : undefined,
+      }}
+    />
+  );
+}
+
+function ThinkingIndicator() {
+  return (
+    <div
+      style={{
+        fontFamily: mono,
+        fontSize: 12,
+        opacity: 0.55,
+        padding: "4px 2px",
+      }}
+    >
+      agent is thinking
+      <span className="thinking-dots">
+        <span>.</span>
+        <span>.</span>
+        <span>.</span>
+      </span>
+    </div>
+  );
+}
+
+function EmptyState({ onPick }: { onPick: (text: string) => void }) {
+  return (
+    <div style={{ maxWidth: 520 }}>
+      <p
+        style={{
+          opacity: 0.55,
+          fontSize: 12,
+          marginBottom: 12,
+          fontFamily: mono,
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
+        }}
+      >
+        try one of these
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {examples.map((text) => (
+          <button
+            key={text}
+            onClick={() => onPick(text)}
+            style={{
+              textAlign: "left",
+              padding: "10px 12px",
+              background: "#0f0f0f",
+              border: "1px solid #1f1f1f",
+              borderRadius: 8,
+              color: "#d4d4d4",
+              fontSize: 13,
+              lineHeight: 1.5,
+              cursor: "pointer",
+              transition: "background 120ms, border-color 120ms",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#141414";
+              e.currentTarget.style.borderColor = "#2a2a2a";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#0f0f0f";
+              e.currentTarget.style.borderColor = "#1f1f1f";
+            }}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Message({
+  message,
+  durations,
+}: {
+  message: any;
+  durations: Record<string, DurationEntry>;
+}) {
   const isUser = message.role === "user";
   return (
     <div
@@ -181,27 +440,47 @@ function Message({ message }: { message: any }) {
         marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>
+      <div
+        style={{
+          fontSize: 11,
+          opacity: 0.5,
+          marginBottom: 4,
+          fontFamily: mono,
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
+        }}
+      >
         {isUser ? "you" : "agent"}
       </div>
       <div
         style={{
           maxWidth: "90%",
+          minWidth: 0,
           background: isUser ? "#1e293b" : "#111",
           border: "1px solid #1f1f1f",
           padding: "10px 12px",
           borderRadius: 8,
           fontSize: 14,
           lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
+          whiteSpace: isUser ? "pre-wrap" : "normal",
+          overflowWrap: "anywhere",
         }}
       >
         {(message.parts ?? []).map((part: any, i: number) => {
           if (part.type === "text") {
-            return <span key={i}>{part.text}</span>;
+            if (isUser) return <span key={i}>{part.text}</span>;
+            return (
+              <div
+                key={i}
+                className="md"
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdown(part.text),
+                }}
+              />
+            );
           }
           if (typeof part.type === "string" && part.type.startsWith("tool-")) {
-            return <ToolCall key={i} part={part} />;
+            return <ToolCall key={i} part={part} durations={durations} />;
           }
           return null;
         })}
@@ -210,9 +489,37 @@ function Message({ message }: { message: any }) {
   );
 }
 
-function ToolCall({ part }: { part: any }) {
+function toolStateColor(state: string): string {
+  if (state === "output-error" || state === "input-error") return "#ef4444";
+  if (state === "output-available") return "#22c55e";
+  if (state === "input-streaming" || state === "input-available")
+    return "#f59e0b";
+  return "#6b7280";
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function ToolCall({
+  part,
+  durations,
+}: {
+  part: any;
+  durations: Record<string, DurationEntry>;
+}) {
   const name = String(part.type).replace(/^tool-/, "");
   const state = part.state ?? "done";
+  const [expanded, setExpanded] = useState(false);
+
+  const hasBody = Boolean(part.input || part.output);
+  const entry = part.toolCallId ? durations[part.toolCallId] : undefined;
+  const durationMs = entry?.end ? entry.end - entry.start : null;
+
+  const stateColor = toolStateColor(state);
+  const isPending = state === "input-streaming" || state === "input-available";
+
   return (
     <div
       style={{
@@ -221,24 +528,79 @@ function ToolCall({ part }: { part: any }) {
         background: "#0a0a0a",
         border: "1px solid #222",
         borderRadius: 6,
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+        fontFamily: mono,
         fontSize: 12,
+        minWidth: 0,
       }}
     >
-      <div style={{ opacity: 0.7 }}>
-        <strong>{name}</strong> · {state}
+      <div
+        onClick={() => hasBody && setExpanded((v) => !v)}
+        style={{
+          cursor: hasBody ? "pointer" : "default",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          userSelect: "none",
+        }}
+      >
+        {hasBody && (
+          <span
+            style={{
+              fontSize: 10,
+              width: 10,
+              display: "inline-block",
+              opacity: 0.6,
+            }}
+          >
+            {expanded ? "▼" : "▶"}
+          </span>
+        )}
+        <span
+          aria-hidden
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: stateColor,
+            display: "inline-block",
+            flexShrink: 0,
+            animation: isPending
+              ? "steel-pulse 1.4s ease-in-out infinite"
+              : undefined,
+          }}
+        />
+        <strong>{name}</strong>
+        <span style={{ opacity: 0.55 }}>· {state}</span>
+        {durationMs != null && (
+          <span style={{ opacity: 0.45, marginLeft: "auto" }}>
+            {formatDuration(durationMs)}
+          </span>
+        )}
       </div>
-      {part.input && (
-        <pre style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}>
-          {JSON.stringify(part.input, null, 2)}
-        </pre>
-      )}
-      {part.output && (
+      {expanded && part.input && (
         <pre
           style={{
             margin: "4px 0 0",
             whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
+            maxHeight: 240,
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+        >
+          {JSON.stringify(part.input, null, 2)}
+        </pre>
+      )}
+      {expanded && part.output && (
+        <pre
+          style={{
+            margin: "4px 0 0",
+            whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
             color: "#86efac",
+            maxHeight: 320,
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           {JSON.stringify(part.output, null, 2)}
