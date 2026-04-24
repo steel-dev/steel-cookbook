@@ -1,0 +1,42 @@
+# Lychee configuration for Steel Cookbook
+# Validates links in READMEs and registry metadata
+
+timeout = 30
+max_redirects = 10
+include_fragments = false
+require_https = false
+
+cache = true
+max_cache_age = "1d"
+
+max_retries = 3
+retry_wait_time = 2
+
+skip_code_blocks = true
+
+exclude_path = [
+    ".git/",
+    "node_modules/",
+    ".venv/",
+    "venv/",
+    "dist/",
+    "build/",
+]
+
+# Exclude authenticated / local / illustrative URLs that will 401 or 404
+exclude = [
+    "https://app.steel.dev.*",
+    "http://localhost.*",
+    "http://127.0.0.1.*",
+    # Illustrative Hacker News item IDs in sample output blocks
+    "https://news.ycombinator.com/item.*",
+    # Placeholder GitHub URLs in illustrative output
+    "https://github.com/user/project",
+]
+
+# Accept 403 (bot-gated) and 429 (rate-limited) as valid
+accept = [200, 201, 202, 203, 204, 403, 429]
+
+headers = [
+    "User-Agent=Mozilla/5.0 (compatible; lychee; steel-cookbook)"
+]

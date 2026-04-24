@@ -34,7 +34,7 @@ The slug is `lowercase-with-hyphens`, no `steel-` prefix.
 
 Write what serves your recipe — flow matters more than structure. A minimal
 wiring might be three sections and 60 lines; a complex scenario might need
-seven and 250. See `examples/steel-playwright-starter/README.md` for a
+seven and 250. See `examples/playwright-ts/README.md` for a
 reference on voice.
 
 Open with technical substance, not a pitch. Dive straight into what the
