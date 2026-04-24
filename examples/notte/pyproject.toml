@@ -1,5 +1,5 @@
 [project]
-name = "steel-notte-starter"
+name = "notte"
 version = "0.1.0"
 description = "AI-powered browser automation using Notte with Steel browsers"
 readme = "README.md"

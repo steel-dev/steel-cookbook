@@ -1,5 +1,5 @@
 [project]
-name = "steel-openai-agents-python-starter"
+name = "openai-agents-py"
 version = "0.1.0"
 description = "Build an AI browser agent with the OpenAI Agents SDK (Python) and Steel"
 readme = "README.md"

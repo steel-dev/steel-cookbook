@@ -1,5 +1,5 @@
 {
-  "name": "steel-claude-computer-use-node-starter",
+  "name": "claude-computer-use-ts",
   "version": "1.0.0",
   "description": "Steel + Claude Computer Use Assistant Node.js Starter",
   "main": "index.ts",

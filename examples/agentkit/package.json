@@ -1,5 +1,5 @@
 {
-  "name": "steel-agent-kit-starter",
+  "name": "agentkit",
   "version": "1.0.0",
   "description": "Steel Browser with Agent Kit",
   "main": "index.ts",

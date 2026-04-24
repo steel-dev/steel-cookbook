@@ -1,71 +1,107 @@
-# Steel Profiles Example
+A Steel profile is a named, long-lived browser identity. It holds everything a real Chrome user profile accumulates over time: cookies, localStorage, IndexedDB, history, installed extensions, autofill, site permissions. Every session you attach to the profile starts where the last one left off, and writes the user data directory back on release.
 
-This example demonstrates how to maintain authenticated sessions across different Steel browser instances by using profiles.
+Two options on `sessions.create` wire it up. On the first run, mint a fresh profile:
 
-For detailed information about profiles, see the [Steel Documentation](https://docs.steel.dev/overview/profiles-api/overview).
+```typescript
+session = await client.sessions.create({
+  persistProfile: true,
+  profileId: undefined,
+});
 
-## Installation
+const profileId = session.profileId;
+```
 
-Clone this repository, navigate to the example directory, and install dependencies:
+`persistProfile: true` tells Steel to snapshot the browser data directory when the session ends. `profileId: undefined` means "create a new one." After the session is created, `session.profileId` holds the identifier. Store it. Every later run passes it back:
+
+```typescript
+session = await client.sessions.create({
+  persistProfile: true,
+  profileId,
+});
+```
+
+The new browser opens as that identity. `client.profiles.list()`, `client.profiles.retrieve(id)`, and `client.profiles.delete(id)` round out the surface.
+
+## How the demo works
+
+`index.ts` uses [demowebshop.tricentis.com](https://demowebshop.tricentis.com), a public shopping cart demo that stores cart state in cookies. The flow lives in `main()` and three helpers in `utils.ts`:
+
+1. `selectOrCreateProfile` calls `client.profiles.list()`, then `inquirer` prompts you to pick an existing profile or create a new one. Returns `undefined` to signal "mint a fresh one."
+2. On a fresh run, Session #1 launches with `persistProfile: true` and no `profileId`. `addItemsToCart` visits three category pages (books, digital downloads, notebooks) and clicks the first add-to-cart button on each. Session #1 releases; Steel writes the profile snapshot.
+3. Session #2 launches with the same `profileId`. `checkItemsInCart` opens `/cart` and reads the rows. Same identity, different browser, same cart.
+
+Select the saved profile on a later run and the menu skips step 2 entirely. One session spins up, finds the cart intact, and exits. That is the test: state survives across distinct sessions because the profile carries it.
+
+## Run it
 
 ```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-profiles-starter
+cd examples/profiles
+cp .env.example .env          # set STEEL_API_KEY
 npm install
-```
-
-## Quick Start
-
-1. Set up your environment:
-
-```bash
-# Create .env file with your Steel API key
-cat > .env <<EOF
-STEEL_API_KEY=your_api_key_here
-EMAIL=your_email
-PASSWORD=your_email_password
-EOF
-
-```
-
-Replace `your_api_key_here` with your Steel API key. Replace your_email and your_email_password with the Google email address/password you used to sign into https://app.steel.dev. Don't have a key or an account? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
-
-
-2. Run the example:
-
-```bash
 npm start
 ```
 
-## What This Example Does
+Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). Session viewer URLs print as the script runs. Open them in other tabs to watch each browser.
 
-The script in `index.ts` demonstrates:
+Your first-run output varies. Structure looks like this:
 
-1. Checks what profiles your account has
-2. Lets you choose one or create a new profile
-3. Reauthenticates with a new session after the profile is created
-4. Verifying the profile authentication worked
+```text
+Steel Profiles Demo
+============================================================
+? Select a profile to use: Create a new profile
+Steel Session #1 created!
+View session at https://app.steel.dev/sessions/ab12cd34...
+Profile ID: prof_9f3c...
 
-## Key Concepts
+Successfully logged in
+Added item from Book category
+Added item from Digital Download category
+Added item from Notebook category
 
-- **Profiles**: Browser state data (cookies, local storage) that can be transferred between sessions via Profiles.
-- **Profile Data**: Profiles persist the entire browser data directory alongside browser context, cookies, and local auth.
-- **Security**: Treat profiles very safely, if you are trying something risky and don't want to mess up your existing profile, don't persist it.
+3 items in cart
+Items added:
+  1. Computing and Internet
+  2. Music 2
+  3. Fiction
 
-## Code Structure
+Session #1 released
 
-```typescript
-// Create and authenticate initial session
-session = await client.sessions.create({
-  pesistProfile: true
-});
-// ... perform login ...
-
-// Capture Profile ID
-const profileId = session.profileId;
-
-// Create new authenticated session
-session = await client.sessions.create({ profileId });
+Steel Session #2 created!
+View session at https://app.steel.dev/sessions/ef56gh78...
+Found 3 items in cart
+Found your shopping cart!
+Session released
 ```
 
-For more examples and recipes, check out the [Steel Cookbook](https://github.com/steel-dev/steel-cookbook).
+Full round-trip takes ~60 seconds. A second run against the saved profile takes ~30 seconds because step 2 is skipped.
+
+Sessions go through `client.sessions.release()` in the `finally` block. Skipping it keeps browsers running until the 5-minute default timeout and delays the profile snapshot.
+
+## What persists
+
+Profiles capture the full Chromium user data directory, not just cookies:
+
+- Cookies and localStorage for every origin you visited.
+- Login sessions you kept alive (bank, SaaS dashboard, email).
+- IndexedDB entries for apps that cache state client-side.
+- Installed extensions and their configuration.
+- Autofill, history, bookmarks, site permissions.
+
+Treat the profile like an account. Anyone who can call `sessions.create({ profileId })` on your workspace can drive a browser logged in as you. Rotate or delete with `client.profiles.delete(id)` when the identity is done.
+
+## Make it yours
+
+- **Swap the target site.** Replace the URLs in `login`, `addItemsToCart`, and `checkItemsInCart`. The profile plumbing does not change.
+- **Seed a profile interactively.** Create a session with `persistProfile: true`, open the live viewer, sign in by hand, close the session. The profile keeps the login. Every scripted run after that reuses it.
+- **One profile per identity.** If you automate three accounts on the same site, create three profiles. Sharing a profile across accounts means one session's writes overwrite another's state on release.
+- **Read without writing back.** Pass `persistProfile: false` with an existing `profileId` to load the profile without snapshotting changes on release. Useful for risky runs that might corrupt state.
+
+## Related
+
+Three recipes handle "start the browser already signed in." Pick by lifetime:
+
+- [credentials](../credentials): Steel stores a username and password per origin and fills the login form each session. No browser state persists. Good when the form is standard and you want a stable, long-lived setup.
+- [auth-context](../auth-context): one-shot JSON snapshot of cookies and localStorage you capture from one session and replay into the next. Good when you log in once (SSO, MFA, magic link) and want to move the resulting state forward.
+- Profiles (this recipe): long-lived named identity that accumulates everything (history, extensions, preferences, logins) across runs. Good when the browser itself is the unit of persistence.
+
+[Playwright docs](https://playwright.dev)

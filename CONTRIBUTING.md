@@ -37,18 +37,17 @@ wiring might be three sections and 60 lines; a complex scenario might need
 seven and 250. See `examples/steel-playwright-starter/README.md` for a
 reference on voice.
 
-Every recipe opens with a **one-sentence hook** that states the outcome —
-what the reader's code will do, not what framework it uses.
+Open with technical substance, not a pitch. Dive straight into what the
+integration is or what the code does; skip imperatives that frame the
+recipe as a benefit ("Drive a remote Chrome...", "Hand Claude a task...",
+"Write automations in plain English...").
 
-- Good: "Apply to remote software jobs across 5 boards from a single résumé."
-- Bad: "Use Stagehand with Steel to automate forms."
+The opening section has no header. After that, use headers for major
+transitions. Common ones that tend to serve well:
 
-From there, write the sections that fit. Common ones that tend to serve well:
-
-- **The idea** — the core insight, often with a key code snippet
 - **Run it** — install + run, ideally with expected terminal output
 - **Make it yours** — concrete customization points
-- **Related** — integration reference and sibling recipes
+- **Related** — framework docs and sibling recipes
 
 Mix, rename, add your own (Prerequisites, Gotchas, Steps, Architecture,
 Evaluation — whatever the recipe needs). Code references can be short or
@@ -58,9 +57,19 @@ long depending on what the explanation demands.
 
 - Code should advance the narrative. Long snippets are fine when you're
   walking through them; don't dump code blocks without prose.
+- Reference code by function or block name, not line numbers — line
+  numbers drift silently when the code changes.
 - Active, second person, present tense. "The agent sends a screenshot" —
   not "will send".
 - Use concrete numbers. "~$0.12 per run", "~90 seconds", "8-step loop".
+- Frame example output as illustrative, not literal. "Your output varies.
+  Structure looks like this:" is better than pretending the snippet is
+  exact.
+- Keep rhetorical flourishes rare. Short fragments, semicolon pairs, pull
+  quotes — one per recipe at most, not a pattern.
+- Avoid em-dashes (—) in READMEs. Use periods, commas, or parens.
+- Don't link to `docs.steel.dev`. READMEs sync there; self-links loop.
+  Use framework docs or sibling recipes.
 - Skip meta-openings. No "In this tutorial...", no "Welcome to...".
 - Don't repeat shared setup. Clone/install lives in the repo root README.
 

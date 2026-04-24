@@ -1,6 +1,6 @@
 """
 Build an AI browser agent with the OpenAI Agents SDK (Python) and Steel.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/openai-agents-py
 """
 
 import asyncio
@@ -175,14 +175,14 @@ agent = Agent(
 
 
 async def main() -> None:
-    print("🚀 Steel + OpenAI Agents SDK (Python) Starter")
+    print("Steel + OpenAI Agents SDK (Python) Starter")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("⚠️  Set STEEL_API_KEY in .env (https://app.steel.dev/settings/api-keys)")
+        print("Set STEEL_API_KEY in .env (https://app.steel.dev/settings/api-keys)")
         sys.exit(1)
     if OPENAI_API_KEY == "your-openai-api-key-here":
-        print("⚠️  Set OPENAI_API_KEY in .env (https://platform.openai.com/)")
+        print("Set OPENAI_API_KEY in .env (https://platform.openai.com/)")
         sys.exit(1)
 
     try:

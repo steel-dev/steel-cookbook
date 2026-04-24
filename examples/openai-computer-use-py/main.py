@@ -1,6 +1,6 @@
 """
 OpenAI AI agent for autonomous web interactions with Steel computers (Input API).
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-oai-computer-use-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/openai-computer-use-py
 """
 
 import os
@@ -34,9 +34,9 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   <BROWSER_CONTROL>
   - Before acting, take a screenshot to observe state.
   - When typing into any input:
-    * Clear with Ctrl/⌘+A, then Delete.
+    * Clear with Ctrl+A, then Delete.
     * After submitting (Enter or clicking a button), call wait(1–2s) once, then take a single screenshot and move the mouse aside.
-    * Do not press Enter repeatedly. If the page state doesn't change after submit+wait+screenshot, change strategy (e.g., focus address bar with Ctrl/⌘+L, type the full URL, press Enter once).
+    * Do not press Enter repeatedly. If the page state doesn't change after submit+wait+screenshot, change strategy (e.g., focus address bar with Ctrl+L, type the full URL, press Enter once).
   - Computer calls are slow; batch related actions together.
   - Zoom out or scroll so all relevant content is visible before reading.
   - If the first screenshot is black, click near center and screenshot again.
@@ -48,7 +48,7 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   - Prefer minimal, high-signal actions that move directly toward the goal.
   - Every assistant turn must include at least one computer action; avoid text-only turns.
   - Avoid repetition: never repeat the same action sequence in consecutive turns (e.g., pressing Enter multiple times). If an action has no visible effect, pivot to a different approach.
-  - If two iterations produce no meaningful progress, try a different tactic (e.g., Ctrl/⌘+L → type URL → Enter) rather than repeating the prior keys, then proceed.
+  - If two iterations produce no meaningful progress, try a different tactic (e.g., Ctrl+L → type URL → Enter) rather than repeating the prior keys, then proceed.
   - Keep the final response concise and focused on fulfilling the task.
   </TASK_EXECUTION>"""
 
@@ -74,7 +74,7 @@ class Agent:
     def __init__(self):
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
         self.session = None
-        self.model = "gpt-5.4"
+        self.model = "gpt-5.5"
 
         self.viewport_width = 1440
         self.viewport_height = 900
@@ -298,7 +298,7 @@ class Agent:
         next_input: Any = [{"role": "user", "content": task}]
         final_message = ""
 
-        print(f"🎯 Executing task: {task}")
+        print(f"Executing task: {task}")
         print("=" * 60)
 
         for turn in range(max_iterations):
@@ -339,7 +339,7 @@ class Agent:
                         if s.get("text")
                     )
                     if self.print_steps and summary:
-                        print(f"💭 {summary}")
+                        print(f"{summary}")
                     continue
 
                 if item_type == "function_call":
@@ -370,7 +370,7 @@ class Agent:
                     for check in pending_checks:
                         if self.auto_acknowledge_safety:
                             print(
-                                f"⚠️  Auto-acknowledging safety check: {check.get('message')}"
+                                f"Auto-acknowledging safety check: {check.get('message')}"
                             )
                         else:
                             raise RuntimeError(
@@ -398,18 +398,18 @@ class Agent:
 
 
 def main():
-    print("🚀 Steel + OpenAI Computer Use Assistant (Steel actions)")
+    print("Steel + OpenAI Computer Use Assistant (Steel actions)")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+            "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
         )
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+            "WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
         )
         print("   Get your API key at: https://platform.openai.com/")
         sys.exit(1)
@@ -418,24 +418,24 @@ def main():
     agent = Agent()
     try:
         agent.initialize()
-        print("✅ Steel session started!")
+        print("Steel session started!")
 
         start_time = time.time()
         try:
             result = agent.execute_task(TASK, True, 50)
             duration = f"{(time.time() - start_time):.1f}"
             print("\n" + "=" * 60)
-            print("🎉 TASK EXECUTION COMPLETED")
+            print("TASK EXECUTION COMPLETED")
             print("=" * 60)
             print(f"⏱️  Duration: {duration} seconds")
-            print(f"🎯 Task: {TASK}")
-            print(f"📋 Result:\n{result}")
+            print(f"Task: {TASK}")
+            print(f"Result:\n{result}")
             print("=" * 60)
         except Exception as e:
-            print(f"❌ Task execution failed: {e}")
+            print(f"Task execution failed: {e}")
             raise
     except Exception as e:
-        print(f"❌ Failed to start Steel session: {e}")
+        print(f"Failed to start Steel session: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
         raise
     finally:

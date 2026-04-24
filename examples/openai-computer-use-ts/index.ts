@@ -1,6 +1,6 @@
 /*
  * OpenAI AI agent for autonomous web interactions with Steel computers (no Playwright).
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-oai-computer-use-node-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/openai-computer-use-ts
  */
 
 import * as dotenv from "dotenv";
@@ -30,7 +30,7 @@ const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   <BROWSER_CONTROL>
   - Before acting, take a screenshot to observe state.
   - When typing into any input:
-    * Clear with Ctrl/⌘+A, then Delete.
+    * Clear with Ctrl+A, then Delete.
     * After submitting (Enter or clicking a button), take another screenshot and move the mouse aside.
   - Computer calls are slow; batch related actions together.
   - Zoom out or scroll so all relevant content is visible before reading.
@@ -173,7 +173,7 @@ class Agent {
 
   constructor() {
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "gpt-5.4";
+    this.model = "gpt-5.5";
     this.viewportWidth = 1440;
     this.viewportHeight = 900;
     this.systemPrompt = BROWSER_SYSTEM_PROMPT;
@@ -431,7 +431,7 @@ class Agent {
     let nextInput: any = [{ role: "user", content: task }];
     let finalMessage = "";
 
-    console.log(`🎯 Executing task: ${task}`);
+    console.log(`Executing task: ${task}`);
     console.log("=".repeat(60));
 
     for (let turn = 0; turn < maxIterations; turn++) {
@@ -464,7 +464,7 @@ class Agent {
             ?.map((s: any) => s.text)
             .filter(Boolean)
             .join(" ");
-          if (this.printSteps && summary) console.log(`💭 ${summary}`);
+          if (this.printSteps && summary) console.log(`${summary}`);
           continue;
         }
 
@@ -494,7 +494,7 @@ class Agent {
           for (const check of pendingChecks) {
             if (this.autoAcknowledgeSafety) {
               console.log(
-                `⚠️  Auto-acknowledging safety check: ${check.message}`,
+                `Auto-acknowledging safety check: ${check.message}`,
               );
             } else {
               throw new Error(`Safety check failed: ${check.message}`);
@@ -523,12 +523,12 @@ class Agent {
 }
 
 async function main(): Promise<void> {
-  console.log("🚀 Steel + OpenAI Computer Use Assistant (Steel actions)");
+  console.log("Steel + OpenAI Computer Use Assistant");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",
@@ -537,7 +537,7 @@ async function main(): Promise<void> {
   }
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key",
+      "WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key",
     );
     console.warn("   Get your API key at: https://platform.openai.com/");
     throw new Error("Set OPENAI_API_KEY");
@@ -548,21 +548,21 @@ async function main(): Promise<void> {
 
   try {
     await agent.initialize();
-    console.log("✅ Steel session started!");
+    console.log("Steel session started!");
 
     const startTime = Date.now();
     const result = await agent.executeTask(TASK, true, 50);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
     console.log("\n" + "=".repeat(60));
-    console.log("🎉 TASK EXECUTION COMPLETED");
+    console.log("TASK EXECUTION COMPLETED");
     console.log("=".repeat(60));
-    console.log(`⏱️  Duration: ${duration} seconds`);
-    console.log(`🎯 Task: ${TASK}`);
-    console.log(`📋 Result:\n${result}`);
+    console.log(`Duration: ${duration} seconds`);
+    console.log(`Task: ${TASK}`);
+    console.log(`Result:\n${result}`);
     console.log("=".repeat(60));
   } catch (error) {
-    console.log(`❌ Failed to run: ${error}`);
+    console.log(`Failed to run: ${error}`);
     throw error;
   } finally {
     await agent.cleanup();

@@ -1,6 +1,6 @@
 """
 Gemini AI agent for autonomous web task execution with Steel headful Input API.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-gemini-computer-use-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/gemini-computer-use-py
 """
 
 import os
@@ -493,7 +493,7 @@ class Agent:
         iterations = 0
         consecutive_no_actions = 0
 
-        print(f"🎯 Executing task: {task}")
+        print(f"Executing task: {task}")
         print("=" * 60)
 
         while iterations < max_iterations:
@@ -507,7 +507,7 @@ class Agent:
                 )
 
                 if not response.candidates:
-                    print("❌ No candidates in response")
+                    print("No candidates in response")
                     break
 
                 candidate = response.candidates[0]
@@ -523,32 +523,32 @@ class Agent:
                     and not reasoning
                     and candidate.finish_reason == FinishReason.MALFORMED_FUNCTION_CALL
                 ):
-                    print("⚠️ Malformed function call, retrying...")
+                    print("Malformed function call, retrying...")
                     continue
 
                 if not function_calls:
                     if reasoning:
                         if print_steps:
-                            print(f"\n💬 {reasoning}")
-                        print("✅ Task complete - model provided final response")
+                            print(f"\n{reasoning}")
+                        print("Task complete - model provided final response")
                         break
                     consecutive_no_actions += 1
                     if consecutive_no_actions >= 3:
-                        print("⚠️ No actions for 3 consecutive iterations - stopping")
+                        print("No actions for 3 consecutive iterations - stopping")
                         break
                     continue
 
                 consecutive_no_actions = 0
 
                 if print_steps and reasoning:
-                    print(f"\n💭 {reasoning}")
+                    print(f"\n{reasoning}")
 
                 results: List[Tuple[str, Optional[str]]] = []
                 for fc in function_calls:
                     action_name = fc.name or "unknown"
                     action_args = fc.args or {}
                     if print_steps:
-                        print(f"🔧 {action_name}({json.dumps(action_args)})")
+                        print(f"{action_name}({json.dumps(action_args)})")
 
                     if action_args:
                         safety_decision = action_args.get("safety_decision")
@@ -558,9 +558,9 @@ class Agent:
                             == "require_confirmation"
                         ):
                             print(
-                                f"⚠️ Safety confirmation required: {safety_decision.get('explanation')}"
+                                f"Safety confirmation required: {safety_decision.get('explanation')}"
                             )
-                            print("✅ Auto-acknowledging safety check")
+                            print("Auto-acknowledging safety check")
 
                     result = self.execute_computer_action(fc)
                     results.append(result)
@@ -573,11 +573,11 @@ class Agent:
                 )
 
             except Exception as e:
-                print(f"❌ Error during task execution: {e}")
+                print(f"Error during task execution: {e}")
                 raise
 
         if iterations >= max_iterations:
-            print(f"⚠️ Task execution stopped after {max_iterations} iterations")
+            print(f"Task execution stopped after {max_iterations} iterations")
 
         for content in reversed(self.contents):
             if content.role == "model" and content.parts:
@@ -593,19 +593,19 @@ class Agent:
 
 
 def main():
-    print("🚀 Steel + Gemini Computer Use Assistant")
+    print("Steel + Gemini Computer Use Assistant")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
         print(
-            "⚠️ WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+            "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
         )
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if GEMINI_API_KEY == "your-gemini-api-key-here":
         print(
-            "⚠️ WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
+            "WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
         )
         print("   Get your API key at: https://aistudio.google.com/apikey")
         sys.exit(1)
@@ -615,22 +615,22 @@ def main():
 
     try:
         agent.initialize()
-        print("✅ Steel session started!")
+        print("Steel session started!")
 
         start_time = time.time()
         result = agent.execute_task(TASK, True, 50)
         duration = f"{(time.time() - start_time):.1f}"
 
         print("\n" + "=" * 60)
-        print("🎉 TASK EXECUTION COMPLETED")
+        print("TASK EXECUTION COMPLETED")
         print("=" * 60)
         print(f"⏱️  Duration: {duration} seconds")
-        print(f"🎯 Task: {TASK}")
-        print(f"📋 Result:\n{result}")
+        print(f"Task: {TASK}")
+        print(f"Result:\n{result}")
         print("=" * 60)
 
     except Exception as e:
-        print(f"❌ Failed to run: {e}")
+        print(f"Failed to run: {e}")
         raise
 
     finally:

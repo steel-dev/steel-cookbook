@@ -1,6 +1,6 @@
 """
 AI-powered browser automation using browser-use library with Steel browsers.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/browser-use
 """
 
 import os
@@ -23,16 +23,16 @@ TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
 
 
 async def main():
-    print("🚀 Steel + Browser Use Assistant")
+    print("Steel + Browser Use Assistant")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if OPENAI_API_KEY == "your-openai-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+        print("WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/api-keys")
         sys.exit(1)
 
@@ -42,7 +42,7 @@ async def main():
 
     try:
         session = client.sessions.create()
-        print("✅ Steel browser session started!")
+        print("Steel browser session started!")
         print(f"View live session at: {session.session_viewer_url}")
 
         print(
@@ -57,7 +57,7 @@ async def main():
 
         start_time = time.time()
 
-        print(f"🎯 Executing task: {TASK}")
+        print(f"Executing task: {TASK}")
         print("=" * 60)
 
         try:
@@ -66,16 +66,16 @@ async def main():
             duration = f"{(time.time() - start_time):.1f}"
 
             print("\n" + "=" * 60)
-            print("🎉 TASK EXECUTION COMPLETED")
+            print("TASK EXECUTION COMPLETED")
             print("=" * 60)
             print(f"⏱️  Duration: {duration} seconds")
-            print(f"🎯 Task: {TASK}")
+            print(f"Task: {TASK}")
             if result:
-                print(f"📋 Result:\n{result}")
+                print(f"Result:\n{result}")
             print("=" * 60)
 
         except Exception as e:
-            print(f"❌ Task execution failed: {e}")
+            print(f"Task execution failed: {e}")
             raise
         finally:
             if session:
@@ -85,7 +85,7 @@ async def main():
             print("Done!")
 
     except Exception as e:
-        print(f"❌ Failed to start Steel browser: {e}")
+        print(f"Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
         raise
 

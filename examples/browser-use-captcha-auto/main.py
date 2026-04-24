@@ -7,7 +7,7 @@ solving capabilities with the browser-use framework.
 When the agent encounters a CAPTCHA, it can call the wait_for_captcha_solution tool
 which will automatically wait for Steel to solve the CAPTCHA before proceeding.
 
-Based on: https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-browser-use-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/browser-use-captcha-auto
 """
 
 import os
@@ -106,7 +106,7 @@ async def wait_for_captcha_solution() -> str:
     """
     session_id = SESSION_CACHE.get("session_id")
     if not session_id:
-        return "❌ Error: No active Steel session. Cannot check CAPTCHA status."
+        return "Error: No active Steel session. Cannot check CAPTCHA status."
 
     timeout_ms = 60000
     poll_interval_ms = 1000
@@ -115,7 +115,7 @@ async def wait_for_captcha_solution() -> str:
     end_deadline = start + (timeout_ms / 1000.0)
     last_states: List[Dict[str, Any]] = []
 
-    print("\n🔐 Waiting for CAPTCHA to be solved...")
+    print("\nWaiting for CAPTCHA to be solved...")
 
     while True:
         now = time.monotonic()
@@ -131,35 +131,35 @@ async def wait_for_captcha_solution() -> str:
 
         except Exception as e:
             duration_ms = int((time.monotonic() - start) * 1000)
-            return f"❌ Error: Failed to get CAPTCHA status after {duration_ms}ms. Exception: {str(e)}"
+            return f"Error: Failed to get CAPTCHA status after {duration_ms}ms. Exception: {str(e)}"
 
         if not last_states:
             duration_ms = int((time.monotonic() - start) * 1000)
-            return f"✅ Success: No CAPTCHAs detected on the page after {duration_ms}ms. You can proceed with the task."
+            return f"Success: No CAPTCHAs detected on the page after {duration_ms}ms. You can proceed with the task."
 
         if not _has_active_captcha(last_states):
             duration_ms = int((time.monotonic() - start) * 1000)
             summary = _summarize_states(last_states)
-            print(f"✅ All CAPTCHAs solved in {duration_ms}ms")
-            return f"✅ Success: All CAPTCHAs have been solved after {duration_ms}ms. Summary: {summary}. You can now proceed to submit the form or continue with the task."
+            print(f"All CAPTCHAs solved in {duration_ms}ms")
+            return f"Success: All CAPTCHAs have been solved after {duration_ms}ms. Summary: {summary}. You can now proceed to submit the form or continue with the task."
 
         await asyncio.sleep(poll_interval_ms / 1000.0)
 
 
 async def main():
-    print("🚀 Steel + Browser Use Assistant")
+    print("Steel + Browser Use Assistant")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+            "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
         )
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if OPENAI_API_KEY == "your-openai-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+            "WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
         )
         print("   Get your API key at: https://platform.openai.com/api-keys")
         sys.exit(1)
@@ -171,7 +171,7 @@ async def main():
         session = client.sessions.create(solve_captcha=True)
 
         SESSION_CACHE["session_id"] = session.id
-        print("✅ Steel browser session started!")
+        print("Steel browser session started!")
         print(f"View live session at: {session.session_viewer_url}")
 
         print(
@@ -190,22 +190,22 @@ async def main():
             tools=tools,
         )
 
-        print(f"🎯 Executing task: {TASK}")
+        print(f"Executing task: {TASK}")
         print("=" * 60)
 
         try:
             result = await agent.run()
 
             print("\n" + "=" * 60)
-            print("🎉 TASK EXECUTION COMPLETED")
+            print("TASK EXECUTION COMPLETED")
             print("=" * 60)
-            print(f"🎯 Task: {TASK}")
+            print(f"Task: {TASK}")
             if result:
-                print(f"📋 Result:\n{result}")
+                print(f"Result:\n{result}")
             print("=" * 60)
 
         except Exception as e:
-            print(f"❌ Task execution failed: {e}")
+            print(f"Task execution failed: {e}")
         finally:
             if session:
                 print("Releasing Steel session...")
@@ -214,7 +214,7 @@ async def main():
             print("Done!")
 
     except Exception as e:
-        print(f"❌ Failed to start Steel browser: {e}")
+        print(f"Failed to start Steel browser: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
 
 

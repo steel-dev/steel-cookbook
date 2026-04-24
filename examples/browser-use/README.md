@@ -1,114 +1,64 @@
-# Steel Browser Use Example
+# Browser Use Starter (Python)
 
-This example demonstrates how to integrate Steel with the [browser-use](https://github.com/browser-use/browser-use) framework to create an AI agent capable of interacting with web browsers. It leverages Steel's session management to provide a secure, cloud-based browser instance for browser-use to connect to.
+Browser Use is an agent framework: you give it an LLM, a browser, and a natural-language `task`, and it runs a perception-plan-act loop until the task is done. It doesn't need selectors or scripted steps. The model reads the page, decides the next action, and executes it against the browser you give it. The browser in this recipe is a Steel session, so the agent runs on managed cloud Chrome with stealth, proxies, and a live viewer instead of local Chromium.
 
-## Features
+```python
+session = client.sessions.create()
+cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
 
-- Seamless integration between Steel and browser-use
-- Cloud-based browser automation with Steel sessions
-- AI-powered browser interaction using OpenAI GPT-5
-- Automatic cleanup of resources
-- Robust error handling and session management
+model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
+agent = Agent(
+    task=TASK,
+    llm=model,
+    browser_session=BrowserSession(cdp_url=cdp_url),
+)
 
-## Prerequisites
+result = await agent.run()
+```
 
-- Python 3.11 or higher
-- Python package manager (Recommended `uv`: `pip install uv`)
-- Steel API key (Get 100 free browser hours [here.](https://app.steel.dev/sign-up))
-- OpenAI API key
+`BrowserSession(cdp_url=...)` is the entire integration. Browser Use attaches to whatever Chrome is speaking the Chrome DevTools Protocol at that URL. No launcher, no `playwright.chromium.launch()`, no local browser binary.
 
-## Installation
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/steel-dev/steel-cookbook.git
-   cd steel-cookbook/examples/steel-browser-use-starter
-   ```
-
-2. **Create and activate a virtual environment with venv:**
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
-   ```
-
-3. **Install the required dependencies using venv:**
-
-   ```bash
-   pip install .
-   ```
-
-   Note: We're using venv to manage our environment and pip to install the packages. This ensures all dependencies are resolved consistently using pip's dependency resolution. If you're having issue with speed or dependencies, feel free to switch back to python/pip and try these steps again.
-
-4. **Copy the environment variables file and configure your API keys:**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-5. **Edit the `.env` file and add your API keys:**
-
-   ```env
-   STEEL_API_KEY=your_steel_api_key_here
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-
-## Usage
-
-Run the example with:
+## Run it
 
 ```bash
+cd examples/browser-use
+cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
+pip install -r requirements.txt
 python main.py
 ```
 
-The script will:
+Keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). A session viewer URL prints as the script starts. Open it in another tab to watch the agent click through the task in real time.
 
-1. Create a new Steel session
-2. Connect browser-use to the Steel session using the WebSocket URL
-3. Execute the AI agent's task (e.g., summarizing the Steel Docs changelog)
-4. Automatically clean up resources when done
+Your output varies. Structure looks like this:
 
-## How It Works
+```text
+Starting Steel browser session...
+Steel Session created!
+View session at https://app.steel.dev/sessions/ab12cd34…
 
-1. **Session Creation**: The script creates a Steel session with optional proxy and CAPTCHA-solving capabilities.
+Executing task: Go to Wikipedia and search for machine learning
+============================================================
+ INFO     [Agent] Step 1: navigate to https://www.wikipedia.org
+ INFO     [Agent] Step 2: input "machine learning" into search box
+ INFO     [Agent] Step 3: click search button
+ INFO     [Agent] Step 4: done
+============================================================
+TASK EXECUTION COMPLETED
+Duration: 38.2 seconds
 
-2. **Browser Integration**: The WebSocket URL from the Steel session is passed to browser-use's Browser configuration.
+Releasing Steel session...
+Session completed. View replay at https://app.steel.dev/sessions/ab12cd34…
+```
 
-3. **AI Agent Setup**: A browser-use Agent is created with:
+A run costs a few cents of Steel session time plus OpenAI tokens for each step the agent takes (screenshots go to the model on every iteration, so token usage scales with task length). The `finally` block that calls `client.sessions.release()` isn't optional. Steel bills per session-minute and skipping release keeps the browser running until the default 5-minute timeout.
 
-   - The specified task
-   - OpenAI GPT-5 language model
-   - Browser instance connected to Steel
+## Make it yours
 
-4. **Execution**: The agent runs autonomously, performing the specified task.
+- **Change the task.** Set `TASK` in `.env` or edit the default in `main.py`. Any sentence works: "log in to example.com and download the latest invoice PDF", "compare prices for the top 3 vacuum cleaners on Amazon", "fill out the contact form at acme.com with these fields". Long tasks are fine; the agent breaks them into steps on its own.
+- **Turn on stealth.** Add `use_proxy=True`, `solve_captcha=True`, or `session_timeout=1800000` to the `sessions.create()` call for sites with anti-bot. Tasks that navigate logged-in areas usually need longer timeouts than the 5-minute default.
+- **Swap the model.** `ChatOpenAI(model="gpt-5", ...)` is the default; Browser Use also ships `ChatAnthropic`, `ChatGoogle`, and others. Change the import and the `model` arg passed to `Agent`.
+- **Persist login.** Reuse cookies and local storage across runs via [credentials](../credentials) so the agent doesn't have to sign in every time.
 
-5. **Cleanup**: Resources are properly released, including:
-   - Closing the browser connection process
-   - Releasing the Steel session
+## Related
 
-## Error Handling
-
-The example includes comprehensive error handling:
-
-- Validation of required environment variables
-- Try/except blocks for session management
-- Proper cleanup in case of failures
-- Informative error messages
-
-## Customization
-
-You can modify the example by:
-
-1. Changing the task in `main.py`
-2. Adjusting Steel session parameters
-3. Configuring different browser-use settings
-4. Using a different model or adjusting model parameters
-
-## Contributing
-
-Feel free to submit issues, fork the repository, and create pull requests for any improvements.
-
-## License
-
-This example is part of the Steel Cookbook and is licensed under the MIT License. See the LICENSE file for details.
+[Browser Use docs](https://docs.browser-use.com)

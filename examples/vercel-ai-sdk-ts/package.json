@@ -1,5 +1,5 @@
 {
-  "name": "steel-ai-sdk-starter",
+  "name": "vercel-ai-sdk-ts",
   "version": "1.0.0",
   "description": "Build a browser agent with Vercel AI SDK v6 (ToolLoopAgent) and Steel",
   "main": "index.ts",

@@ -1,3 +1,5 @@
+// https://github.com/steel-dev/steel-cookbook/tree/main/examples/vercel-ai-sdk-nextjs
+
 "use client";
 
 import { useChat } from "@ai-sdk/react";

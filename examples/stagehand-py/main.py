@@ -1,6 +1,6 @@
 """
 AI-powered browser automation using Stagehand with Steel browsers.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-stagehand-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/stagehand-py
 """
 
 import asyncio
@@ -54,16 +54,16 @@ async def _stream_to_result(stream, label):
 
 
 async def main():
-    print("🚀 Steel + Stagehand Python Starter")
+    print("Steel + Stagehand Python Starter")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if OPENAI_API_KEY == "your-openai-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
+        print("WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key")
         print("   Get your API key at: https://platform.openai.com/")
         sys.exit(1)
 

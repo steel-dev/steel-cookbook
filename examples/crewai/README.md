@@ -1,48 +1,99 @@
-# Steel + CrewAI Starter
+CrewAI composes LLM work out of three primitives: an `Agent` (role, goal, tools), a `Task` (description + expected output), and a `Crew` that runs them in order. This recipe wires two agents, a `researcher` and a `reporting_analyst`, to a single custom tool that calls Steel's scrape API. The researcher gathers sources; the analyst turns them into `report.md`.
 
-This example integrates Steel with the CrewAI agent framework.
+```python
+@agent
+def researcher(self) -> Agent:
+    return Agent(
+        role="Instruction-Following Web Researcher",
+        goal="Understand and execute: {task}. Find, verify, and extract ...",
+        backstory="You specialize in decomposing and executing complex ...",
+        tools=[SteelScrapeWebsiteTool()],
+        llm="gpt-5-nano",
+        verbose=True,
+    )
+```
 
-## Installation
+The `{task}` placeholder is interpolated from the `inputs` dict passed to `kickoff()`, so the same crew runs against any research prompt without a code edit. `gpt-5-nano` is cheap enough for iteration; swap `llm=` for anything LiteLLM supports.
+
+## The Steel tool
+
+CrewAI tools are Pydantic-described callables. `SteelScrapeWebsiteTool` subclasses `BaseTool`, declares `args_schema = SteelScrapeWebsiteToolSchema` (a single `url: str` field), and implements `_run`.
+
+```python
+class SteelScrapeWebsiteTool(BaseTool):
+    name: str = "Steel web scrape tool"
+    description: str = "Scrape webpages using Steel and return the contents"
+    args_schema: Type[BaseModel] = SteelScrapeWebsiteToolSchema
+
+    def _run(self, url: str):
+        return self._steel.scrape(
+            url=url, use_proxy=self.proxy, format=self.formats, region="iad",
+        )
+```
+
+No session lifecycle to manage: `scrape()` is one-shot and returns markdown by default (`formats=["markdown"]`, set in `__init__`). The agent decides when to call the tool based on `name`, `description`, and `args_schema`. `env_vars` declares `STEEL_API_KEY` so CrewAI's introspection knows what the tool requires.
+
+Both agents get the same tool instance. In practice the researcher drives it; giving the analyst access is a low-cost hedge so it can pull one more citation if the researcher skipped something. For full browser control (clicks, forms, login walls), wrap a Steel session with Playwright and expose the page as a tool. For read-only fetch-and-parse, `scrape()` is enough.
+
+## The crew
+
+Two `@task` methods define the work. `research_task` interpolates `{task}` and `{current_year}` into its description and is bound to `self.researcher()`. `reporting_task` reads the researcher's output from the shared crew context; the analyst never needs the original URL.
+
+```python
+@crew
+def crew(self) -> CrewAI:
+    return CrewAI(
+        agents=self.agents,
+        tasks=self.tasks,
+        process=Process.sequential,
+        verbose=True,
+    )
+```
+
+`Process.sequential` runs tasks in declaration order and pipes each task's output into the next task's context. `Process.hierarchical` is the alternative (a manager agent delegates); sequential is the right default for a research-then-report flow. The `@CrewBase` decorator on `Crew` is what turns the `@agent` and `@task` methods into the `self.agents` and `self.tasks` lists referenced above.
+
+## Run it
 
 ```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-crew-ai-starter
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+cd examples/crewai
+cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Quick start
-
-1. Create a `.env` file in this directory with your keys:
-
-```env
-STEEL_API_KEY=your_steel_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-2. Run the example:
-
-```bash
 python main.py
 ```
 
-The script will:
+Get keys from [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). Default `TASK` is `"Research AI LLMs and summarize key developments"`; override via the `TASK` env var or edit `main.py`.
 
-- Initialize a Steel client and custom scraping tool
-- Run a researcher and reporting analyst crew on a sample topic
-- Write an output `report.md`
+Your output varies. Structure looks like this:
 
-## Configuration
+```text
+Steel + CrewAI Starter
+============================================================
+Running crew...
 
-You can change the inputs (like `topic`) inside `main.py`. The custom `SteelScrapeWebsiteTool` can be adjusted for formats or proxy behavior.
+# Agent: Instruction-Following Web Researcher
+## Task: Interpret and execute the following instruction...
+## Using tool: Steel web scrape tool
+## Tool Input: {"url": "https://..."}
+## Tool Output: # Page title ... (markdown)
+## Final Answer: - Finding 1 ... - Finding 2 ...
 
-## Error handling
+# Agent: Instruction-Following Reporting Analyst
+## Task: Review the research context and produce a complete report...
+## Final Answer: # AI LLMs ... (full markdown report)
 
-The script checks for required environment variables, reports runtime errors, and exits cleanly.
+Report written to report.md
+```
 
-## Support
+A run takes ~60-90 seconds: a few OpenAI tokens per agent turn plus one Steel scrape per URL the researcher visits (usually 2-4). `report.md` is overwritten each run; rename it if you want to keep a history.
 
-- Steel Documentation: https://docs.steel.dev
-- API Reference: https://docs.steel.dev/api-reference
-- Discord Community: https://discord.gg/steel-dev
+## Make it yours
+
+- **Change the task.** Set `TASK="Find the top 3 open-source vector databases and compare licensing"` in `.env` and rerun. No code edit needed; the crew reinterprets the instruction.
+- **Add an agent.** Slot a fact-checker between researcher and analyst with a new `@agent` and `@task`. `Process.sequential` picks them up in declaration order.
+- **Mix models.** The researcher can stay on `gpt-5-nano` while the analyst runs `gpt-5` or `claude-sonnet-4-5`. Set `llm=` independently on each `Agent`.
+- **Tighten the scraper.** Pass `proxy=True` to `SteelScrapeWebsiteTool()` for sites that block datacenter IPs, or `formats=["html"]` if the markdown conversion strips something you need.
+
+## Related
+
+[CrewAI docs](https://docs.crewai.com) · [CrewAI tools reference](https://docs.crewai.com/en/concepts/tools)

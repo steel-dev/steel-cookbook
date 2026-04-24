@@ -1,3 +1,8 @@
+/*
+ * GitHub profile stats scraper rendered by the uploaded extension.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/extensions
+ */
+
 import { showAvatar, buildTable, Stats } from "./table";
 import chalk from "chalk";
 import type { Page } from "playwright";
@@ -112,7 +117,7 @@ export async function scrapeStats(page: Page, username: string) {
     streakCurrentRange,
   };
 
-  console.log(chalk.bold.cyan(`\n📊 GitHub Stats for ${stats.username}\n`));
+  console.log(chalk.bold.cyan(`\nGitHub Stats for ${stats.username}\n`));
 
   const avatar = await showAvatar(stats.username);
   console.log(avatar);

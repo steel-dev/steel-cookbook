@@ -1,6 +1,6 @@
 """
 Web automation using Selenium with Steel's cloud browsers.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-selenium-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/selenium
 """
 
 import os
@@ -37,11 +37,11 @@ class CustomRemoteConnection(RemoteConnection):
 client = Steel(steel_api_key=STEEL_API_KEY)
 
 def main():
-    print("🚀 Steel + Selenium Python Starter")
+    print("Steel + Selenium Python Starter")
     print("=" * 60)
     
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
     session = None

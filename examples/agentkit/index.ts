@@ -1,3 +1,8 @@
+/*
+ * Agent orchestration using Inngest AgentKit with Steel browsers.
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/agentkit
+ */
+
 import dotenv from "dotenv";
 dotenv.config();
 import { z } from "zod";
@@ -137,12 +142,12 @@ const hnNetwork = createNetwork({
 });
 
 async function main() {
-  console.log("🚀 Steel + Agent Kit Starter");
+  console.log("Steel + Agent Kit Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
@@ -152,7 +157,7 @@ async function main() {
 
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
+      "WARNING: Please replace 'your-openai-api-key-here' with your actual OpenAI API key"
     );
     console.warn(
       "   Get your API key at: https://platform.openai.com/api-keys"

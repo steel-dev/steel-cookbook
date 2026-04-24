@@ -1,5 +1,5 @@
 {
-  "name": "steel-openai-agents-node-starter",
+  "name": "openai-agents-ts",
   "version": "1.0.0",
   "description": "Build a browser agent with the OpenAI Agents SDK (TypeScript) and Steel",
   "main": "index.ts",

@@ -1,99 +1,90 @@
-# Steel + Selenium Starter
+# Selenium Starter (Python)
 
-This template shows you how to use Steel with Selenium to run browser automations in the cloud. It includes session management, error handling, and a basic example you can customize.
+Selenium speaks the W3C WebDriver protocol over HTTP, not CDP. Every click, navigation, and `find_element` is an HTTP round-trip to a remote endpoint that implements the spec. Steel runs one at `http://connect.steelbrowser.com/selenium`, which is where `webdriver.Remote` points.
 
-[![Run on Repl.it](https://replit.com/badge/github/steel-dev/steel-selenium-starter)](https://replit.com/@steel-dev/steel-selenium-starter?v=1#README.md)
-
-## Installation
-
-Clone this repository, navigate to the `examples/steel-selenium-starter`, and install dependencies:
-
-```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-selenium-starter
-
-# Create and activate virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-## Quick start
-
-The example script in `main.py` shows you how to:
-
-- Create and manage a Steel browser session
-- Connect Selenium to the session
-- Navigate to a website (Hacker News in this example)
-- Extract data from the page (top 5 stories)
-- Handle errors and cleanup properly
-- View your live session in Steel's session viewer
-
-To run it:
-
-1.  Create a `.env` file in the `examples/steel-selenium-starter` directory:
-
-```bash
-STEEL_API_KEY=your_api_key_here
-```
-
-2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
-
-3. From the same directory, run the command:
-
-```bash
-python main.py
-```
-
-## Writing your automation
-
-Find this section in `main.py`:
+The catch: Steel identifies callers with a `steel-api-key` header and routes each command to the right browser with a `session-id` header. `webdriver.Remote` doesn't expose a direct hook for custom headers, so the starter subclasses `RemoteConnection`:
 
 ```python
-# ============================================================
-# Your Automations Go Here!
-# ============================================================
+class CustomRemoteConnection(RemoteConnection):
+    _session_id = None
 
-# Example automation (you can delete this)
-driver.get('https://news.ycombinator.com')
-# ... rest of example code
+    def __init__(self, remote_server_addr: str, session_id: str):
+        super().__init__(remote_server_addr)
+        self._session_id = session_id
+
+    def get_remote_connection_headers(self, parsed_url, keep_alive=False):
+        headers = super().get_remote_connection_headers(parsed_url, keep_alive)
+        headers.update({'steel-api-key': os.environ.get("STEEL_API_KEY")})
+        headers.update({'session-id': self._session_id})
+        return headers
 ```
 
-You can replace the code here with whatever automation scripts you want to run.
+`get_remote_connection_headers` runs on every outbound request. Selenium has no persistent connection to keep alive; the two headers ride along with each command. That's the integration. After the driver is wired, the rest is vanilla Selenium 4.
 
-## Configuration
-
-The template includes common Steel configurations you can enable:
+One requirement: create the session with `is_selenium=True`. Steel provisions a WebDriver-compatible node for those sessions; without the flag you get a CDP browser that Selenium cannot drive.
 
 ```python
-session = client.sessions.create(
-    use_proxy=True,              # Use Steel's proxy network
-    session_timeout=1800000,     # 30 minute timeout (default: 5 mins)
+session = client.sessions.create(is_selenium=True)
+
+driver = webdriver.Remote(
+    command_executor=CustomRemoteConnection(
+        remote_server_addr='http://connect.steelbrowser.com/selenium',
+        session_id=session.id,
+    ),
+    options=webdriver.ChromeOptions(),
 )
 ```
 
-_Note:_
-Certain features like captcha solving, proxies, and cookie management are not supported with selenium sessions yet. Check out the docs for more details on this [here](https://docs.steel.dev/overview/guides/connect-with-selenium).
+From here, `driver.get(...)`, `WebDriverWait`, `By.CLASS_NAME`, and `find_elements` behave as they would against a local ChromeDriver. The scraping body inside `main()` uses `WebDriverWait` with `expected_conditions.presence_of_element_located` to block until Hacker News renders its story rows, then walks `athing` elements to pull title, link, and points.
 
-## Error handling
+## Run it
 
-The template includes error handling and cleanup:
-
-```python
-try:
-    # Your automation code
-finally:
-    # Cleanup runs even if there's an error
-    if driver:
-        driver.quit()
-    if session:
-        client.sessions.release(session.id)
+```bash
+cd examples/selenium
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # set STEEL_API_KEY
+python main.py
 ```
 
-## Support
+Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the browser run live.
 
-- [Steel Documentation](https://docs.steel.dev)
-- [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/steel-dev)
+Your output varies. Structure looks like this:
+
+```text
+Creating Steel session...
+Session created successfully with Session ID: ab12cd34...
+You can view the session live at https://app.steel.dev/sessions/ab12cd34...
+
+Connected to browser via Selenium
+Navigating to Hacker News...
+
+Top 5 Hacker News Stories:
+
+1. Claude 4.7 Opus released today
+   Link: https://news.ycombinator.com/item?id=43218921
+   Points: 892
+
+2. Show HN: A browser extension for reading on slow connections
+   Link: https://github.com/user/project
+   Points: 401
+
+...
+
+Releasing session...
+Session released
+Done!
+```
+
+A run costs a few cents of session time. Steel bills per session-minute, so `main()` wraps everything in a `try / finally` and calls `client.sessions.release(session.id)` on exit. Skip it and the browser idles until the default 5-minute timeout elapses.
+
+## Make it yours
+
+- **Swap the target.** The scraping logic sits between the `Your Automations Go Here!` banner comments in `main.py`. Replace `driver.get(...)` and the `story_elements` loop with your own selectors; session setup and teardown stay put.
+- **Extend the session.** Pass `session_timeout=1800000` (30 minutes) alongside `is_selenium=True` in `sessions.create()` for longer runs. Keep `is_selenium=True`; it is the switch that provisions a WebDriver node.
+- **Wait on DOM state.** Each command is an HTTP round-trip, so blind `time.sleep` calls compound latency. Prefer `WebDriverWait` with `expected_conditions` (as in the example) to block on the specific element or state you need.
+- **Reuse the headers pattern.** `CustomRemoteConnection` is how you inject any extra header into every WebDriver request. The same subclass shape works for custom tracing or routing headers you want to attach per call.
+
+## Related
+
+[Selenium Python docs](https://selenium-python.readthedocs.io) · [WebDriver protocol](https://w3c.github.io/webdriver/)

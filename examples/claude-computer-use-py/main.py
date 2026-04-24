@@ -1,6 +1,6 @@
 """
 Claude AI agent for autonomous web task execution with Steel headful Input API.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/claude-computer-use-py
 """
 
 import os
@@ -342,7 +342,7 @@ class Agent:
                 )
                 tool_name = block.name
                 tool_input = block.input
-                print(f"🔧 {tool_name}({json.dumps(tool_input)})")
+                print(f"{tool_name}({json.dumps(tool_input)})")
                 if tool_name == "computer":
                     action = tool_input.get("action")
                     try:
@@ -372,7 +372,7 @@ class Agent:
                             }
                         )
                     except Exception as e:
-                        print(f"❌ Error executing {action}: {e}")
+                        print(f"Error executing {action}: {e}")
                         tool_results.append(
                             {
                                 "type": "tool_result",
@@ -402,7 +402,7 @@ class Agent:
         iterations = 0
         last_assistant_messages: List[str] = []
 
-        print(f"🎯 Executing task: {task}")
+        print(f"Executing task: {task}")
         print("=" * 60)
 
         def detect_repetition(new_message: str) -> bool:
@@ -436,7 +436,7 @@ class Agent:
                     content = extract_text(last_message.get("content"))
                     if content:
                         if detect_repetition(content):
-                            print("🔄 Repetition detected - stopping execution")
+                            print("Repetition detected - stopping execution")
                             final_text = content
                             break
                         last_assistant_messages.append(content)
@@ -455,33 +455,33 @@ class Agent:
                 text, has_actions = self.process_response(response)
 
                 if not has_actions:
-                    print("✅ Task complete - no further actions requested")
+                    print("Task complete - no further actions requested")
                     final_text = text
                     break
             except Exception as e:
-                print(f"❌ Error during task execution: {e}")
+                print(f"Error during task execution: {e}")
                 raise e
 
         if iterations >= max_iterations:
-            print(f"⚠️  Task execution stopped after {max_iterations} iterations")
+            print(f"Task execution stopped after {max_iterations} iterations")
 
         return final_text or "Task execution completed (no final message)"
 
 
 def main():
-    print("🚀 Steel + Claude Computer Use Assistant")
+    print("Steel + Claude Computer Use Assistant")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+            "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
         )
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if ANTHROPIC_API_KEY == "your-anthropic-api-key-here":
         print(
-            "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+            "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
         )
         print("   Get your API key at: https://console.anthropic.com/")
         sys.exit(1)
@@ -490,7 +490,7 @@ def main():
     agent = Agent()
     try:
         agent.initialize()
-        print("✅ Steel session started!")
+        print("Steel session started!")
 
         start_time = time.time()
 
@@ -498,17 +498,17 @@ def main():
             result = agent.execute_task(TASK, True, 50)
             duration = f"{(time.time() - start_time):.1f}"
             print("\n" + "=" * 60)
-            print("🎉 TASK EXECUTION COMPLETED")
+            print("TASK EXECUTION COMPLETED")
             print("=" * 60)
             print(f"⏱️  Duration: {duration} seconds")
-            print(f"🎯 Task: {TASK}")
-            print(f"📋 Result:\n{result}")
+            print(f"Task: {TASK}")
+            print(f"Result:\n{result}")
             print("=" * 60)
         except Exception as e:
-            print(f"❌ Task execution failed: {e}")
+            print(f"Task execution failed: {e}")
             raise RuntimeError("Task execution failed")
     except Exception as e:
-        print(f"❌ Failed to start Steel session: {e}")
+        print(f"Failed to start Steel session: {e}")
         print("Please check your STEEL_API_KEY and internet connection.")
         raise RuntimeError("Failed to start Steel session")
     finally:

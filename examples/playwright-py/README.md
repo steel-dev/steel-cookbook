@@ -1,98 +1,70 @@
-# Steel + Playwright for Python Starter
+# Playwright Starter (Python)
 
-This template shows you how to use Steel with Playwright in Python to run browser automations in the cloud. It includes session management, error handling, and a basic example you can customize.
+Playwright's Python API ships a CDP attach point, `chromium.connect_over_cdp()`. Point it at the websocket URL a Steel session hands back and your `Page`, `Locator`, and `expect` calls drive a remote browser instead of a local one. No `playwright install`, no headful display, no Chrome on your machine.
 
-[![Open Replit Template](https://replit.com/badge/github/@steel-dev/steel-playwright-python-starter)](https://replit.com/@steel-dev/steel-playwright-python-starter?v=1)
+The whole connection is three lines inside a `with sync_playwright()` block:
 
-## Installation
+```python
+session = client.sessions.create()
 
-Clone this repository, navigate to the `examples/steel-playwright-python-starter`, and install dependencies:
+playwright = sync_playwright().start()
+browser = playwright.chromium.connect_over_cdp(
+    f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+)
+
+page = browser.contexts[0].new_page()
+```
+
+Two Python-specific details worth calling out. First, this starter uses the **sync API**. Easier to read top-to-bottom and fine for one script at a time; swap in `async_playwright` if you need to fan out concurrent pages. Second, Steel returns a session with a context already attached, so you reuse `browser.contexts[0]` rather than calling `new_context()`. Everything downstream is plain Playwright: `page.locator`, `page.goto(url, wait_until="networkidle")`, XPath selectors.
+
+## Run it
 
 ```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-playwright-python-starter
-
-# Create and activate virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-
-# Install dependencies
+cd examples/playwright-py
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Quick start
-
-The example script in `main.py` shows you how to:
-
-- Create and manage a Steel browser session
-- Connect Playwright to the session
-- Navigate to a website (Hacker News in this example)
-- Extract data from the page (top 5 stories)
-- Handle errors and cleanup properly
-- View your live session in Steel's session viewer
-
-To run it:
-
-1. Create a `.env` file in the `examples/steel-playwright-python-starter` directory:
-
-```bash
-STEEL_API_KEY=your_api_key_here
-```
-
-2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
-
-3. From the same directory, run the command:
-
-```bash
+cp .env.example .env          # set STEEL_API_KEY
 python main.py
 ```
 
-## Writing your automation
+Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). As the script boots it prints a session viewer URL. Open it in a second tab to watch the browser click through Hacker News in real time.
 
-Find this section in `main.py`:
+Your output varies. Structure looks like this:
 
-```python
-# ============================================================
-# Your Automations Go Here!
-# ============================================================
+```text
+Creating Steel session...
+Steel Session created successfully!
+You can view the session live at https://app.steel.dev/sessions/ab12cd34…
 
-# Example automation (you can delete this)
-page.goto('https://news.ycombinator.com')
-# ... rest of example code
+Connected to browser via Playwright
+Navigating to Hacker News...
+
+Top 5 Hacker News Stories:
+
+1. Claude 4.7 Opus released today
+   Link: https://news.ycombinator.com/item?id=43218921
+   Points: 892
+
+2. Show HN: A browser extension for reading on slow connections
+   Link: https://github.com/user/project
+   Points: 401
+
+…
+
+Releasing session...
+Session released
+Done!
 ```
 
-You can replace the code here with whatever automation scripts you want to run.
+One run costs a few cents of session time. Steel bills per session-minute, which is why `main()` wraps the script in `try / finally` and calls `client.sessions.release(session.id)` on exit. If you skip that, the session sits idle until the default 5-minute timeout burns through.
 
-## Configuration
+## Make it yours
 
-The template includes common Steel configurations you can enable:
+- **Swap the target.** The scraping logic lives between the `Your Automations Go Here!` banner comments in `main.py`. Replace `page.goto` and the `story_rows` loop with your own selectors. Session setup, auth, and teardown stay the same.
+- **Harden for anti-bot.** Uncomment `use_proxy`, `solve_captcha`, or `session_timeout` inside `client.sessions.create()` for sites that fingerprint or challenge headless traffic.
+- **Go async.** If you need parallel pages, switch `from playwright.sync_api import sync_playwright` to `playwright.async_api` and rewrite `main()` as `async def`. The Steel connection call is identical, just awaited.
+- **Persist login.** Carry cookies and local storage between runs with [credentials](../credentials).
 
-```python
-session = client.sessions.create(
-    use_proxy=True,              # Use Steel's proxy network
-    solve_captcha=True,          # Enable CAPTCHA solving
-    session_timeout=1800000,     # 30 minute timeout (default: 5 mins)
-    user_agent='custom-ua',      # Custom User-Agent
-)
-```
+## Related
 
-## Error handling
-
-The template includes error handling and cleanup:
-
-```python
-try:
-    # Your automation code
-finally:
-    # Cleanup runs even if there's an error
-    if browser:
-        browser.close()
-    if session:
-        client.sessions.release(session.id)
-```
-
-## Support
-
-- [Steel Documentation](https://docs.steel.dev)
-- [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/steel-dev)
+[TypeScript version](../playwright-ts) · [Playwright docs](https://playwright.dev/python)

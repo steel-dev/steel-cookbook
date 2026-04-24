@@ -1,6 +1,6 @@
 /*
  * Claude AI agent for autonomous web task execution with Steel browsers.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-claude-computer-use-mobile
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/claude-computer-use-mobile
  */
 
 import * as dotenv from "dotenv";
@@ -347,7 +347,7 @@ class SteelBrowser {
 
     if (x !== clampedX || y !== clampedY) {
       console.log(
-        `⚠️  Coordinate clamped: (${x}, ${y}) → (${clampedX}, ${clampedY})`,
+        `Coordinate clamped: (${x}, ${y}) → (${clampedX}, ${clampedY})`,
       );
     }
 
@@ -664,7 +664,7 @@ class ClaudeAgent {
       const imageBuffer = Buffer.from(screenshotBase64, "base64");
 
       if (imageBuffer.length === 0) {
-        console.log("⚠️  Empty screenshot data");
+        console.log("Empty screenshot data");
         return {};
       }
 
@@ -681,7 +681,7 @@ class ClaudeAgent {
 
       return scalingInfo;
     } catch (e) {
-      console.log(`⚠️  Error validating screenshot dimensions: ${e}`);
+      console.log(`Error validating screenshot dimensions: ${e}`);
       return {};
     }
   }
@@ -707,7 +707,7 @@ class ClaudeAgent {
         const toolName = block.name;
         const toolInput = block.input as any;
 
-        console.log(`🔧 ${toolName}(${JSON.stringify(toolInput)})`);
+        console.log(`${toolName}(${JSON.stringify(toolInput)})`);
 
         if (toolName === "computer") {
           const action = toolInput.action;
@@ -741,7 +741,7 @@ class ClaudeAgent {
               ],
             });
           } catch (error) {
-            console.log(`❌ Error executing ${action}: ${error}`);
+            console.log(`Error executing ${action}: ${error}`);
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
@@ -783,7 +783,7 @@ class ClaudeAgent {
     let iterations = 0;
     let lastAssistantMessages: string[] = [];
 
-    console.log(`🎯 Executing task: ${task}`);
+    console.log(`Executing task: ${task}`);
     console.log("=".repeat(60));
 
     const isTaskComplete = (
@@ -864,13 +864,13 @@ class ClaudeAgent {
           if (content) {
             const completion = isTaskComplete(content);
             if (completion.completed) {
-              console.log(`✅ Task completed (${completion.reason})`);
+              console.log(`Task completed (${completion.reason})`);
               finalText = content;
               break;
             }
 
             if (detectRepetition(content)) {
-              console.log("🔄 Repetition detected - stopping execution");
+              console.log("Repetition detected - stopping execution");
               finalText = content;
               break;
             }
@@ -909,19 +909,19 @@ class ClaudeAgent {
         const { text, hasActions } = await this.processResponse(response);
 
         if (!hasActions) {
-          console.log("✅ Task complete - no further actions requested");
+          console.log("Task complete - no further actions requested");
           finalText = text;
           break;
         }
       } catch (error) {
-        console.error(`❌ Error during task execution: ${error}`);
+        console.error(`Error during task execution: ${error}`);
         throw error;
       }
     }
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️  Task execution stopped after ${maxIterations} iterations`,
+        `Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
@@ -930,12 +930,12 @@ class ClaudeAgent {
 }
 
 async function main(): Promise<void> {
-  console.log("🚀 Steel + Claude Computer Use Assistant");
+  console.log("Steel + Claude Computer Use Assistant");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",
@@ -945,7 +945,7 @@ async function main(): Promise<void> {
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
+      "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");
@@ -957,7 +957,7 @@ async function main(): Promise<void> {
 
   try {
     await computer.initialize();
-    console.log("✅ Steel browser session started!");
+    console.log("Steel browser session started!");
 
     const agent = new ClaudeAgent(computer);
 
@@ -969,18 +969,18 @@ async function main(): Promise<void> {
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
       console.log("\n" + "=".repeat(60));
-      console.log("🎉 TASK EXECUTION COMPLETED");
+      console.log("TASK EXECUTION COMPLETED");
       console.log("=".repeat(60));
       console.log(`⏱️  Duration: ${duration} seconds`);
-      console.log(`🎯 Task: ${TASK}`);
-      console.log(`📋 Result:\n${result}`);
+      console.log(`Task: ${TASK}`);
+      console.log(`Result:\n${result}`);
       console.log("=".repeat(60));
     } catch (error) {
-      console.error(`❌ Task execution failed: ${error}`);
+      console.error(`Task execution failed: ${error}`);
       throw new Error("Task execution failed");
     }
   } catch (error) {
-    console.log(`❌ Failed to start Steel browser: ${error}`);
+    console.log(`Failed to start Steel browser: ${error}`);
     console.log("Please check your STEEL_API_KEY and internet connection.");
     throw new Error("Failed to start Steel browser");
   } finally {

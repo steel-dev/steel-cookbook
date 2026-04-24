@@ -1,5 +1,5 @@
 {
-  "name": "steel-oai-computer-use-node-starter",
+  "name": "openai-computer-use-ts",
   "version": "1.0.0",
   "description": "Steel Browser Computer Use Agent",
   "main": "index.ts",

@@ -1,90 +1,86 @@
-# Steel Credentials Starter
+# Credentials API
 
-This template demonstrates how to use the Steel Credentials API with Playwright to automate using stored credentials within your sessions. It includes session management, credential creation, error handling, and a basic example of how to inject the credentials into your session.
+Steel's credentials vault stores usernames and passwords against an origin. When a session opts in, Steel watches for login forms on that origin and fills them for you. No login code in your automation, no plaintext passwords in env vars, no custom storage for cookies.
 
-## Installation
-
-Clone this repository, navigate to the `examples/steel-credentials-starter` directory, and install dependencies:
-
-```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-credentials-starter
-npm install
-```
-
-## Quick start
-
-The example script in `index.ts` shows you how to:
-
-- Create a credential for a specific website
-- Create and manage a Steel browser session
-- Connect Playwright to the session
-- Navigate to website
-- Wait for the extension to do it's magic
-- Assert we're landed on the right page and capture a screenshot
-- View your live session in Steel's session viewer
-
-To run it:
-
-1. Create a `.env` file in the `examples/steel-credentials-starter` directory:
-
-```bash
-STEEL_API_KEY=your_api_key_here
-```
-
-2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
-
-3. From the same directory, run the command:
-
-```bash
-npm start
-```
-
-## Writing your automation
-
-Find this section in `index.ts`:
+Two API calls wire it up. First, save the credential once:
 
 ```typescript
-// ============================================================
-// Your Automations Go Here!
-// ============================================================
-
-// Example automation (you can delete this)
-await page.goto("https://www.csvplot.com/");
-// ... rest of example code
-```
-
-You can replace the code here with whatever automation scripts you want to run.
-
-## Configuration
-
-The template includes common Steel configurations you can enable:
-
-```typescript
-const session = await client.sessions.create({
-  useProxy: true, // Use Steel's proxy network
-  solveCaptcha: true, // Enable CAPTCHA solving
-  sessionTimeout: 1800000, // 30 minute timeout (default: 5 mins)
-  userAgent: "custom-ua", // Custom User-Agent
+await client.credentials.create({
+  origin: "https://demo.testfire.net",
+  value: { username: "admin", password: "admin" },
 });
 ```
 
-## Error handling
-
-The template includes error handling and cleanup:
+Then opt the session in:
 
 ```typescript
-try {
-  // Your automation code
-} finally {
-  // Cleanup runs even if there's an error
-  if (browser) await browser.close();
-  if (session) await client.sessions.release(session.id);
+session = await client.sessions.create({
+  credentials: {},
+});
+```
+
+That empty object is the opt-in. Without it, the vault exists but the session ignores it. With it, Steel matches the page's origin against stored credentials and types them in when a login form appears.
+
+After that, drive the browser with Playwright as usual. The demo navigates to the Altoro Mutual test site, clicks `#AccountLink` to open the login form, and checks the heading to confirm the fill worked:
+
+```typescript
+await page.goto("https://demo.testfire.net", { waitUntil: "networkidle" });
+await page.click("#AccountLink");
+await setTimeout(2000);
+
+const headingText = await page.textContent("h1");
+if (headingText?.trim() === "Hello Admin User") {
+  console.log("Success, you are logged in");
 }
 ```
 
-## Support
+The `setTimeout(2000)` gives Steel room to fill and submit the form. In a real script you would swap that for `page.waitForURL` or a selector wait tied to a post-login element.
 
-- [Steel Documentation](https://docs.steel.dev)
-- [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/steel-dev)
+Credentials are per-origin. Create one per site you automate. Re-calling `credentials.create` for an origin that already has a credential throws `Credential already exists`, which the demo swallows so the script is idempotent.
+
+## Run it
+
+```bash
+cd examples/credentials
+cp .env.example .env          # set STEEL_API_KEY
+npm install
+npm start
+```
+
+Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the auto-fill happen.
+
+Your output varies. Structure looks like this:
+
+```text
+Creating credential...
+Creating Steel session...
+Steel Session created!
+View session at https://app.steel.dev/sessions/ab12cd34...
+
+Connected to browser via Playwright
+Success, you are logged in
+Releasing session...
+Session released
+Done!
+```
+
+On a second run the credential already exists, so you see `Credential already exists, moving on.` before the session starts. The behavior is otherwise identical.
+
+## Make it yours
+
+- **Swap the target site.** Change the `origin` and `value` in `credentials.create`, then update `page.goto` and the login-trigger click in `index.ts`. Steel handles the form detection as long as the page exposes a standard username/password input pair.
+- **Manage credentials out of band.** `client.credentials.list()`, `client.credentials.retrieve(id)`, and `client.credentials.delete(id)` let you rotate or audit stored creds without touching automation code. Create credentials from a setup script and keep `index.ts` focused on the workflow.
+- **Combine with stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` alongside `credentials: {}` in `sessions.create()`. The vault works with every other session option.
+
+## When to use this vs. auth-context
+
+Both recipes persist login across runs. They solve it differently:
+
+- **Credentials (this recipe)** stores username and password. Steel re-authenticates each session by filling the login form. Works for any site with a standard form; the login UI runs every time.
+- **[auth-context](../auth-context)** captures cookies and localStorage from an already-authenticated session and replays them into the next one. Skips the login form entirely, but the context expires when the site's session does and needs to be recaptured.
+
+Reach for credentials when you want a stable, long-lived setup tied to an account. Reach for auth-context when the site uses flows the vault cannot drive (SSO, MFA prompts, magic links) and you only need the resulting cookies.
+
+## Related
+
+[auth-context](../auth-context) (cookie and localStorage replay) · [Playwright docs](https://playwright.dev)

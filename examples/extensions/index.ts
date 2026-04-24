@@ -1,6 +1,6 @@
 /*
  * Extension upload and usage with Steel sessions.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-extensions-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/extensions
  */
 
 import dotenv from "dotenv";
@@ -18,12 +18,12 @@ const client = new Steel({
 });
 
 async function main() {
-  console.log("🚀 Steel + Extensions API Starter");
+  console.log("Steel + Extensions API Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",

@@ -1,6 +1,6 @@
 /*
  * Gemini AI agent for autonomous web interactions with Steel computers.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-gemini-computer-use-node-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/gemini-computer-use-ts
  */
 
 import * as dotenv from "dotenv";
@@ -601,7 +601,7 @@ class Agent {
     let iterations = 0;
     let consecutiveNoActions = 0;
 
-    console.log(`🎯 Executing task: ${task}`);
+    console.log(`Executing task: ${task}`);
     console.log("=".repeat(60));
 
     while (iterations < maxIterations) {
@@ -616,7 +616,7 @@ class Agent {
           });
 
         if (!response.candidates || response.candidates.length === 0) {
-          console.log("❌ No candidates in response");
+          console.log("No candidates in response");
           break;
         }
 
@@ -634,22 +634,22 @@ class Agent {
           !reasoning &&
           candidate.finishReason === FinishReason.MALFORMED_FUNCTION_CALL
         ) {
-          console.log("⚠️ Malformed function call, retrying...");
+          console.log("Malformed function call, retrying...");
           continue;
         }
 
         if (!functionCalls.length) {
           if (reasoning) {
             if (printSteps) {
-              console.log(`\n💬 ${reasoning}`);
+              console.log(`\n${reasoning}`);
             }
-            console.log("✅ Task complete - model provided final response");
+            console.log("Task complete - model provided final response");
             break;
           }
           consecutiveNoActions++;
           if (consecutiveNoActions >= 3) {
             console.log(
-              "⚠️ No actions for 3 consecutive iterations - stopping",
+              "No actions for 3 consecutive iterations - stopping",
             );
             break;
           }
@@ -659,7 +659,7 @@ class Agent {
         consecutiveNoActions = 0;
 
         if (printSteps && reasoning) {
-          console.log(`\n💭 ${reasoning}`);
+          console.log(`\n${reasoning}`);
         }
 
         const results: ActionResult[] = [];
@@ -667,7 +667,7 @@ class Agent {
           const actionName = fc.name ?? "unknown";
           const actionArgs = fc.args ?? {};
           if (printSteps) {
-            console.log(`🔧 ${actionName}(${JSON.stringify(actionArgs)})`);
+            console.log(`${actionName}(${JSON.stringify(actionArgs)})`);
           }
 
           if (actionArgs) {
@@ -676,9 +676,9 @@ class Agent {
               | undefined;
             if (safetyDecision?.decision === "require_confirmation") {
               console.log(
-                `⚠️ Safety confirmation required: ${safetyDecision.explanation}`,
+                `Safety confirmation required: ${safetyDecision.explanation}`,
               );
-              console.log("✅ Auto-acknowledging safety check");
+              console.log("Auto-acknowledging safety check");
             }
           }
 
@@ -695,14 +695,14 @@ class Agent {
           parts: functionResponseParts,
         });
       } catch (error) {
-        console.error(`❌ Error during task execution: ${error}`);
+        console.error(`Error during task execution: ${error}`);
         throw error;
       }
     }
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️ Task execution stopped after ${maxIterations} iterations`,
+        `Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
@@ -725,12 +725,12 @@ class Agent {
 }
 
 async function main(): Promise<void> {
-  console.log("🚀 Steel + Gemini Computer Use Assistant");
+  console.log("Steel + Gemini Computer Use Assistant");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️ WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",
@@ -740,7 +740,7 @@ async function main(): Promise<void> {
 
   if (GEMINI_API_KEY === "your-gemini-api-key-here") {
     console.warn(
-      "⚠️ WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key",
+      "WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key",
     );
     console.warn("   Get your API key at: https://aistudio.google.com/apikey");
     throw new Error("Set GEMINI_API_KEY");
@@ -751,21 +751,21 @@ async function main(): Promise<void> {
 
   try {
     await agent.initialize();
-    console.log("✅ Steel session started!");
+    console.log("Steel session started!");
 
     const startTime = Date.now();
     const result = await agent.executeTask(TASK, true, 50);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
     console.log("\n" + "=".repeat(60));
-    console.log("🎉 TASK EXECUTION COMPLETED");
+    console.log("TASK EXECUTION COMPLETED");
     console.log("=".repeat(60));
     console.log(`⏱️  Duration: ${duration} seconds`);
-    console.log(`🎯 Task: ${TASK}`);
-    console.log(`📋 Result:\n${result}`);
+    console.log(`Task: ${TASK}`);
+    console.log(`Result:\n${result}`);
     console.log("=".repeat(60));
   } catch (error) {
-    console.log(`❌ Failed to run: ${error}`);
+    console.log(`Failed to run: ${error}`);
     throw error;
   } finally {
     await agent.cleanup();

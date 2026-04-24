@@ -1,5 +1,5 @@
 {
-  "name": "steel-claude-computer-use-mobile",
+  "name": "claude-computer-use-mobile",
   "version": "1.0.0",
   "description": "Steel Claude Computer Use Node Starter with mobile mode emulation",
   "main": "index.ts",

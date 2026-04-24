@@ -1,5 +1,5 @@
 {
-  "name": "steel-ai-sdk-nextjs-starter",
+  "name": "vercel-ai-sdk-nextjs",
   "version": "1.0.0",
   "description": "Next.js chat app with a Vercel AI SDK v6 browser agent on Steel",
   "private": true,

@@ -17,12 +17,12 @@ const client = new Steel({
 });
 
 async function main() {
-  console.log("🚀 Steel + Playwright TypeScript Starter");
+  console.log("Steel + Playwright TypeScript Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"

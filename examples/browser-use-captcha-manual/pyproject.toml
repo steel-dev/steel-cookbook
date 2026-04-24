@@ -1,5 +1,5 @@
 [project]
-name = "steel-browser-use-manual-captcha-starter"
+name = "browser-use-captcha-manual"
 version = "0.1.0"
 description = "Steel + Browser-Use: Manual reCAPTCHA v2 solver"
 readme = "README.md"

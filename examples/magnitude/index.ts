@@ -1,6 +1,6 @@
 /*
  * AI-powered browser automation using Magnitude with Steel browsers.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-magnitude-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/magnitude
  */
 
 import * as dotenv from "dotenv";
@@ -21,12 +21,12 @@ const client = new Steel({
 });
 
 async function main() {
-  console.log("🚀 Steel + Magnitude Node Starter");
+  console.log("Steel + Magnitude Node Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
@@ -36,7 +36,7 @@ async function main() {
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
+      "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key"
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");

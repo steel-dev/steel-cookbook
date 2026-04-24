@@ -1,6 +1,6 @@
 /*
  * Build an AI browser agent with the OpenAI Agents SDK (TypeScript) and Steel.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-openai-agents-node-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/openai-agents-ts
  */
 
 import * as dotenv from "dotenv";
@@ -204,18 +204,18 @@ const agent = new Agent({
 });
 
 async function main() {
-  console.log("🚀 Steel + OpenAI Agents SDK (TypeScript) Starter");
+  console.log("Steel + OpenAI Agents SDK (TypeScript) Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  Set STEEL_API_KEY in .env (https://app.steel.dev/settings/api-keys)",
+      "Set STEEL_API_KEY in .env (https://app.steel.dev/settings/api-keys)",
     );
     throw new Error("Set STEEL_API_KEY");
   }
   if (OPENAI_API_KEY === "your-openai-api-key-here") {
     console.warn(
-      "⚠️  Set OPENAI_API_KEY in .env (https://platform.openai.com/)",
+      "Set OPENAI_API_KEY in .env (https://platform.openai.com/)",
     );
     throw new Error("Set OPENAI_API_KEY");
   }

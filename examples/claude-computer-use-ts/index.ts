@@ -421,7 +421,7 @@ class Agent {
         const toolName = block.name;
         const toolInput = block.input as any;
 
-        console.log(`🔧 ${toolName}(${JSON.stringify(toolInput)})`);
+        console.log(`${toolName}(${JSON.stringify(toolInput)})`);
 
         if (toolName === "computer") {
           const action = toolInput.action;
@@ -450,7 +450,7 @@ class Agent {
               ],
             });
           } catch (error) {
-            console.log(`❌ Error executing ${action}: ${error}`);
+            console.log(`Error executing ${action}: ${error}`);
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
@@ -491,7 +491,7 @@ class Agent {
     let iterations = 0;
     let lastAssistantMessages: string[] = [];
 
-    console.log(`🎯 Executing task: ${task}`);
+    console.log(`Executing task: ${task}`);
     console.log("=".repeat(60));
 
     const detectRepetition = (newMessage: string): boolean => {
@@ -527,7 +527,7 @@ class Agent {
           const content = extractText(lastMessage.content);
           if (content) {
             if (detectRepetition(content)) {
-              console.log("🔄 Repetition detected - stopping execution");
+              console.log("Repetition detected - stopping execution");
               finalText = content;
               break;
             }
@@ -551,19 +551,19 @@ class Agent {
         const { text, hasActions } = await this.processResponse(response);
 
         if (!hasActions) {
-          console.log("✅ Task complete - no further actions requested");
+          console.log("Task complete - no further actions requested");
           finalText = text;
           break;
         }
       } catch (error) {
-        console.error(`❌ Error during task execution: ${error}`);
+        console.error(`Error during task execution: ${error}`);
         throw error;
       }
     }
 
     if (iterations >= maxIterations) {
       console.warn(
-        `⚠️  Task execution stopped after ${maxIterations} iterations`,
+        `Task execution stopped after ${maxIterations} iterations`,
       );
     }
 
@@ -572,12 +572,12 @@ class Agent {
 }
 
 async function main(): Promise<void> {
-  console.log("🚀 Steel + Claude Computer Use Assistant");
+  console.log("Steel + Claude Computer Use Assistant");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",
@@ -587,7 +587,7 @@ async function main(): Promise<void> {
 
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
+      "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");
@@ -599,7 +599,7 @@ async function main(): Promise<void> {
 
   try {
     await agent.initialize();
-    console.log("✅ Steel session started!");
+    console.log("Steel session started!");
 
     const startTime = Date.now();
 
@@ -609,18 +609,18 @@ async function main(): Promise<void> {
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
       console.log("\n" + "=".repeat(60));
-      console.log("🎉 TASK EXECUTION COMPLETED");
+      console.log("TASK EXECUTION COMPLETED");
       console.log("=".repeat(60));
       console.log(`⏱️  Duration: ${duration} seconds`);
-      console.log(`🎯 Task: ${TASK}`);
-      console.log(`📋 Result:\n${result}`);
+      console.log(`Task: ${TASK}`);
+      console.log(`Result:\n${result}`);
       console.log("=".repeat(60));
     } catch (error) {
-      console.error(`❌ Task execution failed: ${error}`);
+      console.error(`Task execution failed: ${error}`);
       throw new Error("Task execution failed");
     }
   } catch (error) {
-    console.log(`❌ Failed to start Steel session: ${error}`);
+    console.log(`Failed to start Steel session: ${error}`);
     console.log("Please check your STEEL_API_KEY and internet connection.");
     throw new Error("Failed to start Steel session");
   } finally {

@@ -1,6 +1,6 @@
 /*
  * Build an AI browser agent with Vercel AI SDK v6 (ToolLoopAgent) and Steel.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-ai-sdk-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/vercel-ai-sdk-ts
  */
 
 import * as dotenv from "dotenv";
@@ -227,12 +227,12 @@ const researchAgent = new ToolLoopAgent({
 });
 
 async function main() {
-  console.log("🚀 Steel + AI SDK v6 (ToolLoopAgent) Starter");
+  console.log("Steel + AI SDK v6 (ToolLoopAgent) Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",
@@ -241,7 +241,7 @@ async function main() {
   }
   if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
+      "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
     );
     console.warn("   Get your API key at: https://console.anthropic.com/");
     throw new Error("Set ANTHROPIC_API_KEY");

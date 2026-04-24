@@ -1,6 +1,6 @@
 /*
  * Demonstrating how to use Profiles across Steel sessions with a Shopping Cart Demo.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-profiles-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/profiles
  */
 
 import { chromium } from "playwright";
@@ -23,13 +23,13 @@ const client = new Steel({
 });
 
 async function main() {
-  console.log("🚀 Steel Profiles Demo");
+  console.log("Steel Profiles Demo");
   console.log("=".repeat(60));
 
   // Validate API key
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys",

@@ -1,6 +1,6 @@
 /*
  * Web automation using Puppeteer with Steel's cloud browsers.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-puppeteer-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/puppeteer-ts
  */
 
 import puppeteer from "puppeteer-core";
@@ -16,12 +16,12 @@ const client = new Steel({
 });
 
 async function main() {
-  console.log("🚀 Steel + Puppeteer TypeScript Starter");
+  console.log("Steel + Puppeteer TypeScript Starter");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"

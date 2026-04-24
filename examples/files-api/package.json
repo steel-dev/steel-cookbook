@@ -1,5 +1,5 @@
 {
-  "name": "steel-files-api-starter",
+  "name": "files-api",
   "version": "1.0.0",
   "description": "A starter project with Steel files API on Node.js & TypeScript",
   "main": "index.ts",

@@ -1,89 +1,65 @@
-# Steel + Puppeteer Starter
+# Puppeteer Starter (TypeScript)
 
-This template shows you how to use Steel with Puppeteer to run browser automations in the cloud. It includes session management, error handling, and a basic example you can customize.
+Puppeteer ships a `connect()` call that attaches to any Chrome exposing a DevTools websocket. Steel sessions expose one. Point Puppeteer at it and the rest of the script is plain Puppeteer: `page.goto`, `page.evaluate`, `page.waitForSelector`, the whole surface area. Stealth, proxies, and the live session viewer come from Steel without extra wiring.
 
-## Installation
+```typescript
+session = await client.sessions.create();
 
-Clone this repository, navigate to the `examples/steel-puppeteer-starter`, and install dependencies:
+browser = await puppeteer.connect({
+  browserWSEndpoint: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+});
+
+const page = await browser.newPage();
+```
+
+Two notes on the shape here. First, the package is `puppeteer-core`, not `puppeteer`. There's no Chromium to download because the browser lives on Steel. Second, `browser.newPage()` opens a fresh tab in the Steel session; the session viewer starts blank until you navigate.
+
+## Run it
 
 ```bash
-git clone https://github.com/steel-dev/steel-cookbook
-cd steel-cookbook/examples/steel-puppeteer-starter
+cd examples/puppeteer-ts
+cp .env.example .env          # set STEEL_API_KEY
 npm install
-```
-
-## Quick start
-
-The example script in `index.js` shows you how to:
-
-- Create and manage a Steel browser session
-- Connect Puppeteer to the session
-- Navigate to a website (Hacker News in this example)
-- Extract data from the page (top 5 stories)
-- Handle errors and cleanup properly
-- View your live session in Steel's session viewer
-
-To run it:
-
-1. Create a `.env` file in the `examples/steel-puppeteer-starter` directory:
-
-```bash
-STEEL_API_KEY=your_api_key_here
-```
-
-2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
-
-3. From the same directory, run the command:
-
-```bash
 npm start
 ```
 
-## Writing your automation
+Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the browser run live.
 
-Find this section in `index.ts`:
+Your output varies. Structure looks like this:
 
-```typescript
-// ============================================================
-// Your Automations Go Here!
-// ============================================================
+```text
+Creating Steel session...
+Steel Session created!
+View session at https://app.steel.dev/sessions/ab12cd34…
 
-// Example automation (you can delete this)
-await page.goto("https://news.ycombinator.com");
-// ... rest of example code
+Connected to browser via Puppeteer
+Navigating to Hacker News...
+
+Top 5 Hacker News Stories:
+
+1. Claude 4.7 Opus released today
+   Link: https://news.ycombinator.com/item?id=43218921
+   Points: 892
+
+2. Show HN: A browser extension for reading on slow connections
+   Link: https://github.com/user/project
+   Points: 401
+
+…
+
+Releasing session...
+Session released
+Done!
 ```
 
-You can replace the code here with whatever automation scripts you want to run.
+A run costs a few cents of browser time. Steel bills per session-minute, so the `finally` block that calls `client.sessions.release()` isn't optional. Forgetting it keeps the browser running until the default 5-minute timeout.
 
-## Configuration
+## Make it yours
 
-The template includes common Steel configurations you can enable:
+- **Swap the target.** Replace the `page.goto` URL and the `page.evaluate` body in `main()`. Session setup, connect, and cleanup stay the same.
+- **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `sessionTimeout` in the `sessions.create()` call for sites with anti-bot.
+- **Persist login.** Reuse cookies and local storage across runs via [credentials](../credentials).
 
-```typescript
-const session = await client.sessions.create({
-  useProxy: true, // Use Steel's proxy network
-  solveCaptcha: true, // Enable CAPTCHA solving
-  sessionTimeout: 1800000, // 30 minute timeout (default: 5 mins)
-  userAgent: "custom-ua", // Custom User-Agent
-});
-```
+## Related
 
-## Error handling
-
-The template includes error handling and cleanup:
-
-```typescript
-try {
-  // Your automation code
-} finally {
-  // Cleanup runs even if there's an error
-  if (browser) await browser.close();
-  if (session) await client.sessions.release(session.id);
-}
-```
-
-## Support
-
-- [Steel Documentation](https://docs.steel.dev)
-- [API Reference](https://docs.steel.dev/api-reference)
-- [Discord Community](https://discord.gg/steel-dev)
+[Puppeteer docs](https://pptr.dev)

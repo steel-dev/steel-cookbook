@@ -1,5 +1,5 @@
 [project]
-name = "steel-stagehand-python-starter"
+name = "stagehand-py"
 version = "0.1.0"
 description = "AI-powered browser automation using Stagehand with Steel browsers"
 readme = "README.md"

@@ -1,6 +1,6 @@
 """
 Web automation using Playwright with Steel's cloud browsers.
-https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-playwright-python-starter
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/playwright-py
 """
 
 import os
@@ -22,11 +22,11 @@ client = Steel(
 )
 
 def main():
-    print("🚀 Steel + Playwright Python Starter")
+    print("Steel + Playwright Python Starter")
     print("=" * 60)
     
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print("WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
     session = None

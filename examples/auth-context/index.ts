@@ -1,6 +1,6 @@
 /*
  * Demonstrating how to persist authentication state across Steel sessions.
- * https://github.com/steel-dev/steel-cookbook/tree/main/examples/steel-auth-context-starter
+ * https://github.com/steel-dev/steel-cookbook/tree/main/examples/auth-context
  */
 
 import { chromium, Page } from "playwright";
@@ -31,12 +31,12 @@ async function verifyAuth(page: Page): Promise<boolean> {
 }
 
 async function main() {
-  console.log("🚀 Steel + Reuse Auth Context Example");
+  console.log("Steel + Reuse Auth Context Example");
   console.log("=".repeat(60));
 
   if (STEEL_API_KEY === "your-steel-api-key-here") {
     console.warn(
-      "⚠️  WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
     );
     console.warn(
       "   Get your API key at: https://app.steel.dev/settings/api-keys"
@@ -65,7 +65,7 @@ async function main() {
     await login(page);
 
     if (await verifyAuth(page)) {
-      console.log("✓ Initial authentication successful");
+      console.log("Initial authentication successful");
     }
 
     // Step 2: Capture and transfer authentication
@@ -91,7 +91,7 @@ async function main() {
     // Verify authentication transfer
     const newPage = await browser.contexts()[0].pages()[0];
     if (await verifyAuth(newPage)) {
-      console.log("\x1b[32m✓ Authentication successfully transferred!\x1b[0m");
+      console.log("\x1b[32mAuthentication successfully transferred!\x1b[0m");
     }
   } catch (error) {
     console.error("Error:", error);

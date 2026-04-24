@@ -1,21 +1,6 @@
 """
-Steel + Browser-Use: Manual reCAPTCHA v2 Solver
-
-This example demonstrates how to manually solve reCAPTCHA v2 using Steel's CAPTCHA
-solving capabilities with the browser-use framework.
-
-The agent opens multiple tabs with different CAPTCHA challenges (Google reCAPTCHA v2
-and Google reCAPTCHA v3), but only solves the reCAPTCHA v2 — filtering by the `type`
-field from Steel's CAPTCHA status API.
-
-Unlike auto-solving, this approach:
-  1. Creates a Steel session with solve_captcha=True but auto_captcha_solving disabled
-  2. Opens multiple CAPTCHA demo pages in separate tabs via browser-use agent
-  3. Polls the CAPTCHA status endpoint to detect tasks across all pages
-  4. Manually triggers solving only for tasks with type="recaptchaV2"
-  5. Waits for the solve to complete, then submits the reCAPTCHA v2 form
-
-Based on: steel-recaptcha-proxy-tester/solve-recaptcha-demo.ts
+Browser Use agent that manually solves reCAPTCHA v2 via Steel's CAPTCHA status API.
+https://github.com/steel-dev/steel-cookbook/tree/main/examples/browser-use-captcha-manual
 """
 
 import os
@@ -79,8 +64,8 @@ def _log_task_status(task: Dict[str, Any], page_url: str) -> None:
     task_id = task.get("id", "unknown")
     duration = task.get("totalDuration")
 
-    print(f"\n   📄 Page: {page_url}")
-    print(f"   📊 Task status: {status}")
+    print(f"\n   Page: {page_url}")
+    print(f"   Task status: {status}")
     print(f"   🆔 Task ID: {task_id}")
     if duration:
         print(f"   ⏱️  Duration: {duration}ms")
@@ -102,7 +87,7 @@ async def solve_recaptcha_v2_manual() -> str:
     """
     session_id = _session_state.get("session_id")
     if not session_id:
-        return "❌ No active session. Cannot poll CAPTCHA status."
+        return "No active session. Cannot poll CAPTCHA status."
 
     solved_tasks: Set[str] = set()
     solve_requested: Set[str] = set()
@@ -110,7 +95,7 @@ async def solve_recaptcha_v2_manual() -> str:
     detected_recaptcha_v2: Set[str] = set()
     start = time.monotonic()
 
-    print("\n🤖 Starting manual reCAPTCHA v2 solve polling...")
+    print("\nStarting manual reCAPTCHA v2 solve polling...")
     print(
         f"   Max attempts: {MAX_POLL_ATTEMPTS} | Interval: {POLL_INTERVAL_SECS}s\n")
 
@@ -125,13 +110,13 @@ async def solve_recaptcha_v2_manual() -> str:
                 for s in status_response
             ]
         except Exception as exc:
-            print(f"   ⚠️  Failed to fetch status (attempt {attempt}): {exc}")
+            print(f"   Failed to fetch status (attempt {attempt}): {exc}")
             continue
 
-        print(f"🔄 Poll attempt {attempt}/{MAX_POLL_ATTEMPTS}")
+        print(f"Poll attempt {attempt}/{MAX_POLL_ATTEMPTS}")
 
         if not states:
-            print("   ℹ️  No CAPTCHA status yet...")
+            print("   No CAPTCHA status yet...")
             continue
 
         for page_data in states:
@@ -158,40 +143,40 @@ async def solve_recaptcha_v2_manual() -> str:
                         # Track this reCAPTCHA v2 task
                         detected_recaptcha_v2.add(task_id)
                         print(
-                            f"   🎯 reCAPTCHA v2 detected (type={task_type})! Requesting solve...")
+                            f"   reCAPTCHA v2 detected (type={task_type})! Requesting solve...")
                         try:
                             solve_resp = client.sessions.captchas.solve(
                                 session_id, task_id=task_id
                             )
                             solve_requested.add(task_id)
-                            print(f"   ✅ Solve requested: {solve_resp}")
+                            print(f"   Solve requested: {solve_resp}")
                         except Exception as exc:
-                            print(f"   ❌ Solve request failed: {exc}")
+                            print(f"   Solve request failed: {exc}")
                     else:
                         print(
-                            f"   ℹ️  Non-reCAPTCHA v2 task (type={task_type}, id={task_id}), skipping."
+                            f"   Non-reCAPTCHA v2 task (type={task_type}, id={task_id}), skipping."
                         )
 
                 # Solving / Validating
                 elif task_status == "solving":
                     if task.get("type") == SOLVE_CAPTCHA_TYPE:
                         detected_recaptcha_v2.add(task_id)
-                    print("   🧩 CAPTCHA is being solved...")
+                    print("   CAPTCHA is being solved...")
                 elif task_status == "validating":
                     if task.get("type") == SOLVE_CAPTCHA_TYPE:
                         detected_recaptcha_v2.add(task_id)
-                    print("   🔄 CAPTCHA is being validated...")
+                    print("   CAPTCHA is being validated...")
 
                 # Solved
                 elif task_status == "solved":
                     if task.get("type") == SOLVE_CAPTCHA_TYPE and task_id not in solved_tasks:
                         solved_tasks.add(task_id)
-                        print("   🎉 reCAPTCHA v2 marked as solved!")
+                        print("   reCAPTCHA v2 marked as solved!")
 
                 # Failed
                 elif task_status in ("failed_to_solve", "error", "failed_to_detect"):
                     error_msg = task.get("error", "unknown error")
-                    print(f"   ❌ Solve failed: {error_msg}")
+                    print(f"   Solve failed: {error_msg}")
 
         # Check completion: look for pages where we requested reCAPTCHA v2 solves
         # and verify that isSolvingCaptcha is False for those specific pages.
@@ -226,7 +211,7 @@ async def solve_recaptcha_v2_manual() -> str:
             if recaptcha_pages_done and all_pages_checked:
                 elapsed = time.monotonic() - start
                 print(
-                    f"\n✅ reCAPTCHA v2 solved! ({len(detected_recaptcha_v2)} task(s) in {elapsed:.1f}s)")
+                    f"\nreCAPTCHA v2 solved! ({len(detected_recaptcha_v2)} task(s) in {elapsed:.1f}s)")
                 return (
                     f"reCAPTCHA v2 solved successfully! "
                     f"{len(detected_recaptcha_v2)} task(s) solved in {elapsed:.1f}s. "
@@ -263,24 +248,24 @@ TASK = f"""
 
 
 async def main() -> None:
-    print("🚀 Steel + Browser-Use: Manual reCAPTCHA v2 Solver")
+    print("Steel + Browser-Use: Manual reCAPTCHA v2 Solver")
     print("=" * 60)
 
     # ── Validate keys ────────────────────────────────────────────────────
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("❌ ERROR: Please set your STEEL_API_KEY in the .env file")
+        print("ERROR: Please set your STEEL_API_KEY in the .env file")
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if OPENAI_API_KEY == "your-openai-api-key-here":
-        print("❌ ERROR: Please set your OPENAI_API_KEY in the .env file")
+        print("ERROR: Please set your OPENAI_API_KEY in the .env file")
         print("   Get your API key at: https://platform.openai.com/api-keys")
         sys.exit(1)
 
     session = None
     try:
         # Create Steel session
-        print("\n🔧 Creating Steel session with CAPTCHA solving enabled...")
+        print("\nCreating Steel session with CAPTCHA solving enabled...")
         session = client.sessions.create(
             timeout=300000,  # 5 minutes timeout for the session
             solve_captcha=True,
@@ -291,7 +276,7 @@ async def main() -> None:
 
         _session_state["session_id"] = session.id
 
-        print(f"✅ Session created!")
+        print(f"Session created!")
         print(f"   Session ID: {session.id}")
         print(f"   Viewer:     {session.session_viewer_url}\n")
 
@@ -311,7 +296,7 @@ async def main() -> None:
         )
 
         print(
-            f"🎯 Task: Open {len(CAPTCHA_PAGES)} CAPTCHA pages, solve reCAPTCHA v2 only")
+            f"Task: Open {len(CAPTCHA_PAGES)} CAPTCHA pages, solve reCAPTCHA v2 only")
         print("=" * 60)
 
         start_time = time.time()
@@ -322,25 +307,25 @@ async def main() -> None:
         duration = time.time() - start_time
 
         print("\n" + "=" * 60)
-        print("🎉 TASK EXECUTION COMPLETED")
+        print("TASK EXECUTION COMPLETED")
         print("=" * 60)
         print(f"⏱️  Duration: {duration:.1f}s")
         if result:
-            print(f"📋 Result:\n{result}")
+            print(f"Result:\n{result}")
         print("=" * 60)
 
     except Exception as exc:
-        print(f"\n❌ Error: {exc}")
+        print(f"\nError: {exc}")
         raise
     finally:
         if session:
-            print("\n🧹 Releasing Steel session...")
+            print("\nReleasing Steel session...")
             try:
                 client.sessions.release(session.id)
-                print("✅ Session released successfully.")
+                print("Session released successfully.")
                 print(f"   Replay: {session.session_viewer_url}")
             except Exception as exc:
-                print(f"⚠️  Failed to release session: {exc}")
+                print(f"Failed to release session: {exc}")
         print("Done!")
 
 
