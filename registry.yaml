@@ -1,6 +1,6 @@
 # Steel Cookbook Registry
 #
-# Each entry: { title, slug, path, description, date, authors, language, topics }
+# Each entry: { title, slug, path, description, authors, language, topics }
 #
 # - slug is the concept key and the docs URL path. Multiple entries may share
 #   one slug (one per language variant); uniqueness is enforced on path.
@@ -11,12 +11,14 @@
 #   Steel APIs; other topics (Playwright, Browser Use, Authentication, Typed
 #   output, Captchas, Mobile, Next.js) appear on cards and drive
 #   /cookbook/topics/<topic> views. See CONTRIBUTING.md for the curated list.
+# - "Last updated" dates come from git (last commit touching the recipe
+#   folder), not this file, so adding a new recipe doesn't need a date
+#   field to stay fresh.
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
   path: examples/playwright-ts
   description: Use Steel with Playwright in TypeScript for cloud browser automation.
-  date: 2024-11-19
   authors: [hussufo, junhsss]
   language: TypeScript
   topics: [Browser automation, Playwright]
@@ -25,7 +27,6 @@
   slug: playwright
   path: examples/playwright-py
   description: Use Steel with Playwright in Python for cloud browser automation.
-  date: 2024-11-19
   authors: [hussufo, junhsss]
   language: Python
   topics: [Browser automation, Playwright]
@@ -34,7 +35,6 @@
   slug: puppeteer
   path: examples/puppeteer-ts
   description: Use Steel with Puppeteer in TypeScript for cloud browser automation.
-  date: 2024-11-19
   authors: [hussufo, junhsss]
   language: TypeScript
   topics: [Browser automation]
@@ -43,7 +43,6 @@
   slug: selenium
   path: examples/selenium
   description: Use Steel with Selenium in Python for cloud browser automation.
-  date: 2024-11-19
   authors: [hussufo, junhsss]
   language: Python
   topics: [Browser automation]
@@ -52,7 +51,6 @@
   slug: stagehand
   path: examples/stagehand-ts
   description: Use Steel with Stagehand for natural-language-driven AI browser automation.
-  date: 2025-07-16
   authors: [junhsss]
   language: TypeScript
   topics: [Browser automation]
@@ -61,7 +59,6 @@
   slug: stagehand
   path: examples/stagehand-py
   description: Use Steel with Stagehand for natural-language-driven AI browser automation.
-  date: 2025-07-16
   authors: [junhsss]
   language: Python
   topics: [Browser automation]
@@ -70,7 +67,6 @@
   slug: browser-use
   path: examples/browser-use
   description: Integrate Steel with the browser-use framework for AI-driven web automation.
-  date: 2025-02-20
   authors: [hussufo, jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use]
@@ -79,7 +75,6 @@
   slug: browser-use-captcha-auto
   path: examples/browser-use-captcha-auto
   description: Build an AI agent with browser-use and Steel that solves CAPTCHAs automatically.
-  date: 2025-11-13
   authors: [jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use, Captchas]
@@ -88,7 +83,6 @@
   slug: browser-use-captcha-manual
   path: examples/browser-use-captcha-manual
   description: Manually solve reCAPTCHA v2 using Steel's CAPTCHA API with the browser-use framework.
-  date: 2026-02-10
   authors: [jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use, Captchas]
@@ -97,7 +91,6 @@
   slug: claude-computer-use
   path: examples/claude-computer-use-ts
   description: Connect Claude to a Steel browser session for autonomous web interactions.
-  date: 2025-07-16
   authors: [junhsss]
   language: TypeScript
   topics: [Computer use]
@@ -106,7 +99,6 @@
   slug: claude-computer-use
   path: examples/claude-computer-use-py
   description: Connect Claude to a Steel browser session for autonomous web interactions.
-  date: 2025-07-16
   authors: [hussufo, junhsss]
   language: Python
   topics: [Computer use]
@@ -115,7 +107,6 @@
   slug: claude-computer-use-mobile
   path: examples/claude-computer-use-mobile
   description: Claude Computer Use with Steel for autonomous task execution in mobile browser environments.
-  date: 2025-10-14
   authors: [jagadeshjai, junhsss]
   language: TypeScript
   topics: [Computer use, Mobile]
@@ -124,7 +115,6 @@
   slug: openai-computer-use
   path: examples/openai-computer-use-ts
   description: Connect OpenAI's Computer Use Assistant to a Steel browser session for autonomous web interactions.
-  date: 2025-03-19
   authors: [junhsss, nibzard]
   language: TypeScript
   topics: [Computer use]
@@ -133,7 +123,6 @@
   slug: openai-computer-use
   path: examples/openai-computer-use-py
   description: Connect OpenAI's Computer Use Assistant to a Steel browser session for autonomous web interactions.
-  date: 2025-03-19
   authors: [junhsss, nibzard]
   language: Python
   topics: [Computer use]
@@ -142,7 +131,6 @@
   slug: gemini-computer-use
   path: examples/gemini-computer-use-ts
   description: Connect Google's Gemini Computer Use to a Steel browser session for autonomous web interactions.
-  date: 2025-11-25
   authors: [junhsss]
   language: TypeScript
   topics: [Computer use]
@@ -151,7 +139,6 @@
   slug: gemini-computer-use
   path: examples/gemini-computer-use-py
   description: Connect Google's Gemini Computer Use to a Steel browser session for autonomous web interactions.
-  date: 2025-11-25
   authors: [junhsss]
   language: Python
   topics: [Computer use]
@@ -160,7 +147,6 @@
   slug: openai-agents
   path: examples/openai-agents-ts
   description: Use Steel with the OpenAI Agents SDK for TypeScript to build typed, tool-using browser agents.
-  date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output]
@@ -169,7 +155,6 @@
   slug: openai-agents
   path: examples/openai-agents-py
   description: Use Steel with the OpenAI Agents SDK for Python to build typed, tool-using browser agents.
-  date: 2026-04-23
   authors: [junhsss]
   language: Python
   topics: [Agents, Typed output]
@@ -178,7 +163,6 @@
   slug: vercel-ai-sdk
   path: examples/vercel-ai-sdk-ts
   description: Use Steel with the Vercel AI SDK v6 ToolLoopAgent for typed, tool-using browser agents.
-  date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output]
@@ -187,7 +171,6 @@
   slug: vercel-ai-sdk-nextjs
   path: examples/vercel-ai-sdk-nextjs
   description: A Next.js App Router chat app where a Vercel AI SDK agent drives a Steel cloud browser with embedded Live View.
-  date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output, Next.js]
@@ -196,7 +179,6 @@
   slug: crewai
   path: examples/crewai
   description: Integrate Steel with the CrewAI multi-agent framework.
-  date: 2025-09-05
   authors: [junhsss]
   language: Python
   topics: [Agents]
@@ -205,7 +187,6 @@
   slug: agentkit
   path: examples/agentkit
   description: Integrate Steel with Inngest's AgentKit framework.
-  date: 2025-09-05
   authors: [junhsss]
   language: TypeScript
   topics: [Agents]
@@ -214,7 +195,6 @@
   slug: agno
   path: examples/agno
   description: Integrate Steel with the Agno agent framework.
-  date: 2025-09-05
   authors: [junhsss]
   language: Python
   topics: [Agents]
@@ -223,7 +203,6 @@
   slug: notte
   path: examples/notte
   description: Control browsers with AI using Steel's infrastructure and Notte's reasoning engine.
-  date: 2025-08-26
   authors: [junhsss]
   language: Python
   topics: [Agents]
@@ -232,7 +211,6 @@
   slug: magnitude
   path: examples/magnitude
   description: Use Steel with Magnitude for AI-powered browser automation.
-  date: 2025-07-30
   authors: [aspectrr, junhsss]
   language: TypeScript
   topics: [Agents]
@@ -241,7 +219,6 @@
   slug: auth-context
   path: examples/auth-context
   description: Maintain authenticated sessions across Steel browser instances by capturing and reusing cookies and local storage.
-  date: 2025-07-30
   authors: [junhsss]
   language: TypeScript
   topics: [Steel APIs, Authentication]
@@ -250,7 +227,6 @@
   slug: credentials
   path: examples/credentials
   description: Use the Steel Credentials API with Playwright to automate flows with stored credentials.
-  date: 2025-05-26
   authors: [danew, junhsss]
   language: TypeScript
   topics: [Steel APIs, Authentication, Playwright]
@@ -259,7 +235,6 @@
   slug: profiles
   path: examples/profiles
   description: Maintain authenticated sessions across Steel browser instances using profiles.
-  date: 2025-10-13
   authors: [aspectrr, jagadeshjai]
   language: TypeScript
   topics: [Steel APIs, Authentication]
@@ -268,7 +243,6 @@
   slug: extensions
   path: examples/extensions
   description: Use the Steel Extensions API with Playwright to upload and run browser extensions.
-  date: 2025-08-31
   authors: [aspectrr, junhsss]
   language: TypeScript
   topics: [Steel APIs, Playwright]
@@ -277,7 +251,6 @@
   slug: files
   path: examples/files-api
   description: Use the Steel Files API with Playwright to automate file uploads and downloads in the cloud.
-  date: 2025-04-09
   authors: [junhsss]
   language: TypeScript
   topics: [Steel APIs, Playwright]
