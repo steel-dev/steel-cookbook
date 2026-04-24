@@ -11,6 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["*.ts", "../steel-linkedin-start/index.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "dist"]
 }
