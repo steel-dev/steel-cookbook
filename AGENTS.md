@@ -15,7 +15,7 @@ and a `README.md`.
 Two metadata files at the repo root describe the collection:
 
 - `registry.yaml` — one entry per recipe: title, slug, path,
-  description, date, authors (handles), tags.
+  description, date, authors (handles), topics.
 - `authors.yaml` — map from handle to `{ name, website, avatar }`.
 
 ## Voice
@@ -56,7 +56,7 @@ structure; pick the shape that fits the recipe you're writing.
    `.env.example`, `LICENSE` (copy root `LICENSE` verbatim), and
    `README.md`.
 2. Add an entry to `registry.yaml` with slug, path, description, date,
-   authors, and tags.
+   authors, and topics.
 3. If you are a new author, add yourself to `authors.yaml` before
    referencing the handle.
 

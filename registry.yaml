@@ -1,14 +1,16 @@
 # Steel Cookbook Registry
 #
-# Each entry: { title, slug, path, description, date, authors, language, tags }
+# Each entry: { title, slug, path, description, date, authors, language, topics }
 #
 # - slug is the concept key and the docs URL path. Multiple entries may share
 #   one slug (one per language variant); uniqueness is enforced on path.
 # - title is a short sentence that describes what the recipe teaches.
 # - language is the code language of this variant: TypeScript | Python.
-# - tags are concept-level topics (Browser automation, Agents, Computer use,
-#   Captchas, Steel APIs, Mobile, Next.js). They drive the /cookbook/topics
-#   pages. See CONTRIBUTING.md for the curated tag list.
+# - topics are concept-level labels for browse/filter. 1~3 per entry. The
+#   curated sidebar topics are Browser automation / Agents / Computer use /
+#   Steel APIs; other topics (Playwright, Browser Use, Authentication, Typed
+#   output, Captchas, Mobile, Next.js) appear on cards and drive
+#   /cookbook/topics/<topic> views. See CONTRIBUTING.md for the curated list.
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
@@ -17,7 +19,7 @@
   date: 2024-11-19
   authors: [hussufo, junhsss]
   language: TypeScript
-  tags: [Browser automation]
+  topics: [Browser automation, Playwright]
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
@@ -26,7 +28,7 @@
   date: 2024-11-19
   authors: [hussufo, junhsss]
   language: Python
-  tags: [Browser automation]
+  topics: [Browser automation, Playwright]
 
 - title: Automate a cloud browser with Puppeteer
   slug: puppeteer
@@ -35,7 +37,7 @@
   date: 2024-11-19
   authors: [hussufo, junhsss]
   language: TypeScript
-  tags: [Browser automation]
+  topics: [Browser automation]
 
 - title: Automate a cloud browser with Selenium
   slug: selenium
@@ -44,7 +46,7 @@
   date: 2024-11-19
   authors: [hussufo, junhsss]
   language: Python
-  tags: [Browser automation]
+  topics: [Browser automation]
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -53,7 +55,7 @@
   date: 2025-07-16
   authors: [junhsss]
   language: TypeScript
-  tags: [Browser automation]
+  topics: [Browser automation]
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -62,7 +64,7 @@
   date: 2025-07-16
   authors: [junhsss]
   language: Python
-  tags: [Browser automation]
+  topics: [Browser automation]
 
 - title: Build a browser agent with Browser Use
   slug: browser-use
@@ -71,7 +73,7 @@
   date: 2025-02-20
   authors: [hussufo, jagadeshjai, junhsss]
   language: Python
-  tags: [Agents]
+  topics: [Agents, Browser Use]
 
 - title: Solve CAPTCHAs automatically in a Browser Use agent
   slug: browser-use-captcha-auto
@@ -80,7 +82,7 @@
   date: 2025-11-13
   authors: [jagadeshjai, junhsss]
   language: Python
-  tags: [Agents, Captchas]
+  topics: [Agents, Browser Use, Captchas]
 
 - title: Solve reCAPTCHA v2 manually with Browser Use
   slug: browser-use-captcha-manual
@@ -89,7 +91,7 @@
   date: 2026-02-10
   authors: [jagadeshjai, junhsss]
   language: Python
-  tags: [Agents, Captchas]
+  topics: [Agents, Browser Use, Captchas]
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -98,7 +100,7 @@
   date: 2025-07-16
   authors: [junhsss]
   language: TypeScript
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -107,7 +109,7 @@
   date: 2025-07-16
   authors: [hussufo, junhsss]
   language: Python
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Drive a mobile browser with Claude Computer Use
   slug: claude-computer-use-mobile
@@ -116,7 +118,7 @@
   date: 2025-10-14
   authors: [jagadeshjai, junhsss]
   language: TypeScript
-  tags: [Computer use, Mobile]
+  topics: [Computer use, Mobile]
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -125,7 +127,7 @@
   date: 2025-03-19
   authors: [junhsss, nibzard]
   language: TypeScript
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -134,7 +136,7 @@
   date: 2025-03-19
   authors: [junhsss, nibzard]
   language: Python
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -143,7 +145,7 @@
   date: 2025-11-25
   authors: [junhsss]
   language: TypeScript
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -152,7 +154,7 @@
   date: 2025-11-25
   authors: [junhsss]
   language: Python
-  tags: [Computer use]
+  topics: [Computer use]
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -161,7 +163,7 @@
   date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
-  tags: [Agents]
+  topics: [Agents, Typed output]
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -170,7 +172,7 @@
   date: 2026-04-23
   authors: [junhsss]
   language: Python
-  tags: [Agents]
+  topics: [Agents, Typed output]
 
 - title: Build a typed browser agent with the Vercel AI SDK
   slug: vercel-ai-sdk
@@ -179,7 +181,7 @@
   date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
-  tags: [Agents]
+  topics: [Agents, Typed output]
 
 - title: Stream a browser agent into a Next.js chat app
   slug: vercel-ai-sdk-nextjs
@@ -188,7 +190,7 @@
   date: 2026-04-23
   authors: [junhsss]
   language: TypeScript
-  tags: [Agents, Next.js]
+  topics: [Agents, Typed output, Next.js]
 
 - title: Build a multi-agent browser workflow with CrewAI
   slug: crewai
@@ -197,7 +199,7 @@
   date: 2025-09-05
   authors: [junhsss]
   language: Python
-  tags: [Agents]
+  topics: [Agents]
 
 - title: Build a browser agent with Inngest AgentKit
   slug: agentkit
@@ -206,7 +208,7 @@
   date: 2025-09-05
   authors: [junhsss]
   language: TypeScript
-  tags: [Agents]
+  topics: [Agents]
 
 - title: Build a browser agent with Agno
   slug: agno
@@ -215,7 +217,7 @@
   date: 2025-09-05
   authors: [junhsss]
   language: Python
-  tags: [Agents]
+  topics: [Agents]
 
 - title: Control a browser with Notte's reasoning engine
   slug: notte
@@ -224,7 +226,7 @@
   date: 2025-08-26
   authors: [junhsss]
   language: Python
-  tags: [Agents]
+  topics: [Agents]
 
 - title: Build an AI browser agent with Magnitude
   slug: magnitude
@@ -233,7 +235,7 @@
   date: 2025-07-30
   authors: [aspectrr, junhsss]
   language: TypeScript
-  tags: [Agents]
+  topics: [Agents]
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
@@ -242,7 +244,7 @@
   date: 2025-07-30
   authors: [junhsss]
   language: TypeScript
-  tags: [Steel APIs]
+  topics: [Steel APIs, Authentication]
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -251,7 +253,7 @@
   date: 2025-05-26
   authors: [danew, junhsss]
   language: TypeScript
-  tags: [Steel APIs]
+  topics: [Steel APIs, Authentication, Playwright]
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -260,7 +262,7 @@
   date: 2025-10-13
   authors: [aspectrr, jagadeshjai]
   language: TypeScript
-  tags: [Steel APIs]
+  topics: [Steel APIs, Authentication]
 
 - title: Upload and run browser extensions
   slug: extensions
@@ -269,7 +271,7 @@
   date: 2025-08-31
   authors: [aspectrr, junhsss]
   language: TypeScript
-  tags: [Steel APIs]
+  topics: [Steel APIs, Playwright]
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -278,4 +280,4 @@
   date: 2025-04-09
   authors: [junhsss]
   language: TypeScript
-  tags: [Steel APIs]
+  topics: [Steel APIs, Playwright]

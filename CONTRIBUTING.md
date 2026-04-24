@@ -9,7 +9,7 @@ Most entries fall into two flavors:
 - **Minimal wiring** — the smallest working connection between Steel and a framework (Playwright, Stagehand, Browser Use, Claude Computer Use, ...). Answers _"does Steel work with X?"_
 - **Scenario** — projects that solve a concrete task (applying to jobs, monitoring prices, scraping leaderboards, ...). Answers _"how do I build Y?"_
 
-Both live in the same `examples/` folder and are distinguished by tags in `registry.yaml`, not by separate categories.
+Both live in the same `examples/` folder and are distinguished by topics in `registry.yaml`, not by separate categories.
 
 A good entry is:
 
