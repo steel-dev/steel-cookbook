@@ -67,7 +67,7 @@ The `finally` in `main` calls `agent.cleanup()`, which releases the Steel sessio
 
 ## Safety decisions
 
-Gemini doesn't return a separate safety-checks array. When an action looks sensitive, the model attaches a `safety_decision` object *inside* the function call's own `args`. The starter inspects it during dispatch:
+Gemini doesn't return a separate safety-checks array. When an action looks sensitive, the model attaches a `safety_decision` object _inside_ the function call's own `args`. The starter inspects it during dispatch:
 
 ```typescript
 const safetyDecision = actionArgs.safety_decision as
@@ -129,5 +129,3 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task. Cost i
 ## Related
 
 [Computer use docs](https://ai.google.dev/gemini-api/docs/computer-use) - [Python version](../gemini-computer-use-py) - [Anthropic equivalent](../claude-computer-use-ts) - [OpenAI equivalent](../openai-computer-use-ts)
-</content>
-</invoke>
