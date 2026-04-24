@@ -23,25 +23,47 @@ export async function POST(req: Request) {
 
   const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
 
-  // Per-request session state. Tools share this closure so every tool call
-  // in the same conversation turn sees the same Steel page.
-  let session: Awaited<ReturnType<typeof steel.sessions.create>> | null = null;
-  let browser: Browser | null = null;
-  let page: Page | null = null;
+  // Per-request session registry. Each openSession call adds an entry; every
+  // subsequent tool call routes by sessionId, so multiple browsers can run
+  // concurrently within a single turn.
+  type SessionEntry = {
+    session: Awaited<ReturnType<typeof steel.sessions.create>>;
+    browser: Browser;
+    page: Page;
+  };
+  const sessions = new Map<string, SessionEntry>();
+
+  const getSession = (sessionId: string): SessionEntry => {
+    const s = sessions.get(sessionId);
+    if (!s)
+      throw new Error(
+        `Unknown sessionId: ${sessionId}. Call openSession first.`
+      );
+    return s;
+  };
 
   const cleanup = async () => {
-    if (browser) await browser.close().catch(() => {});
-    if (session) await steel.sessions.release(session.id).catch(() => {});
+    await Promise.all(
+      Array.from(sessions.values()).map(async ({ browser, session }) => {
+        await browser.close().catch(() => {});
+        await steel.sessions.release(session.id).catch(() => {});
+      })
+    );
   };
 
   const result = streamText({
     model: anthropic("claude-haiku-4-5"),
     system: [
-      "You operate a Steel cloud browser via tools.",
-      "Workflow: (1) call openSession, (2) navigate to the target URL,",
-      "(3) call snapshot to see the page's text and links,",
-      "(4) only call extract when you need structured rows beyond what snapshot gives,",
+      "You operate Steel cloud browsers via tools.",
+      "Per-session workflow: (1) openSession (returns a sessionId),",
+      "(2) navigate({ sessionId, url }), (3) snapshot({ sessionId }),",
+      "(4) only call extract when you need structured rows beyond snapshot,",
       "(5) reply to the user in plain English.",
+      "For comparison or fan-out tasks (e.g. 'compare X across A/B/C',",
+      "'check N sites'), open multiple sessions in parallel by emitting",
+      "multiple openSession calls in the same step, then drive each session",
+      "concurrently with parallel navigate/snapshot calls keyed by its",
+      "sessionId. Cap at 4 parallel sessions.",
       "Prefer snapshot's links list over guessing selectors. Do not invent data.",
     ].join(" "),
     messages: await convertToModelMessages(messages),
@@ -49,15 +71,16 @@ export async function POST(req: Request) {
     tools: {
       openSession: tool({
         description:
-          "Open a Steel cloud browser session. Call this exactly once, before anything else.",
+          "Open a Steel cloud browser session and return its sessionId. For comparison or fan-out tasks, emit multiple openSession calls in the same step so sessions run in parallel (cap 4). Every subsequent tool call must carry the sessionId of the session it operates on.",
         inputSchema: z.object({}),
         execute: async () => {
-          session = await steel.sessions.create({});
-          browser = await chromium.connectOverCDP(
+          const session = await steel.sessions.create({});
+          const browser = await chromium.connectOverCDP(
             `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
           );
           const ctx = browser.contexts()[0];
-          page = ctx.pages()[0] ?? (await ctx.newPage());
+          const page = ctx.pages()[0] ?? (await ctx.newPage());
+          sessions.set(session.id, { session, browser, page });
           return {
             sessionId: session.id,
             liveViewUrl: session.sessionViewerUrl,
@@ -67,22 +90,26 @@ export async function POST(req: Request) {
       }),
 
       navigate: tool({
-        description: "Navigate the open session to a URL.",
-        inputSchema: z.object({ url: z.string().url() }),
-        execute: async ({ url }) => {
-          if (!page) throw new Error("openSession must be called first.");
+        description: "Navigate a session's browser to a URL.",
+        inputSchema: z.object({
+          sessionId: z.string(),
+          url: z.string().url(),
+        }),
+        execute: async ({ sessionId, url }) => {
+          const { page } = getSession(sessionId);
           await page.goto(url, {
             waitUntil: "domcontentloaded",
             timeout: 45_000,
           });
-          return { url: page.url(), title: await page.title() };
+          return { sessionId, url: page.url(), title: await page.title() };
         },
       }),
 
       snapshot: tool({
         description:
-          "Return a readable snapshot of the current page: title, URL, visible text (capped), and a list of links with their text and href. Call this BEFORE extract so you never have to guess CSS selectors.",
+          "Return a readable snapshot of a session's current page: title, URL, visible text (capped), and a list of links with their text and href. Call this BEFORE extract so you never have to guess CSS selectors.",
         inputSchema: z.object({
+          sessionId: z.string(),
           maxChars: z
             .number()
             .int()
@@ -91,9 +118,9 @@ export async function POST(req: Request) {
             .default(4_000),
           maxLinks: z.number().int().positive().max(200).default(50),
         }),
-        execute: async ({ maxChars, maxLinks }) => {
-          if (!page) throw new Error("openSession must be called first.");
-          return (await page.evaluate(
+        execute: async ({ sessionId, maxChars, maxLinks }) => {
+          const { page } = getSession(sessionId);
+          const result = (await page.evaluate(
             ({
               maxChars,
               maxLinks,
@@ -126,13 +153,15 @@ export async function POST(req: Request) {
             text: string;
             links: { text: string; href: string }[];
           };
+          return { sessionId, ...result };
         },
       }),
 
       extract: tool({
         description:
-          "Extract structured data from the current page using CSS selectors.",
+          "Extract structured data from a session's current page using CSS selectors.",
         inputSchema: z.object({
+          sessionId: z.string(),
           rowSelector: z.string(),
           fields: z
             .array(
@@ -146,8 +175,8 @@ export async function POST(req: Request) {
             .max(10),
           limit: z.number().int().positive().max(20).default(10),
         }),
-        execute: async ({ rowSelector, fields, limit }) => {
-          if (!page) throw new Error("openSession must be called first.");
+        execute: async ({ sessionId, rowSelector, fields, limit }) => {
+          const { page } = getSession(sessionId);
           // Batch the whole extraction inside one page.evaluate — serial
           // CDP calls (row.$, el.getAttribute, el.innerText) are the single
           // biggest source of latency on a cloud browser.
@@ -187,7 +216,7 @@ export async function POST(req: Request) {
             },
             { rowSelector, fields, limit }
           )) as Record<string, string>[];
-          return { count: items.length, items };
+          return { sessionId, count: items.length, items };
         },
       }),
 
@@ -196,20 +225,26 @@ export async function POST(req: Request) {
       // (not shown here) for this to actually run end-to-end.
       submitForm: tool({
         description:
-          "Submit a form on the current page. Requires user approval.",
+          "Submit a form on a session's current page. Requires user approval.",
         inputSchema: z.object({
+          sessionId: z.string(),
           reason: z.string().describe("Why this submission is safe."),
         }),
         needsApproval: true,
-        execute: async ({ reason }) => {
+        execute: async ({ sessionId, reason }) => {
           // This body only runs if the user approves.
-          return { submitted: false, note: `Demo only. Reason: ${reason}` };
+          return {
+            sessionId,
+            submitted: false,
+            note: `Demo only. Reason: ${reason}`,
+          };
         },
       }),
     },
 
-    // Phase-gate: no one can use navigate/extract before the session is open,
-    // and the agent can't open a second session.
+    // Phase-gate: step 0 can only openSession (navigate/extract need an id).
+    // Once any session exists, keep openSession active so the agent can add
+    // more sessions in parallel alongside the other tools.
     prepareStep: async ({ stepNumber, steps }) => {
       const sessionOpened = steps.some((s: any) =>
         s.toolCalls?.some((tc: any) => tc.toolName === "openSession")
@@ -218,7 +253,13 @@ export async function POST(req: Request) {
         return { activeTools: ["openSession"] };
       }
       return {
-        activeTools: ["navigate", "snapshot", "extract", "submitForm"],
+        activeTools: [
+          "openSession",
+          "navigate",
+          "snapshot",
+          "extract",
+          "submitForm",
+        ],
       };
     },
 

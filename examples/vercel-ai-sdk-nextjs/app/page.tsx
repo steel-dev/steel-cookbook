@@ -27,10 +27,39 @@ const kbdStyle: React.CSSProperties = {
   color: "#a3a3a3",
 };
 
+// One color per parallel session slot. Order of session appearance maps
+// 1:1 to this palette, so a session's badge, grid cell, and every tool-call
+// card that operates on it share the same accent.
+const SESSION_COLORS = [
+  "#f59e0b", // amber
+  "#38bdf8", // sky
+  "#a78bfa", // violet
+  "#34d399", // emerald
+];
+
+function colorForSession(index: number): string {
+  return SESSION_COLORS[index % SESSION_COLORS.length];
+}
+
+function sessionGridStyle(n: number): React.CSSProperties {
+  if (n <= 1)
+    return { gridTemplateColumns: "1fr", gridTemplateRows: "1fr" };
+  if (n === 2)
+    return { gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr" };
+  return { gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr" };
+}
+
+type SessionInfo = {
+  sessionId: string;
+  debugUrl: string | null;
+  liveViewUrl: string | null;
+};
+
 const examples = [
   "Go to https://github.com/trending/python and tell me the top 3 AI/ML repos.",
   "Visit https://news.ycombinator.com and list the top 5 front-page stories.",
   "Navigate to https://vercel.com and summarize their homepage in 2 sentences.",
+  "Compare trending repos in parallel: one each from github.com/trending/python, github.com/trending/javascript, github.com/trending/rust, and github.com/trending/go. List the top 3 per language.",
 ];
 
 type DurationEntry = { start: number; end?: number };
@@ -43,24 +72,37 @@ export default function Page() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const durationsRef = useRef<Record<string, DurationEntry>>({});
 
-  // The Steel session URLs live inside the openSession tool's output.
-  // We walk every message part and pluck them out so the iframe updates
-  // the moment the agent opens a session. debugUrl is the interactive
-  // embed; liveViewUrl is the shareable viewer link.
-  const { debugUrl, liveViewUrl, sessionId } = useMemo(() => {
+  // Every openSession tool-call emits an iframe-ready debugUrl. We collect
+  // them in order of appearance so the live-view grid can render each one
+  // with a stable slot index (S1, S2, ...). Dedup by sessionId in case the
+  // same part is visited twice as it streams.
+  const sessions = useMemo<SessionInfo[]>(() => {
+    const seen = new Set<string>();
+    const out: SessionInfo[] = [];
     for (const m of messages) {
       for (const part of (m.parts ?? []) as any[]) {
         if (part?.type === "tool-openSession" && part?.output) {
-          return {
+          const id = part.output.sessionId as string | undefined;
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          out.push({
+            sessionId: id,
             debugUrl: (part.output.debugUrl ?? null) as string | null,
             liveViewUrl: (part.output.liveViewUrl ?? null) as string | null,
-            sessionId: (part.output.sessionId ?? null) as string | null,
-          };
+          });
         }
       }
     }
-    return { debugUrl: null, liveViewUrl: null, sessionId: null };
+    return out;
   }, [messages]);
+
+  // sessionId -> display slot, so tool-call cards can pick the matching
+  // accent color without having to know the grid layout.
+  const sessionIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    sessions.forEach((s, i) => m.set(s.sessionId, i));
+    return m;
+  }, [sessions]);
 
   // Auto-scroll to bottom whenever messages update or status changes.
   useEffect(() => {
@@ -109,7 +151,9 @@ export default function Page() {
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(360px, 1fr) 1.3fr",
+        gridTemplateRows: "minmax(0, 1fr)",
         height: "100vh",
+        overflow: "hidden",
       }}
     >
       <section
@@ -140,7 +184,7 @@ export default function Page() {
 
         <div
           ref={scrollRef}
-          style={{ flex: 1, overflowY: "auto", padding: 16 }}
+          style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 16 }}
         >
           {messages.length === 0 && (
             <EmptyState onPick={handleSubmit} />
@@ -150,6 +194,7 @@ export default function Page() {
               key={m.id}
               message={m}
               durations={durationsRef.current}
+              sessionIndex={sessionIndex}
             />
           ))}
           {isBusy && <ThinkingIndicator />}
@@ -221,68 +266,45 @@ export default function Page() {
             letterSpacing: "-0.01em",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             gap: 8,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
-            <strong>live view</strong>
-            {sessionId && (
-              <span
-                style={{
-                  opacity: 0.5,
-                  fontSize: 11,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {sessionId.slice(0, 8)}
-              </span>
-            )}
-          </div>
-          {(liveViewUrl || debugUrl) && (
-            <a
-              href={liveViewUrl ?? debugUrl ?? undefined}
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: 12, flexShrink: 0 }}
-            >
-              open in new tab ↗
-            </a>
-          )}
+          <strong>live view</strong>
+          <span style={{ opacity: 0.55, fontSize: 11 }}>
+            {sessions.length === 0
+              ? "no session"
+              : `${sessions.length} session${sessions.length > 1 ? "s" : ""}`}
+          </span>
         </header>
-        <div style={{ flex: 1, background: "#050505", position: "relative" }}>
-          {debugUrl ? (
-            <iframe
-              src={debugUrl}
-              sandbox="allow-same-origin allow-scripts"
-              style={{
-                border: 0,
-                width: "100%",
-                height: "100%",
-              }}
-            />
-          ) : (
+        <div
+          style={{
+            flex: 1,
+            display: "grid",
+            // Grid gap + container bg = seam lines between cells for free.
+            background: sessions.length > 1 ? "#1f1f1f" : "#050505",
+            gap: sessions.length > 1 ? 1 : 0,
+            minHeight: 0,
+            ...sessionGridStyle(sessions.length),
+          }}
+        >
+          {sessions.length === 0 ? (
             <div
               style={{
-                position: "absolute",
-                inset: 0,
-                display: "grid",
-                placeItems: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 color: "#555",
                 fontSize: 14,
+                padding: 24,
+                textAlign: "center",
               }}
             >
               The live browser appears here once the agent opens a session.
             </div>
+          ) : (
+            sessions.map((s, i) => (
+              <SessionCell key={s.sessionId} session={s} index={i} />
+            ))
           )}
         </div>
       </aside>
@@ -428,9 +450,11 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
 function Message({
   message,
   durations,
+  sessionIndex,
 }: {
   message: any;
   durations: Record<string, DurationEntry>;
+  sessionIndex: Map<string, number>;
 }) {
   const isUser = message.role === "user";
   return (
@@ -482,7 +506,14 @@ function Message({
             );
           }
           if (typeof part.type === "string" && part.type.startsWith("tool-")) {
-            return <ToolCall key={i} part={part} durations={durations} />;
+            return (
+              <ToolCall
+                key={i}
+                part={part}
+                durations={durations}
+                sessionIndex={sessionIndex}
+              />
+            );
           }
           return null;
         })}
@@ -507,9 +538,11 @@ function formatDuration(ms: number): string {
 function ToolCall({
   part,
   durations,
+  sessionIndex,
 }: {
   part: any;
   durations: Record<string, DurationEntry>;
+  sessionIndex: Map<string, number>;
 }) {
   const name = String(part.type).replace(/^tool-/, "");
   const state = part.state ?? "done";
@@ -522,6 +555,14 @@ function ToolCall({
   const stateColor = toolStateColor(state);
   const isPending = state === "input-streaming" || state === "input-available";
 
+  // navigate/snapshot/extract carry sessionId in input; openSession emits
+  // it in output. Either way, look it up to pick the session accent color.
+  const toolSessionId: string | undefined =
+    part.input?.sessionId ?? part.output?.sessionId;
+  const sIdx =
+    toolSessionId != null ? sessionIndex.get(toolSessionId) : undefined;
+  const sColor = sIdx != null ? colorForSession(sIdx) : null;
+
   return (
     <div
       style={{
@@ -529,6 +570,7 @@ function ToolCall({
         padding: "6px 8px",
         background: "#0a0a0a",
         border: "1px solid #222",
+        borderLeft: sColor ? `2px solid ${sColor}` : "1px solid #222",
         borderRadius: 6,
         fontFamily: mono,
         fontSize: 12,
@@ -572,6 +614,19 @@ function ToolCall({
           }}
         />
         <strong>{name}</strong>
+        {sIdx != null && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: sColor ?? undefined,
+              opacity: 0.85,
+              letterSpacing: "0.02em",
+            }}
+          >
+            S{sIdx + 1}
+          </span>
+        )}
         <span style={{ opacity: 0.55 }}>· {state}</span>
         {durationMs != null && (
           <span style={{ opacity: 0.45, marginLeft: "auto" }}>
@@ -609,5 +664,118 @@ function ToolCall({
         </pre>
       )}
     </div>
+  );
+}
+
+function SessionCell({
+  session,
+  index,
+}: {
+  session: SessionInfo;
+  index: number;
+}) {
+  const color = colorForSession(index);
+  return (
+    <div
+      style={{
+        background: "#050505",
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        minHeight: 0,
+      }}
+    >
+      <div
+        style={{
+          padding: "6px 10px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 11,
+          fontFamily: mono,
+          background: "#0a0a0a",
+          borderBottom: "1px solid #1a1a1a",
+        }}
+      >
+        <SessionBadge index={index} />
+        <span
+          style={{
+            opacity: 0.5,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
+          }}
+        >
+          {session.sessionId.slice(0, 8)}
+        </span>
+        {(session.liveViewUrl || session.debugUrl) && (
+          <a
+            href={session.liveViewUrl ?? session.debugUrl ?? undefined}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              marginLeft: "auto",
+              fontSize: 11,
+              flexShrink: 0,
+              color,
+              opacity: 0.75,
+            }}
+            aria-label="Open session in new tab"
+          >
+            ↗
+          </a>
+        )}
+      </div>
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+        {session.debugUrl ? (
+          <iframe
+            src={session.debugUrl}
+            sandbox="allow-same-origin allow-scripts"
+            style={{ border: 0, width: "100%", height: "100%" }}
+          />
+        ) : (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              color: "#555",
+              fontSize: 12,
+              fontFamily: mono,
+            }}
+          >
+            opening…
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SessionBadge({ index }: { index: number }) {
+  const color = colorForSession(index);
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 22,
+        height: 18,
+        padding: "0 6px",
+        borderRadius: 4,
+        background: `${color}22`,
+        color,
+        fontSize: 10,
+        fontWeight: 600,
+        fontFamily: mono,
+        letterSpacing: "0.02em",
+        flexShrink: 0,
+      }}
+    >
+      S{index + 1}
+    </span>
   );
 }
