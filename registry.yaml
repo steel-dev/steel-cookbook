@@ -1,6 +1,7 @@
 # Steel Cookbook Registry
 #
-# Each entry: { title, slug, path, description, authors, language, topics }
+# Each entry: { title, slug, path, description, authors, language, topics,
+#              created, updated }
 #
 # - slug is the concept key and the docs URL path. Multiple entries may share
 #   one slug (one per language variant); uniqueness is enforced on path.
@@ -11,9 +12,13 @@
 #   Steel APIs; other topics (Playwright, Browser Use, Authentication, Typed
 #   output, Captchas, Mobile, Next.js) appear on cards and drive
 #   /cookbook/topics/<topic> views. See CONTRIBUTING.md for the curated list.
-# - "Last updated" dates come from git (last commit touching the recipe
-#   folder), not this file, so adding a new recipe doesn't need a date
-#   field to stay fresh.
+# - created is the publish date for this variant (YYYY-MM-DD). Cards on the
+#   home and topic pages sort by the earliest created across a concept's
+#   variants, so newer recipes surface first. Set once when the recipe lands;
+#   don't bump it on later edits.
+# - updated is the last meaningful change to this variant (YYYY-MM-DD).
+#   Shown in the recipe header. Bump when the README or code gets a real
+#   update; skip for typo fixes or sweep-everything refactors.
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
@@ -22,6 +27,8 @@
   authors: [hussufo, junhsss]
   language: TypeScript
   topics: [Browser automation, Playwright]
+  created: "2026-04-24"
+  updated: "2026-04-24"
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
@@ -30,6 +37,8 @@
   authors: [hussufo, junhsss]
   language: Python
   topics: [Browser automation, Playwright]
+  created: "2024-11-19"
+  updated: "2026-04-24"
 
 - title: Automate a cloud browser with Puppeteer
   slug: puppeteer
@@ -38,6 +47,8 @@
   authors: [hussufo, junhsss]
   language: TypeScript
   topics: [Browser automation]
+  created: "2024-11-19"
+  updated: "2026-04-24"
 
 - title: Automate a cloud browser with Selenium
   slug: selenium
@@ -46,6 +57,8 @@
   authors: [hussufo, junhsss]
   language: Python
   topics: [Browser automation]
+  created: "2024-11-19"
+  updated: "2026-04-24"
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -54,6 +67,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Browser automation]
+  created: "2025-07-16"
+  updated: "2026-04-24"
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -62,6 +77,8 @@
   authors: [junhsss]
   language: Python
   topics: [Browser automation]
+  created: "2025-07-16"
+  updated: "2026-04-24"
 
 - title: Build a browser agent with Browser Use
   slug: browser-use
@@ -70,6 +87,8 @@
   authors: [hussufo, jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use]
+  created: "2025-02-20"
+  updated: "2026-04-24"
 
 - title: Solve CAPTCHAs automatically in a Browser Use agent
   slug: browser-use-captcha-auto
@@ -78,6 +97,8 @@
   authors: [jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use, Captchas]
+  created: "2025-02-20"
+  updated: "2026-04-24"
 
 - title: Solve reCAPTCHA v2 manually with Browser Use
   slug: browser-use-captcha-manual
@@ -86,6 +107,8 @@
   authors: [jagadeshjai, junhsss]
   language: Python
   topics: [Agents, Browser Use, Captchas]
+  created: "2026-02-10"
+  updated: "2026-04-24"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -94,6 +117,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Computer use]
+  created: "2025-07-16"
+  updated: "2026-04-24"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -102,6 +127,8 @@
   authors: [hussufo, junhsss]
   language: Python
   topics: [Computer use]
+  created: "2025-07-16"
+  updated: "2026-04-24"
 
 - title: Drive a mobile browser with Claude Computer Use
   slug: claude-computer-use-mobile
@@ -110,6 +137,8 @@
   authors: [jagadeshjai, junhsss]
   language: TypeScript
   topics: [Computer use, Mobile]
+  created: "2025-10-14"
+  updated: "2026-04-24"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -118,6 +147,8 @@
   authors: [junhsss, nibzard]
   language: TypeScript
   topics: [Computer use]
+  created: "2025-03-19"
+  updated: "2026-04-24"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -126,6 +157,8 @@
   authors: [junhsss, nibzard]
   language: Python
   topics: [Computer use]
+  created: "2025-03-19"
+  updated: "2026-04-24"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -134,6 +167,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Computer use]
+  created: "2025-11-25"
+  updated: "2026-04-24"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -142,6 +177,8 @@
   authors: [junhsss]
   language: Python
   topics: [Computer use]
+  created: "2025-11-25"
+  updated: "2026-04-24"
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -150,6 +187,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output]
+  created: "2026-04-23"
+  updated: "2026-04-24"
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -158,6 +197,8 @@
   authors: [junhsss]
   language: Python
   topics: [Agents, Typed output]
+  created: "2026-04-23"
+  updated: "2026-04-24"
 
 - title: Build a typed browser agent with the Vercel AI SDK
   slug: vercel-ai-sdk
@@ -166,6 +207,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output]
+  created: "2026-04-23"
+  updated: "2026-04-24"
 
 - title: Stream a browser agent into a Next.js chat app
   slug: vercel-ai-sdk-nextjs
@@ -174,6 +217,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Agents, Typed output, Next.js]
+  created: "2026-04-23"
+  updated: "2026-04-24"
 
 - title: Build a multi-agent browser workflow with CrewAI
   slug: crewai
@@ -182,6 +227,8 @@
   authors: [junhsss]
   language: Python
   topics: [Agents]
+  created: "2025-09-05"
+  updated: "2026-04-24"
 
 - title: Build a browser agent with Inngest AgentKit
   slug: agentkit
@@ -190,6 +237,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Agents]
+  created: "2025-09-05"
+  updated: "2026-04-24"
 
 - title: Build a browser agent with Agno
   slug: agno
@@ -198,6 +247,8 @@
   authors: [junhsss]
   language: Python
   topics: [Agents]
+  created: "2025-09-05"
+  updated: "2026-04-24"
 
 - title: Control a browser with Notte's reasoning engine
   slug: notte
@@ -206,6 +257,8 @@
   authors: [junhsss]
   language: Python
   topics: [Agents]
+  created: "2025-08-26"
+  updated: "2026-04-24"
 
 - title: Build an AI browser agent with Magnitude
   slug: magnitude
@@ -214,6 +267,8 @@
   authors: [aspectrr, junhsss]
   language: TypeScript
   topics: [Agents]
+  created: "2025-07-30"
+  updated: "2026-04-24"
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
@@ -222,6 +277,8 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Steel APIs, Authentication]
+  created: "2025-03-11"
+  updated: "2026-04-24"
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -230,6 +287,8 @@
   authors: [danew, junhsss]
   language: TypeScript
   topics: [Steel APIs, Authentication, Playwright]
+  created: "2024-11-19"
+  updated: "2026-04-24"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -238,6 +297,8 @@
   authors: [aspectrr, jagadeshjai]
   language: TypeScript
   topics: [Steel APIs, Authentication]
+  created: "2025-10-13"
+  updated: "2026-04-24"
 
 - title: Upload and run browser extensions
   slug: extensions
@@ -246,6 +307,8 @@
   authors: [aspectrr, junhsss]
   language: TypeScript
   topics: [Steel APIs, Playwright]
+  created: "2024-11-19"
+  updated: "2026-04-24"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -254,3 +317,5 @@
   authors: [junhsss]
   language: TypeScript
   topics: [Steel APIs, Playwright]
+  created: "2024-11-19"
+  updated: "2026-04-24"
