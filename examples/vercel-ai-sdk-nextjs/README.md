@@ -1,3 +1,5 @@
+# Vercel AI SDK v6 Starter (Next.js)
+
 A Next.js chat app where an AI SDK v6 agent drives a Steel cloud browser server-side and streams every tool call back into the UI. `useChat` on the client posts to `/api/chat`; that route calls `streamText` with four Steel-backed tools (`openSession`, `navigate`, `snapshot`, `extract`). Each tool call surfaces as a typed `tool-*` part on the message stream, and a Live View iframe on the right lights up the moment the agent opens a session.
 
 ```

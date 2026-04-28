@@ -142,4 +142,4 @@ If you want to chain runs without replaying history, pass a `session` (e.g. `SQL
 
 ## Related
 
-[TypeScript version](../openai-agents-ts) . [OpenAI Computer Use (Python)](../openai-computer-use-py) for the raw message loop . [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/)
+[TypeScript version](../openai-agents-ts) · [OpenAI Computer Use (Python)](../openai-computer-use-py) for the raw message loop · [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/)

@@ -1,3 +1,5 @@
+# Extensions
+
 Steel sessions launch a clean Chrome with nothing installed. The Extensions API lets you upload a Chrome extension once, get back an ID, and attach it to any future session via `extensionIds` on `sessions.create()`. Content scripts and background workers load before your first `page.goto`, so the extension has already rewritten the DOM by the time Playwright observes it.
 
 ```typescript

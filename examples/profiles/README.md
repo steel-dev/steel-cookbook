@@ -1,3 +1,5 @@
+# Profiles
+
 A Steel profile is a named, long-lived browser identity. It holds everything a real Chrome user profile accumulates over time: cookies, localStorage, IndexedDB, history, installed extensions, autofill, site permissions. Every session you attach to the profile starts where the last one left off, and writes the user data directory back on release.
 
 Two options on `sessions.create` wire it up. On the first run, mint a fresh profile:

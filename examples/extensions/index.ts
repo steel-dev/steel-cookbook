@@ -43,7 +43,6 @@ async function main() {
     console.log("Extension exists:", extensionExists);
 
     if (!extensionExists) {
-      console.log("Client extension", client.extensions);
       console.log("\nUploading extension...");
       extension = await client.extensions
         .upload({

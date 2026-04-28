@@ -128,4 +128,4 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task. Cost i
 
 ## Related
 
-[Computer use docs](https://ai.google.dev/gemini-api/docs/computer-use) - [Python version](../gemini-computer-use-py) - [Anthropic equivalent](../claude-computer-use-ts) - [OpenAI equivalent](../openai-computer-use-ts)
+[Computer use docs](https://ai.google.dev/gemini-api/docs/computer-use) · [Python version](../gemini-computer-use-py) · [Anthropic equivalent](../claude-computer-use-ts) · [OpenAI equivalent](../openai-computer-use-ts)

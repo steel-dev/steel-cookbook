@@ -1,3 +1,5 @@
+# CrewAI Starter (Python)
+
 CrewAI composes LLM work out of three primitives: an `Agent` (role, goal, tools), a `Task` (description + expected output), and a `Crew` that runs them in order. This recipe wires two agents, a `researcher` and a `reporting_analyst`, to a single custom tool that calls Steel's scrape API. The researcher gathers sources; the analyst turns them into `report.md`.
 
 ```python
