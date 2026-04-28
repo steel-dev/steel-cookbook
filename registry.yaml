@@ -84,7 +84,7 @@
   slug: browser-use
   path: examples/browser-use
   description: Integrate Steel with the browser-use framework for AI-driven web automation.
-  authors: [hussufo, jagadeshjai, junhsss]
+  authors: [junhsss]
   language: Python
   topics: [Agents, Browser Use]
   created: "2025-02-20"
@@ -94,7 +94,7 @@
   slug: browser-use-captcha-auto
   path: examples/browser-use-captcha-auto
   description: Build an AI agent with browser-use and Steel that solves CAPTCHAs automatically.
-  authors: [jagadeshjai, junhsss]
+  authors: [jagadeshjai]
   language: Python
   topics: [Agents, Browser Use, Captchas]
   created: "2025-02-20"
@@ -104,7 +104,7 @@
   slug: browser-use-captcha-manual
   path: examples/browser-use-captcha-manual
   description: Manually solve reCAPTCHA v2 using Steel's CAPTCHA API with the browser-use framework.
-  authors: [jagadeshjai, junhsss]
+  authors: [jagadeshjai]
   language: Python
   topics: [Agents, Browser Use, Captchas]
   created: "2026-02-10"
