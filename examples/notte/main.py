@@ -40,9 +40,6 @@ async def main():
 
     try:
         session = client.sessions.create()
-        print("Steel browser session started!")
-        print(f"View live session at: {session.session_viewer_url}")
-
         print(
             f"\033[1;93mSteel Session created!\033[0m\n"
             f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"

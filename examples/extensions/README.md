@@ -38,7 +38,7 @@ Steel + Extensions API Starter
 ============================================================
 
 Checking extension...
-Extension exists: undefined
+No existing extension found
 
 Uploading extension...
 Extension uploaded: { id: 'ext_...', name: 'Github_Isometric_Contribu', ... }
@@ -80,4 +80,4 @@ A run takes ~20 seconds and costs a few cents of session time. First run uploads
 
 ## Related
 
-[Credentials](../credentials) for persisting cookies across runs, [auth-context](../auth-context) for seeding logged-in state, [profiles](../profiles) for reusing a full browser profile. [Playwright docs](https://playwright.dev).
+[Credentials](../credentials) (persist cookies across runs) · [auth-context](../auth-context) (seed logged-in state) · [profiles](../profiles) (reuse a full browser profile) · [Playwright docs](https://playwright.dev)

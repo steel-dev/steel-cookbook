@@ -40,7 +40,11 @@ async function main() {
     const extensionExists = (await client.extensions.list()).extensions.find(
       (ext) => ext.name === "Github_Isometric_Contribu",
     );
-    console.log("Extension exists:", extensionExists);
+    console.log(
+      extensionExists
+        ? `Found existing extension: ${extensionExists.id}`
+        : "No existing extension found",
+    );
 
     if (!extensionExists) {
       console.log("\nUploading extension...");

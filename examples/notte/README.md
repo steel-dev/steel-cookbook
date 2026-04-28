@@ -37,7 +37,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [aistudio.google.com](https://aistudio.google.com/app/apikey). The session viewer URL prints twice as the script starts (once plain, once highlighted). Open it in another tab to watch the agent drive the page.
+Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [aistudio.google.com](https://aistudio.google.com/app/apikey). The session viewer URL prints as the script starts. Open it in another tab to watch the agent drive the page.
 
 Your output varies. Structure looks like this:
 
@@ -46,8 +46,8 @@ Steel + Notte Assistant
 ============================================================
 
 Starting Steel browser session...
-Steel browser session started!
-View live session at: https://app.steel.dev/sessions/ab12cd34...
+Steel Session created!
+View session at https://app.steel.dev/sessions/ab12cd34...
 
 Executing task: Go to Wikipedia and search for machine learning
 ============================================================

@@ -142,7 +142,7 @@ TASK EXECUTION COMPLETED
 Duration: 62.8 seconds
 ```
 
-A run typically takes 60-180 seconds and 10-30 iterations, depending on the task. You pay for Steel session-minutes and for OpenAI tokens: screenshots are cached between turns via `previous_response_id`, so per-turn input cost stays roughly flat even on long loops. The `finally` block in `main()` calls `sessions.release()`; leaving it out keeps the session alive until Steel's 15-minute default timeout.
+A run typically takes 60-180 seconds and 10-30 iterations, depending on the task. You pay for Steel session-minutes and for OpenAI tokens: screenshots are cached between turns via `previous_response_id`, so per-turn input cost stays roughly flat even on long loops. The `finally` block in `main()` calls `sessions.release()`; leaving it out keeps the session alive until the 15-minute `api_timeout` set on `sessions.create` (Steel's default is 5 minutes, but this recipe extends it to give long browsing tasks room to finish).
 
 ## Make it yours
 

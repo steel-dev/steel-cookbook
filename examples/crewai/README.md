@@ -41,6 +41,14 @@ Both agents get the same tool instance. In practice the researcher drives it; gi
 
 Two `@task` methods define the work. `research_task` interpolates `{task}` and `{current_year}` into its description and is bound to `self.researcher()`. `reporting_task` reads the researcher's output from the shared crew context; the analyst never needs the original URL.
 
+The starter imports CrewAI's `Crew` under an alias so the local `Crew` class (the `@CrewBase`-decorated one) doesn't collide with the framework type:
+
+```python
+from crewai import Crew as CrewAI
+```
+
+That's why the `@crew` factory below returns `CrewAI`, not `Crew`:
+
 ```python
 @crew
 def crew(self) -> CrewAI:
