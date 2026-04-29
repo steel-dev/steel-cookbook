@@ -220,6 +220,16 @@
   created: "2026-04-23"
   updated: "2026-04-24"
 
+- title: Build a typed browser agent with Pydantic AI
+  slug: pydantic-ai
+  path: examples/pydantic-ai
+  description: Use Steel with Pydantic AI to build typed, provider-agnostic browser agents with dependency injection.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents, Typed output]
+  created: "2026-04-29"
+  updated: "2026-04-29"
+
 - title: Build a typed browser agent with the Vercel AI SDK
   slug: vercel-ai-sdk
   path: examples/vercel-ai-sdk-ts
