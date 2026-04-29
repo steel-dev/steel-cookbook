@@ -68,7 +68,7 @@ async def main():
             print("\n" + "=" * 60)
             print("TASK EXECUTION COMPLETED")
             print("=" * 60)
-            print(f"⏱️  Duration: {duration} seconds")
+            print(f"Duration: {duration} seconds")
             print(f"Task: {TASK}")
             if result:
                 print(f"Result:\n{result}")

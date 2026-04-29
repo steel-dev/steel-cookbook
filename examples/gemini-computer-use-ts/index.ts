@@ -760,7 +760,7 @@ async function main(): Promise<void> {
     console.log("\n" + "=".repeat(60));
     console.log("TASK EXECUTION COMPLETED");
     console.log("=".repeat(60));
-    console.log(`⏱️  Duration: ${duration} seconds`);
+    console.log(`Duration: ${duration} seconds`);
     console.log(`Task: ${TASK}`);
     console.log(`Result:\n${result}`);
     console.log("=".repeat(60));
