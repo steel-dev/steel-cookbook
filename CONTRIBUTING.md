@@ -1,76 +1,101 @@
-# Contributing to the Steel Cookbook
+# Contributing to Steel Cookbook
 
-Welcome, AI Builder! The Steel Cookbook is a community-driven resource aimed at sharing practical examples for building web automations with Steel. Our goal is to help AI engineers build better, more reliable web agents.
+The Steel Cookbook is a collection of runnable examples showing how to build web automations with Steel. Happy to have you here.
 
-## What Makes a Good Example?
+## What goes in this cookbook
 
-The best examples in our cookbook are:
+Most entries fall into two flavors:
 
-**Useful**: Demonstrates solutions to common challenges that AI engineers face when building web agents. If you're solving it repeatedly, others probably are too.
+- **Minimal wiring** — the smallest working connection between Steel and a framework (Playwright, Stagehand, Browser Use, Claude Computer Use, ...). Answers _"does Steel work with X?"_
+- **Scenario** — projects that solve a concrete task (applying to jobs, monitoring prices, scraping leaderboards, ...). Answers _"how do I build Y?"_
 
-**Novel**: Shows new techniques or creative ways to use Steel's capabilities. This could be handling complex web interactions, managing sessions efficiently, or solving tricky automation scenarios.
+Both live in the same `examples/` folder and are distinguished by topics in `registry.yaml`, not by separate categories.
 
-**Well-Structured**: Provides clear, practical guidance that others can follow and adapt to their needs.
+A good entry is:
 
-## Example Structure
+- **Useful** — solves a need people actually have
+- **Novel** — shows a technique or combination worth remembering
+- **Self-contained** — runs cleanly from `.env.example` + one install command
+
+## Folder layout
 
 ```
 examples/
-└── your-example-name/
-    ├── README.md          # Clear explanation and instructions
-    ├── example.py         # Well-commented, working code
-    └── requirements.txt   # Dependencies (if needed)
+└── your-slug/
+    ├── README.md
+    ├── src/ (or a single .py file for Python)
+    ├── package.json (TypeScript) or pyproject.toml (Python)
+    └── .env.example
 ```
 
-### README Template
-```markdown
-# [Descriptive Title]
+The slug is `lowercase-with-hyphens`, no `steel-` prefix.
 
-Clear description of what this example accomplishes and when to use it.
+## Writing the README
 
-## Prerequisites
-- Steel API key
-- Required dependencies
-- Any specific setup needed
+Write what serves your recipe — flow matters more than structure. A minimal
+wiring might be three sections and 60 lines; a complex scenario might need
+seven and 250. See `examples/playwright-ts/README.md` for a
+reference on voice.
 
-## Implementation
-Step-by-step breakdown of the solution
+Open with technical substance, not a pitch. Dive straight into what the
+integration is or what the code does; skip imperatives that frame the
+recipe as a benefit ("Drive a remote Chrome...", "Hand Claude a task...",
+"Write automations in plain English...").
 
-## Key Concepts
-Brief explanation of important techniques used
+The opening section has no header. After that, use headers for major
+transitions. Common ones that tend to serve well:
 
-## Common Challenges
-Solutions to frequent issues you might encounter
-```
+- **Run it** — install + run, ideally with expected terminal output
+- **Make it yours** — concrete customization points
+- **Related** — framework docs and sibling recipes
 
-## Quality Guidelines
+Mix, rename, add your own (Prerequisites, Gotchas, Steps, Architecture,
+Evaluation — whatever the recipe needs). Code references can be short or
+long depending on what the explanation demands.
 
-We assess contributions based on:
+### Rules that don't bend
 
-1. **Relevance**: Does it solve a common Steel use case?
-2. **Clarity**: Is it well-explained and easy to follow?
-3. **Correctness**: Does the code work reliably?
-4. **Completeness**: Are all necessary steps included?
+- Code should advance the narrative. Long snippets are fine when you're
+  walking through them; don't dump code blocks without prose.
+- Reference code by function or block name, not line numbers — line
+  numbers drift silently when the code changes.
+- Active, second person, present tense. "The agent sends a screenshot" —
+  not "will send".
+- Use concrete numbers. "~$0.12 per run", "~90 seconds", "8-step loop".
+- Frame example output as illustrative, not literal. "Your output varies.
+  Structure looks like this:" is better than pretending the snippet is
+  exact.
+- Keep rhetorical flourishes rare. Short fragments, semicolon pairs, pull
+  quotes — one per recipe at most, not a pattern.
+- Avoid em-dashes (—) in READMEs. Use periods, commas, or parens.
+- Don't link to `docs.steel.dev`. READMEs sync there; self-links loop.
+  Use framework docs or sibling recipes.
+- Skip meta-openings. No "In this tutorial...", no "Welcome to...".
+- Don't repeat shared setup. Clone/install lives in the repo root README.
 
-## Before Contributing
+Aim for 120-200 lines. Shorter is fine for simple wirings; longer is fine
+when the explanation earns its keep.
 
-1. Check existing examples and issues to avoid duplication
-2. Consider if your example demonstrates something useful and specific
-3. Test your code thoroughly
-4. Ensure proper error handling and cleanup
+## Quality checklist
 
-## Submission Process
+Before opening a PR:
 
-1. Fork the repository
-2. Create a new branch: `git checkout -b example/your-example-name`
-3. Add your example following our structure
-4. Test thoroughly
-5. Submit a pull request
+- [ ] README follows the shape above
+- [ ] `npm install && npm start` (or the Python equivalent) works from a clean clone
+- [ ] `.env.example` lists every required variable
+- [ ] Entry added to `registry.yaml` with `created` set to today (YYYY-MM-DD) and `updated` matching
+- [ ] Author entry present in `authors.yaml` (add yourself if new)
+- [ ] When editing an existing recipe meaningfully, bump that variant's `updated` (skip for typo fixes or sweep refactors)
 
-## Need Help?
+## Submitting
 
-- Review our [Documentation](https://docs.steel.dev)
-- Join our [Discord](https://discord.gg/steel-dev)
-- Open an issue for questions
+1. Fork and branch from `main` (`example/your-slug` or `recipe/your-slug`)
+2. Add your folder under `examples/`
+3. Update `registry.yaml` and, if new, `authors.yaml`
+4. Open a PR — CI runs a build check and link check
 
-Remember: A great example helps others succeed quickly. Focus on the practical steps needed to solve a specific problem, and leave the teaching for tutorials.
+## Help
+
+- [Documentation](https://docs.steel.dev)
+- [Discord](https://discord.gg/steel-dev)
+- Open an issue if you're stuck

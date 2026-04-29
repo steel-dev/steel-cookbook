@@ -1,0 +1,13 @@
+[project]
+name = "agno"
+version = "0.1.0"
+description = "Steel + Agno: a web-scraping agent using a Steel-powered Playwright toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "agno>=2.5,<3",
+    "openai>=2.0,<3",
+    "playwright>=1.45.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.16.0",
+]

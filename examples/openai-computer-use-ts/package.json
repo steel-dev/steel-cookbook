@@ -1,0 +1,26 @@
+{
+  "name": "openai-computer-use-ts",
+  "version": "1.0.0",
+  "description": "Steel Browser Computer Use Agent",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "keywords": [
+    "steel",
+    "openai",
+    "computer-use",
+    "browser-automation"
+  ],
+  "author": "Steel Dev",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "steel-sdk": "^0.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}

@@ -1,0 +1,638 @@
+import * as dotenv from "dotenv";
+import { Steel } from "steel-sdk";
+import Anthropic from "@anthropic-ai/sdk";
+import type {
+  BetaMessageParam,
+  BetaToolResultBlockParam,
+  BetaMessage,
+} from "@anthropic-ai/sdk/resources/beta/messages/messages";
+
+dotenv.config();
+
+const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+const ANTHROPIC_API_KEY =
+  process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
+const TASK = process.env.TASK || "Go to Steel.dev and find the latest news";
+
+function formatToday(): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date());
+}
+
+const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
+  - You control a headful Chromium browser running in a VM with internet access.
+  - Chromium is already open; interact only through the "computer" tool (mouse, keyboard, scroll, screenshots).
+  - Today's date is ${formatToday()}.
+  </BROWSER_ENV>
+  
+  <BROWSER_CONTROL>
+  - When viewing pages, zoom out or scroll so all relevant content is visible.
+  - When typing into any input:
+    * Clear it first with Ctrl+A, then Delete.
+    * After submitting (pressing Enter or clicking a button), take an extra screenshot to confirm the result and move the mouse away.
+  - Computer tool calls are slow; batch related actions into a single call whenever possible.
+  - You may act on the user's behalf on sites where they are already authenticated.
+  - Assume any required authentication/Auth Contexts are already configured before the task starts.
+  - If the first screenshot is black:
+    * Click near the center of the screen.
+    * Take another screenshot.
+  </BROWSER_CONTROL>
+  
+  <TASK_EXECUTION>
+  - You receive exactly one natural-language task and no further user feedback.
+  - Do not ask the user clarifying questions; instead, make reasonable assumptions and proceed.
+  - For complex tasks, quickly plan a short, ordered sequence of steps before acting.
+  - Prefer minimal, high-signal actions that move directly toward the goal.
+  - Keep your final response concise and focused on fulfilling the task (e.g., a brief summary of findings or results).
+  </TASK_EXECUTION>`;
+
+type Coordinates = [number, number];
+interface BaseActionRequest {
+  screenshot?: boolean;
+  hold_keys?: string[];
+}
+type MoveMouseRequest = BaseActionRequest & {
+  action: "move_mouse";
+  coordinates: Coordinates;
+};
+type ClickMouseRequest = BaseActionRequest & {
+  action: "click_mouse";
+  button: "left" | "right" | "middle";
+  coordinates: Coordinates;
+  num_clicks?: number;
+  click_type?: "down" | "up";
+};
+type DragMouseRequest = BaseActionRequest & {
+  action: "drag_mouse";
+  path: Coordinates[];
+};
+type ScrollRequest = BaseActionRequest & {
+  action: "scroll";
+  coordinates: Coordinates;
+  delta_x: number;
+  delta_y: number;
+};
+type PressKeyRequest = BaseActionRequest & {
+  action: "press_key";
+  keys: string[];
+  duration?: number;
+};
+type TypeTextRequest = BaseActionRequest & {
+  action: "type_text";
+  text: string;
+};
+type WaitRequest = BaseActionRequest & {
+  action: "wait";
+  duration: number;
+};
+type GetCursorPositionRequest = {
+  action: "get_cursor_position";
+};
+type ComputerActionRequest =
+  | MoveMouseRequest
+  | ClickMouseRequest
+  | DragMouseRequest
+  | ScrollRequest
+  | PressKeyRequest
+  | TypeTextRequest
+  | WaitRequest
+  | GetCursorPositionRequest;
+
+class Agent {
+  private client: Anthropic;
+  private steel: Steel;
+  private session: Steel.Session | null = null;
+  private messages: BetaMessageParam[];
+  private tools: any[];
+  private model: string;
+  private systemPrompt: string;
+  private viewportWidth: number;
+  private viewportHeight: number;
+
+  constructor() {
+    this.client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
+    this.model = "claude-opus-4-7";
+    this.messages = [];
+
+    this.viewportWidth = 1280;
+    this.viewportHeight = 768;
+
+    this.systemPrompt = BROWSER_SYSTEM_PROMPT;
+
+    this.tools = [
+      {
+        type: "computer_20251124",
+        name: "computer",
+        display_width_px: this.viewportWidth,
+        display_height_px: this.viewportHeight,
+        display_number: 1,
+      },
+    ];
+  }
+
+  private center(): [number, number] {
+    return [
+      Math.floor(this.viewportWidth / 2),
+      Math.floor(this.viewportHeight / 2),
+    ];
+  }
+
+  private splitKeys(k?: string): string[] {
+    return k
+      ? k
+          .split("+")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+  }
+
+  private normalizeKey(key: string): string {
+    if (!key) return key;
+    const k = String(key).trim();
+    const upper = k.toUpperCase();
+    const synonyms: Record<string, string> = {
+      ENTER: "Enter",
+      RETURN: "Enter",
+      ESC: "Escape",
+      ESCAPE: "Escape",
+      TAB: "Tab",
+      BACKSPACE: "Backspace",
+      BKSP: "Backspace",
+      DELETE: "Delete",
+      DEL: "Delete",
+      SPACE: "Space",
+      CTRL: "Control",
+      CONTROL: "Control",
+      ALT: "Alt",
+      SHIFT: "Shift",
+      META: "Meta",
+      SUPER: "Meta",
+      CMD: "Meta",
+      COMMAND: "Meta",
+      UP: "ArrowUp",
+      DOWN: "ArrowDown",
+      LEFT: "ArrowLeft",
+      RIGHT: "ArrowRight",
+      ARROWUP: "ArrowUp",
+      ARROWDOWN: "ArrowDown",
+      ARROWLEFT: "ArrowLeft",
+      ARROWRIGHT: "ArrowRight",
+      HOME: "Home",
+      END: "End",
+      PAGEUP: "PageUp",
+      PAGEDOWN: "PageDown",
+      INSERT: "Insert",
+    };
+    if (upper in synonyms) return synonyms[upper];
+    if (upper.startsWith("F") && /^\d+$/.test(upper.slice(1))) {
+      return "F" + upper.slice(1);
+    }
+    return k;
+  }
+
+  private normalizeKeys(keys: string[]): string[] {
+    return keys.map((k) => this.normalizeKey(k));
+  }
+
+  async initialize(): Promise<void> {
+    const width = this.viewportWidth;
+    const height = this.viewportHeight;
+    this.session = await this.steel.sessions.create({
+      dimensions: { width, height },
+      blockAds: true,
+      timeout: 900000,
+    });
+    console.log("Steel Session created successfully!");
+    console.log(`View live session at: ${this.session.sessionViewerUrl}`);
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.session) {
+      console.log("Releasing Steel session...");
+      await this.steel.sessions.release(this.session.id);
+      console.log(
+        `Session completed. View replay at ${this.session.sessionViewerUrl}`,
+      );
+    }
+  }
+
+  private async takeScreenshot(): Promise<string> {
+    const resp: any = await this.steel.sessions.computer(this.session!.id, {
+      action: "take_screenshot",
+    });
+    const img: string | undefined = resp?.base64_image;
+    if (!img) throw new Error("No screenshot returned from Input API");
+    return img;
+  }
+
+  private async executeComputerAction(
+    action: string,
+    text?: string,
+    coordinate?: [number, number] | number[],
+    scrollDirection?: "up" | "down" | "left" | "right",
+    scrollAmount?: number,
+    duration?: number,
+    key?: string,
+  ): Promise<string> {
+    const coords: Coordinates =
+      coordinate && Array.isArray(coordinate) && coordinate.length === 2
+        ? [coordinate[0], coordinate[1]]
+        : this.center();
+
+    let body: ComputerActionRequest | null = null;
+
+    switch (action) {
+      case "mouse_move": {
+        const hk = this.splitKeys(key);
+        body = {
+          action: "move_mouse",
+          coordinates: coords,
+          screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "left_mouse_down":
+      case "left_mouse_up": {
+        const hk = this.splitKeys(key);
+        body = {
+          action: "click_mouse",
+          button: "left",
+          click_type: action === "left_mouse_down" ? "down" : "up",
+          coordinates: coords,
+          screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "left_click":
+      case "right_click":
+      case "middle_click":
+      case "double_click":
+      case "triple_click": {
+        const buttonMap: Record<
+          | "left_click"
+          | "right_click"
+          | "middle_click"
+          | "double_click"
+          | "triple_click",
+          "left" | "right" | "middle"
+        > = {
+          left_click: "left",
+          right_click: "right",
+          middle_click: "middle",
+          double_click: "left",
+          triple_click: "left",
+        };
+        const clicks =
+          action === "double_click" ? 2 : action === "triple_click" ? 3 : 1;
+        const hk = this.splitKeys(key);
+        body = {
+          action: "click_mouse",
+          button: buttonMap[action as keyof typeof buttonMap],
+          coordinates: coords,
+          screenshot: true,
+          ...(clicks > 1 ? { num_clicks: clicks } : {}),
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "left_click_drag": {
+        const [endX, endY] = coords;
+        const [startX, startY] = this.center();
+        const hk = this.splitKeys(key);
+        body = {
+          action: "drag_mouse",
+          path: [
+            [startX, startY],
+            [endX, endY],
+          ],
+          screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "scroll": {
+        const step = 100;
+        type ScrollDir = "up" | "down" | "left" | "right";
+        const map: Record<ScrollDir, [number, number]> = {
+          down: [0, step * (scrollAmount as number)],
+          up: [0, -step * (scrollAmount as number)],
+          right: [step * (scrollAmount as number), 0],
+          left: [-(step * (scrollAmount as number)), 0],
+        };
+        const dir: ScrollDir = (scrollDirection || "down") as ScrollDir;
+        const [delta_x, delta_y] = map[dir];
+        const hk = this.splitKeys(text);
+        body = {
+          action: "scroll",
+          coordinates: coords,
+          delta_x,
+          delta_y,
+          screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "hold_key": {
+        const keys = this.splitKeys(text);
+        const normalized = this.normalizeKeys(keys);
+        body = {
+          action: "press_key",
+          keys: normalized,
+          duration,
+          screenshot: true,
+        };
+        break;
+      }
+      case "key": {
+        const keys = this.splitKeys(text);
+        const normalized = this.normalizeKeys(keys);
+        body = {
+          action: "press_key",
+          keys: normalized,
+          screenshot: true,
+        };
+        break;
+      }
+      case "type": {
+        const hk = this.splitKeys(key);
+        body = {
+          action: "type_text",
+          text: text ?? "",
+          screenshot: true,
+          ...(hk.length ? { hold_keys: hk } : {}),
+        };
+        break;
+      }
+      case "wait": {
+        body = {
+          action: "wait",
+          duration: duration ?? 1000,
+          screenshot: true,
+        };
+        break;
+      }
+      case "screenshot": {
+        return this.takeScreenshot();
+      }
+      case "cursor_position": {
+        await this.steel.sessions.computer(this.session!.id, {
+          action: "get_cursor_position",
+        });
+        return this.takeScreenshot();
+      }
+      default:
+        throw new Error(`Invalid action: ${action}`);
+    }
+
+    const resp: any = await this.steel.sessions.computer(
+      this.session!.id,
+      body!,
+    );
+    const img: string | undefined = resp?.base64_image;
+    if (img) return img;
+    return this.takeScreenshot();
+  }
+
+  private async processResponse(
+    message: BetaMessage,
+  ): Promise<{ text: string; hasActions: boolean }> {
+    let responseText = "";
+    let hasActions = false;
+    const toolResults: BetaToolResultBlockParam[] = [];
+
+    this.messages.push({
+      role: "assistant",
+      content: message.content as any,
+    });
+
+    for (const block of message.content) {
+      if (block.type === "text") {
+        responseText += block.text;
+        console.log(block.text);
+      } else if (block.type === "tool_use") {
+        hasActions = true;
+        const toolName = block.name;
+        const toolInput = block.input as any;
+
+        console.log(`${toolName}(${JSON.stringify(toolInput)})`);
+
+        if (toolName === "computer") {
+          const action = toolInput.action;
+          try {
+            const screenshotBase64 = await this.executeComputerAction(
+              action,
+              toolInput.text,
+              toolInput.coordinate,
+              toolInput.scroll_direction,
+              toolInput.scroll_amount,
+              toolInput.duration,
+              toolInput.key,
+            );
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: "image/png",
+                    data: screenshotBase64,
+                  },
+                },
+              ],
+            });
+          } catch (error) {
+            console.log(`Error executing ${action}: ${error}`);
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: `Error executing ${action}: ${String(error)}`,
+              is_error: true,
+            });
+          }
+        }
+      }
+    }
+
+    if (toolResults.length > 0) {
+      this.messages.push({
+        role: "user",
+        content: toolResults,
+      });
+    }
+
+    return { text: responseText, hasActions };
+  }
+
+  async executeTask(
+    task: string,
+    printSteps: boolean = true,
+    maxIterations: number = 50,
+  ): Promise<string> {
+    this.messages = [
+      {
+        role: "user",
+        content: this.systemPrompt,
+      },
+      {
+        role: "user",
+        content: task,
+      },
+    ];
+
+    let iterations = 0;
+    let lastAssistantMessages: string[] = [];
+
+    console.log(`Executing task: ${task}`);
+    console.log("=".repeat(60));
+
+    const detectRepetition = (newMessage: string): boolean => {
+      if (lastAssistantMessages.length < 2) return false;
+      const similarity = (str1: string, str2: string): number => {
+        const words1 = str1.toLowerCase().split(/\s/);
+        const words2 = str2.toLowerCase().split(/\s+/);
+        const commonWords = words1.filter((word) => words2.includes(word));
+        return commonWords.length / Math.max(words1.length, words2.length);
+      };
+      return lastAssistantMessages.some(
+        (prevMessage) => similarity(newMessage, prevMessage) > 0.8,
+      );
+    };
+
+    const extractText = (content: any): string => {
+      if (typeof content === "string") return content;
+      if (!Array.isArray(content)) return "";
+      return content
+        .filter((b: any) => b?.type === "text")
+        .map((b: any) => b.text ?? "")
+        .join("");
+    };
+
+    let finalText = "";
+
+    while (iterations < maxIterations) {
+      iterations++;
+
+      if (this.messages.length > 0) {
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (lastMessage?.role === "assistant") {
+          const content = extractText(lastMessage.content);
+          if (content) {
+            if (detectRepetition(content)) {
+              console.log("Repetition detected - stopping execution");
+              finalText = content;
+              break;
+            }
+            lastAssistantMessages.push(content);
+            if (lastAssistantMessages.length > 3) {
+              lastAssistantMessages.shift();
+            }
+          }
+        }
+      }
+
+      try {
+        const response = await this.client.beta.messages.create({
+          model: this.model,
+          max_tokens: 4096,
+          messages: this.messages,
+          tools: this.tools,
+          betas: ["computer-use-2025-11-24"],
+        });
+
+        const { text, hasActions } = await this.processResponse(response);
+
+        if (!hasActions) {
+          console.log("Task complete - no further actions requested");
+          finalText = text;
+          break;
+        }
+      } catch (error) {
+        console.error(`Error during task execution: ${error}`);
+        throw error;
+      }
+    }
+
+    if (iterations >= maxIterations) {
+      console.warn(
+        `Task execution stopped after ${maxIterations} iterations`,
+      );
+    }
+
+    return finalText || "Task execution completed (no final message)";
+  }
+}
+
+async function main(): Promise<void> {
+  console.log("Steel + Claude Computer Use Assistant");
+  console.log("=".repeat(60));
+
+  if (STEEL_API_KEY === "your-steel-api-key-here") {
+    console.warn(
+      "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key",
+    );
+    console.warn(
+      "   Get your API key at: https://app.steel.dev/settings/api-keys",
+    );
+    throw new Error("Set STEEL_API_KEY");
+  }
+
+  if (ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+    console.warn(
+      "WARNING: Please replace 'your-anthropic-api-key-here' with your actual Anthropic API key",
+    );
+    console.warn("   Get your API key at: https://console.anthropic.com/");
+    throw new Error("Set ANTHROPIC_API_KEY");
+  }
+
+  console.log("\nStarting Steel session...");
+
+  const agent = new Agent();
+
+  try {
+    await agent.initialize();
+    console.log("Steel session started!");
+
+    const startTime = Date.now();
+
+    try {
+      const result = await agent.executeTask(TASK, true, 50);
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      console.log("\n" + "=".repeat(60));
+      console.log("TASK EXECUTION COMPLETED");
+      console.log("=".repeat(60));
+      console.log(`Duration: ${duration} seconds`);
+      console.log(`Task: ${TASK}`);
+      console.log(`Result:\n${result}`);
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error(`Task execution failed: ${error}`);
+      throw new Error("Task execution failed");
+    }
+  } catch (error) {
+    console.log(`Failed to start Steel session: ${error}`);
+    console.log("Please check your STEEL_API_KEY and internet connection.");
+    throw new Error("Failed to start Steel session");
+  } finally {
+    await agent.cleanup();
+  }
+}
+
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Task execution failed:", error);
+    process.exit(1);
+  });

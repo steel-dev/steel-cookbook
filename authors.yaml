@@ -1,0 +1,42 @@
+# Steel Cookbook Authors
+#
+# Entry: handle → { name, website, avatar }
+# Each handle is referenced from registry.yaml entries.
+#
+# Add yourself when you contribute your first recipe.
+# All fields optional; the site falls back to the handle if blank.
+
+aspectrr:
+  name: Collin Pfeifer
+  website:
+  avatar:
+
+danew:
+  name: Dane Wilson
+  website:
+  avatar:
+
+fukouda:
+  name: Nasr Mohamed
+  website:
+  avatar:
+
+hussufo:
+  name: Hussien Hussien
+  website:
+  avatar:
+
+jagadeshjai:
+  name: Jagadesh Jai
+  website:
+  avatar:
+
+junhsss:
+  name: Jun Ryu
+  website:
+  avatar:
+
+nibzard:
+  name: Nikola Balic
+  website:
+  avatar:

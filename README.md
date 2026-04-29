@@ -17,7 +17,6 @@ A collection of production-ready examples demonstrating how to build powerful br
 Browse examples by your preferred language:
 
 [![TypeScript](https://skillicons.dev/icons?i=ts)](#typescript)
-[![JavaScript](https://skillicons.dev/icons?i=js)](#javascript)
 [![Python](https://skillicons.dev/icons?i=python&theme=light)](#python)
 
 Or explore the complete catalog below:
@@ -30,9 +29,9 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 
 | Example Name | Languages |
 |--------------|-----------|
-| <a id="playwright">Playwright Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-playwright-starter) [<img src="https://skillicons.dev/icons?i=js" width="24" height="24">](examples/steel-playwright-starter-js) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-playwright-python-starter) |
-| <a id="puppeteer">Puppeteer Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-puppeteer-starter) [<img src="https://skillicons.dev/icons?i=js" width="24" height="24">](examples/steel-puppeteer-starter-js) |
-| <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-selenium-starter) |
+| <a id="playwright">Playwright Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/playwright-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/playwright-py) |
+| <a id="puppeteer">Puppeteer Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/puppeteer-ts) |
+| <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/selenium) |
 
 ### AI Agents
 
@@ -44,10 +43,10 @@ Vision-based AI models that can control browsers by analyzing screenshots and ex
 
 | Example Name | Languages |
 |--------------|-----------|
-| <a id="claude-computer-use">Claude Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-claude-computer-use-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-claude-computer-use-python-starter) |
-| <a id="claude-mobile">Claude Computer Use (Mobile)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-claude-computer-use-mobile) |
-| <a id="openai-computer-use">OpenAI Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-oai-computer-use-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-oai-computer-use-python-starter) |
-| <a id="gemini-computer-use">Gemini Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-gemini-computer-use-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-gemini-computer-use-python-starter) |
+| <a id="claude-computer-use">Claude Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-computer-use-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/claude-computer-use-py) |
+| <a id="claude-mobile">Claude Computer Use (Mobile)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-computer-use-mobile) |
+| <a id="openai-computer-use">OpenAI Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/openai-computer-use-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/openai-computer-use-py) |
+| <a id="gemini-computer-use">Gemini Computer Use</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/gemini-computer-use-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/gemini-computer-use-py) |
 
 #### Agent Frameworks
 
@@ -55,17 +54,18 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 
 | Example Name | Languages |
 |--------------|-----------|
-| <a id="browser-use">Browser-use</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-browser-use-starter) |
-| <a id="stagehand">Stagehand</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-stagehand-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-stagehand-python-starter) |
-| <a id="browser-use-captcha">Browser-use + CAPTCHA Solver</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-browser-use-captcha-solver-starter) |
-| <a id="agent-kit">Inngest AgentKit</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-agent-kit-starter) |
-| <a id="magnitude">Magnitude AI Testing</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-magnitude-starter) |
-| <a id="agno">Agno</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-agno-starter) |
-| <a id="crew-ai">CrewAI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-crew-ai-starter) |
-| <a id="notte">Notte</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-notte-starter) |
-| <a id="ai-sdk">Vercel AI SDK v6</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-ai-sdk-starter) |
-| <a id="ai-sdk-nextjs">Vercel AI SDK v6 (Next.js)</a> | [<img src="https://skillicons.dev/icons?i=nextjs" width="24" height="24">](examples/steel-ai-sdk-nextjs-starter) |
-| <a id="openai-agents">OpenAI Agents SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-openai-agents-node-starter) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/steel-openai-agents-python-starter) |
+| <a id="browser-use">Browser-use</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/browser-use) |
+| <a id="stagehand">Stagehand</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/stagehand-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/stagehand-py) |
+| <a id="browser-use-captcha">Browser-use + CAPTCHA (Auto)</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/browser-use-captcha-auto) |
+| <a id="browser-use-captcha-manual">Browser-use + reCAPTCHA v2 (Manual)</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/browser-use-captcha-manual) |
+| <a id="agentkit">Inngest AgentKit</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/agentkit) |
+| <a id="magnitude">Magnitude AI Testing</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/magnitude) |
+| <a id="agno">Agno</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/agno) |
+| <a id="crewai">CrewAI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/crewai) |
+| <a id="notte">Notte</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/notte) |
+| <a id="vercel-ai-sdk">Vercel AI SDK v6</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/vercel-ai-sdk-ts) |
+| <a id="vercel-ai-sdk-nextjs">Vercel AI SDK v6 (Next.js)</a> | [<img src="https://skillicons.dev/icons?i=nextjs" width="24" height="24">](examples/vercel-ai-sdk-nextjs) |
+| <a id="openai-agents">OpenAI Agents SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/openai-agents-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/openai-agents-py) |
 
 ### Advanced Features
 
@@ -73,11 +73,11 @@ Steel platform features that enhance your browser automation workflows with pers
 
 | Feature | Example |
 |---------|---------|
-| <a id="auth-context">Auth Context Reuse</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-auth-context-starter) Reuse authentication state (cookies, local storage) across sessions |
-| <a id="profiles">Persistent Profiles</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-profiles-starter) Maintain browser state across sessions with persistent profiles |
-| <a id="credentials">Credential Management</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-credentials-starter) Securely store and automatically inject credentials |
-| <a id="extensions">Browser Extensions</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-extensions-starter) Load and use browser extensions in cloud browsers |
-| <a id="files">File Handling</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/steel-files-api-starter) Upload and download files in cloud browser sessions |
+| <a id="auth-context">Auth Context Reuse</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/auth-context) Reuse authentication state (cookies, local storage) across sessions |
+| <a id="profiles">Persistent Profiles</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/profiles) Maintain browser state across sessions with persistent profiles |
+| <a id="credentials">Credential Management</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/credentials) Securely store and automatically inject credentials |
+| <a id="extensions">Browser Extensions</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/extensions) Load and use browser extensions in cloud browsers |
+| <a id="files">File Handling</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/files-api) Upload and download files in cloud browser sessions |
 
 ---
 
@@ -86,55 +86,50 @@ Steel platform features that enhance your browser automation workflows with pers
 ### TypeScript
 
 **Basics**
-- [Playwright](examples/steel-playwright-starter) - Playwright with TypeScript and session management
-- [Puppeteer](examples/steel-puppeteer-starter) - Puppeteer with CDP connection and cloud browser automation
+- [Playwright](examples/playwright-ts) - Playwright with TypeScript and session management
+- [Puppeteer](examples/puppeteer-ts) - Puppeteer with CDP connection and cloud browser automation
 
 **AI Computer Use**
-- [Claude Computer Use](examples/steel-claude-computer-use-node-starter) - Autonomous web interactions with Claude
-- [Claude Computer Use (Mobile)](examples/steel-claude-computer-use-mobile) - Claude for mobile viewports
-- [OpenAI Computer Use](examples/steel-oai-computer-use-node-starter) - OpenAI vision-based browser control
-- [Gemini Computer Use](examples/steel-gemini-computer-use-node-starter) - Google Gemini computer use model
+- [Claude Computer Use](examples/claude-computer-use-ts) - Autonomous web interactions with Claude
+- [Claude Computer Use (Mobile)](examples/claude-computer-use-mobile) - Claude for mobile viewports
+- [OpenAI Computer Use](examples/openai-computer-use-ts) - OpenAI vision-based browser control
+- [Gemini Computer Use](examples/gemini-computer-use-ts) - Google Gemini computer use model
 
 **Agent Frameworks**
-- [Stagehand](examples/steel-stagehand-node-starter) - AI-powered browser automation with natural language
-- [Coinbase AgentKit](examples/steel-agent-kit-starter) - Multi-agent networks and web scraping
-- [Magnitude](examples/steel-magnitude-starter) - AI-powered testing framework
-- [Vercel AI SDK v6](examples/steel-ai-sdk-starter) - ToolLoopAgent with typed tools and structured output
-- [Vercel AI SDK v6 (Next.js)](examples/steel-ai-sdk-nextjs-starter) - Next.js chat app with streamText, useChat, and an embedded Live View
-- [OpenAI Agents SDK](examples/steel-openai-agents-node-starter) - Agent with tool() + Zod outputType for structured final answers
+- [Stagehand](examples/stagehand-ts) - AI-powered browser automation with natural language
+- [Inngest AgentKit](examples/agentkit) - Multi-agent networks and web scraping
+- [Magnitude](examples/magnitude) - AI-powered testing framework
+- [Vercel AI SDK v6](examples/vercel-ai-sdk-ts) - ToolLoopAgent with typed tools and structured output
+- [Vercel AI SDK v6 (Next.js)](examples/vercel-ai-sdk-nextjs) - Next.js chat app with streamText, useChat, and an embedded Live View
+- [OpenAI Agents SDK](examples/openai-agents-ts) - Agent with tool() + Zod outputType for structured final answers
 
 **Advanced Features**
-- [Auth Context](examples/steel-auth-context-starter) - Reuse authentication across sessions
-- [Profiles](examples/steel-profiles-starter) - Persistent browser profiles
-- [Credentials](examples/steel-credentials-starter) - Credential management and injection
-- [Extensions](examples/steel-extensions-starter) - Browser extension support
-- [Files API](examples/steel-files-api-starter) - File upload and download handling
-
-### JavaScript
-
-**Basics**
-- [Playwright (JS)](examples/steel-playwright-starter-js) - Playwright with vanilla JavaScript
-- [Puppeteer (JS)](examples/steel-puppeteer-starter-js) - Puppeteer with vanilla JavaScript
+- [Auth Context](examples/auth-context) - Reuse authentication across sessions
+- [Profiles](examples/profiles) - Persistent browser profiles
+- [Credentials](examples/credentials) - Credential management and injection
+- [Extensions](examples/extensions) - Browser extension support
+- [Files API](examples/files-api) - File upload and download handling
 
 ### Python
 
 **Basics**
-- [Playwright](examples/steel-playwright-python-starter) - Playwright with Python
-- [Selenium](examples/steel-selenium-starter) - Selenium WebDriver integration
+- [Playwright](examples/playwright-py) - Playwright with Python
+- [Selenium](examples/selenium) - Selenium WebDriver integration
 
 **AI Computer Use**
-- [Claude Computer Use](examples/steel-claude-computer-use-python-starter) - Autonomous browser control with Claude
-- [OpenAI Computer Use](examples/steel-oai-computer-use-python-starter) - OpenAI computer use agent
-- [Gemini Computer Use](examples/steel-gemini-computer-use-python-starter) - Google Gemini integration
+- [Claude Computer Use](examples/claude-computer-use-py) - Autonomous browser control with Claude
+- [OpenAI Computer Use](examples/openai-computer-use-py) - OpenAI computer use agent
+- [Gemini Computer Use](examples/gemini-computer-use-py) - Google Gemini integration
 
 **Agent Frameworks**
-- [Stagehand](examples/steel-stagehand-python-starter) - Stagehand with Python
-- [Browser-use](examples/steel-browser-use-starter) - Browser-use agent framework
-- [Browser-use + CAPTCHA](examples/steel-browser-use-captcha-solver-starter) - Browser-use with CAPTCHA solving
-- [Agno](examples/steel-agno-starter) - Agno toolkit-based automation
-- [CrewAI](examples/steel-crew-ai-starter) - Multi-agent collaboration framework
-- [Notte](examples/steel-notte-starter) - Notte browser agent framework
-- [OpenAI Agents SDK](examples/steel-openai-agents-python-starter) - Agent with @function_tool + Pydantic output_type
+- [Stagehand](examples/stagehand-py) - Stagehand with Python
+- [Browser-use](examples/browser-use) - Browser-use agent framework
+- [Browser-use + CAPTCHA (Auto)](examples/browser-use-captcha-auto) - Browser-use with automatic CAPTCHA solving
+- [Browser-use + reCAPTCHA v2 (Manual)](examples/browser-use-captcha-manual) - Manual reCAPTCHA v2 workflow
+- [Agno](examples/agno) - Agno toolkit-based automation
+- [CrewAI](examples/crewai) - Multi-agent collaboration framework
+- [Notte](examples/notte) - Notte browser agent framework
+- [OpenAI Agents SDK](examples/openai-agents-py) - Agent with @function_tool + Pydantic output_type
 
 ---
 
@@ -151,7 +146,7 @@ cd steel-cookbook/examples/<example-name>
 
 ### 2. Install Dependencies
 
-**TypeScript/JavaScript:**
+**TypeScript:**
 ```bash
 npm install
 # or
@@ -160,11 +155,9 @@ yarn install
 pnpm install
 ```
 
-**Python:**
+**Python:** ([install `uv`](https://docs.astral.sh/uv/getting-started/installation/) first)
 ```bash
-pip install -r requirements.txt
-# or with pyproject.toml
-pip install -e .
+uv sync
 ```
 
 ### 3. Configure Environment
@@ -186,14 +179,9 @@ npm start
 npx tsx index.ts
 ```
 
-**JavaScript:**
-```bash
-node index.js
-```
-
 **Python:**
 ```bash
-python main.py
+uv run main.py
 ```
 
 Refer to each example's README for specific requirements and advanced configuration options.

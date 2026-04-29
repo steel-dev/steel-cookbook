@@ -1,3 +1,0 @@
-steel-sdk>=0.17.0
-anthropic>=0.96.0
-python-dotenv>=1.0.0
