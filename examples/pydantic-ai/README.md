@@ -1,6 +1,6 @@
 # Pydantic AI Starter (Python)
 
-[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. The model identifier is a string (`'openai:gpt-5-mini'`, `'anthropic:claude-sonnet-4-6'`, `'google-gla:gemini-2.5-flash'`), tools are plain async functions, and `output_type=` validates the final answer with the same Pydantic you'd already use to validate API responses. No new schema layer to learn.
+[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. It's provider-agnostic and reuses the Pydantic models you'd already validate API I/O with for tool arguments and final outputs, so an agent slots into a typed Python codebase without a parallel schema layer.
 
 This starter wires a Steel browser into Pydantic AI's dependency-injection pattern and points the agent at GitHub Trending.
 
