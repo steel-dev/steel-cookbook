@@ -1,0 +1,12 @@
+[project]
+name = "claude-agent-sdk-py"
+version = "0.1.0"
+description = "Build a browser agent with the Claude Agent SDK and Steel"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-agent-sdk>=0.1.71",
+    "playwright>=1.48.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.17.0",
+]

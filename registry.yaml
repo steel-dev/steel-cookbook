@@ -180,6 +180,26 @@
   created: "2025-11-25"
   updated: "2026-04-24"
 
+- title: Build a browser agent with the Claude Agent SDK
+  slug: claude-agent-sdk
+  path: examples/claude-agent-sdk-ts
+  description: Use Steel with the Claude Agent SDK (TypeScript) to build a tool-using browser agent on Anthropic's first-party agent loop.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Agents]
+  created: "2026-04-29"
+  updated: "2026-04-29"
+
+- title: Build a browser agent with the Claude Agent SDK
+  slug: claude-agent-sdk
+  path: examples/claude-agent-sdk-py
+  description: Use Steel with the Claude Agent SDK (Python) to build a tool-using browser agent on Anthropic's first-party agent loop.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents]
+  created: "2026-04-29"
+  updated: "2026-04-29"
+
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
   path: examples/openai-agents-ts
