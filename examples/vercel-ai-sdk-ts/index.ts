@@ -30,10 +30,7 @@ const openSession = tool({
   inputSchema: z.object({}),
   execute: async () => {
     const t0 = Date.now();
-    session = await steel.sessions.create(
-      {},
-      { headers: { "x-prefer-region": 0 } },
-    );
+    session = await steel.sessions.create();
     const tSession = Date.now() - t0;
     browser = await chromium.connectOverCDP(
       `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,

@@ -121,7 +121,7 @@ async def main():
 
         print("Extracting top stories using AI...")
 
-        extract_stream = stagehand.sessions.extract(
+        extract_stream = await stagehand.sessions.extract(
             id=session_id,
             instruction="Extract the titles and ranks of the first 5 stories on the page",
             schema=STORY_SCHEMA,
@@ -137,9 +137,9 @@ async def main():
         print("\nNavigating to HN's 'new' section via a natural-language click...")
 
         try:
-            act_stream = stagehand.sessions.act(
+            act_stream = await stagehand.sessions.act(
                 id=session_id,
-                instruction="click the 'new' link in the top navigation",
+                input="click the 'new' link in the top navigation",
                 stream_response=True,
                 x_stream_response="true",
             )

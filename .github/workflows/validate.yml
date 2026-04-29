@@ -53,6 +53,17 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: npm i --no-fund --no-audit
 
+      - name: Detect Next.js
+        if: matrix.kind == 'node'
+        id: nextjs
+        working-directory: ${{ matrix.dir }}
+        run: |
+          if compgen -G "next.config.*" > /dev/null; then
+            echo "is_nextjs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_nextjs=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build env from .env.example
         working-directory: ${{ matrix.dir }}
         env:
@@ -82,7 +93,7 @@ jobs:
           if [ -s .env.selected ]; then cut -d '=' -f 1 .env.selected; else echo "(none)"; fi
 
       - name: Precheck (node no-env)
-        if: matrix.kind == 'node'
+        if: matrix.kind == 'node' && steps.nextjs.outputs.is_nextjs != 'true'
         working-directory: ${{ matrix.dir }}
         run: |
           if env -u STEEL_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY npm run -s start; then
@@ -93,7 +104,7 @@ jobs:
           fi
 
       - name: Start (node)
-        if: matrix.kind == 'node'
+        if: matrix.kind == 'node' && steps.nextjs.outputs.is_nextjs != 'true'
         working-directory: ${{ matrix.dir }}
         run: |
           set -euo pipefail
@@ -102,6 +113,11 @@ jobs:
           [ -f .env.selected ] && . .env.selected
           set +a
           npm run -s start
+
+      - name: Build (Next.js)
+        if: matrix.kind == 'node' && steps.nextjs.outputs.is_nextjs == 'true'
+        working-directory: ${{ matrix.dir }}
+        run: npm run -s build
 
       - name: Install uv
         if: matrix.kind == 'python'

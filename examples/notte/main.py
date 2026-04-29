@@ -20,18 +20,25 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 # Replace with your own task
 TASK = os.getenv("TASK") or "Go to Wikipedia and search for machine learning"
 
+
 async def main():
     print("Steel + Notte Assistant")
     print("=" * 60)
 
     if STEEL_API_KEY == "your-steel-api-key-here":
-        print("WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key")
+        print(
+            "WARNING: Please replace 'your-steel-api-key-here' with your actual Steel API key"
+        )
         print("   Get your API key at: https://app.steel.dev/settings/api-keys")
         sys.exit(1)
 
     if GEMINI_API_KEY == "your-gemini-api-key-here":
-        print("WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key")
-        print("   Get your API key at: https://console.cloud.google.com/apis/credentials")
+        print(
+            "WARNING: Please replace 'your-gemini-api-key-here' with your actual Gemini API key"
+        )
+        print(
+            "   Get your API key at: https://console.cloud.google.com/apis/credentials"
+        )
         sys.exit(1)
 
     print("\nStarting Steel browser session...")
@@ -53,11 +60,11 @@ async def main():
         print("=" * 60)
 
         try:
-            with notte.Session(cdp_url=cdp_url) as notte_session:
+            with notte.Session(cdp_url=cdp_url, headless=True) as notte_session:
                 agent = notte.Agent(
                     session=notte_session,
                     max_steps=5,
-                    reasoning_model="gemini/gemini-2.5-flash"
+                    reasoning_model="gemini/gemini-2.5-flash",
                 )
                 response = agent.run(task=TASK)
 

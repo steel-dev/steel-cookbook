@@ -232,15 +232,12 @@ class SteelBrowser {
   }
 
   async initialize(): Promise<void> {
-    const sessionParams = {
-      apiTimeout: 900000,
-      solveCaptcha: false,
+    this.session = await this.client.sessions.create({
+      timeout: 900000,
       deviceConfig: {
         device: "mobile",
       },
-    };
-
-    this.session = await this.client.sessions.create(sessionParams);
+    });
     console.log("Steel Session created successfully!");
     console.log(`View live session at: ${this.session.sessionViewerUrl}`);
 
@@ -920,9 +917,7 @@ class ClaudeAgent {
     }
 
     if (iterations >= maxIterations) {
-      console.warn(
-        `Task execution stopped after ${maxIterations} iterations`,
-      );
+      console.warn(`Task execution stopped after ${maxIterations} iterations`);
     }
 
     return finalText || "Task execution completed (no final message)";
