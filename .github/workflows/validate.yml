@@ -103,38 +103,25 @@ jobs:
           set +a
           npm run -s start
 
-      - name: Python setup
+      - name: Install uv
         if: matrix.kind == 'python'
-        uses: actions/setup-python@v5
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.11"
-
-      - name: Cache pip
-        if: matrix.kind == 'python'
-        id: pip-cache
-        run: echo "dir=$(python -m pip cache dir)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@v4
-        if: matrix.kind == 'python'
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: pip-${{ runner.os }}-${{ hashFiles(format('{0}/requirements.txt', matrix.dir)) }}
-          restore-keys: pip-${{ runner.os }}-
+          enable-cache: true
+          cache-dependency-glob: |
+            ${{ matrix.dir }}/uv.lock
+            ${{ matrix.dir }}/pyproject.toml
 
       - name: Install (python)
         if: matrix.kind == 'python'
         working-directory: ${{ matrix.dir }}
-        run: |
-          python -m venv .venv
-          . .venv/bin/activate
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        run: uv sync
 
       - name: Precheck (python no-env)
         if: matrix.kind == 'python'
         working-directory: ${{ matrix.dir }}
         run: |
-          . .venv/bin/activate
-          if env -u STEEL_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY python main.py; then
+          if env -u STEEL_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY uv run python main.py; then
             echo "Expected failure when API keys are missing";
             exit 1;
           else
@@ -146,9 +133,8 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: |
           set -euo pipefail
-          . .venv/bin/activate
           if [ -f .env.selected ]; then echo "Using $(wc -l < .env.selected) env vars from .env.example"; fi
           set -a
           [ -f .env.selected ] && . .env.selected
           set +a
-          if [ -f main.py ]; then python main.py; else echo "missing main.py"; exit 1; fi
+          if [ -f main.py ]; then uv run python main.py; else echo "missing main.py"; exit 1; fi
