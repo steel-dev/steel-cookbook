@@ -60,6 +60,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="browser-use-captcha-manual">Browser-use + reCAPTCHA v2 (Manual)</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/browser-use-captcha-manual) |
 | <a id="agentkit">Inngest AgentKit</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/agentkit) |
 | <a id="magnitude">Magnitude AI Testing</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/magnitude) |
+| <a id="mastra">Mastra</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/mastra) |
 | <a id="agno">Agno</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/agno) |
 | <a id="crewai">CrewAI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/crewai) |
 | <a id="notte">Notte</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/notte) |
@@ -101,6 +102,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Stagehand](examples/stagehand-ts) - AI-powered browser automation with natural language
 - [Inngest AgentKit](examples/agentkit) - Multi-agent networks and web scraping
 - [Magnitude](examples/magnitude) - AI-powered testing framework
+- [Mastra](examples/mastra) - Typed agents with the Mastra Model Router and Studio playground
 - [Vercel AI SDK v6](examples/vercel-ai-sdk-ts) - ToolLoopAgent with typed tools and structured output
 - [Vercel AI SDK v6 (Next.js)](examples/vercel-ai-sdk-nextjs) - Next.js chat app with streamText, useChat, and an embedded Live View
 - [OpenAI Agents SDK](examples/openai-agents-ts) - Agent with tool() + Zod outputType for structured final answers

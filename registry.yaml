@@ -270,6 +270,16 @@
   created: "2025-09-05"
   updated: "2026-04-24"
 
+- title: Build a typed browser agent with Mastra
+  slug: mastra
+  path: examples/mastra
+  description: Use Steel with Mastra to build a typed browser agent with the Mastra Model Router and Studio playground.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Agents, Typed output]
+  created: "2026-04-29"
+  updated: "2026-04-29"
+
 - title: Build a browser agent with Agno
   slug: agno
   path: examples/agno
