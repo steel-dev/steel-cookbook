@@ -1,5 +1,5 @@
 [project]
-name = "crewai"
+name = "crewai-example"
 version = "0.1.0"
 description = "Steel + CrewAI: a multi-agent research/report crew backed by Steel's scrape API"
 readme = "README.md"

@@ -1,5 +1,5 @@
 [project]
-name = "agno"
+name = "agno-example"
 version = "0.1.0"
 description = "Steel + Agno: a web-scraping agent using a Steel-powered Playwright toolkit"
 readme = "README.md"

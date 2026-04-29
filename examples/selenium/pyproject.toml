@@ -1,5 +1,5 @@
 [project]
-name = "selenium"
+name = "selenium-example"
 version = "0.1.0"
 description = "Steel + Selenium: drive a cloud browser through the WebDriver protocol"
 readme = "README.md"
