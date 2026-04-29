@@ -30,7 +30,10 @@ const openSession = tool({
   inputSchema: z.object({}),
   execute: async () => {
     const t0 = Date.now();
-    session = await steel.sessions.create({});
+    session = await steel.sessions.create(
+      {},
+      { headers: { "x-prefer-region": 0 } },
+    );
     const tSession = Date.now() - t0;
     browser = await chromium.connectOverCDP(
       `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
@@ -38,9 +41,7 @@ const openSession = tool({
     const tCdp = Date.now() - t0 - tSession;
     const ctx = browser.contexts()[0];
     page = ctx.pages()[0] ?? (await ctx.newPage());
-    console.log(
-      `    openSession: session=${tSession}ms cdp=${tCdp}ms`,
-    );
+    console.log(`    openSession: session=${tSession}ms cdp=${tCdp}ms`);
     return {
       sessionId: session.id,
       liveViewUrl: session.sessionViewerUrl,
@@ -149,9 +150,10 @@ const extract = tool({
         fields: { name: string; selector: string; attr?: string }[];
         limit: number;
       }) => {
-        const rows = Array.from(
-          document.querySelectorAll(rowSelector),
-        ).slice(0, limit);
+        const rows = Array.from(document.querySelectorAll(rowSelector)).slice(
+          0,
+          limit,
+        );
         return rows.map((row) => {
           const item: Record<string, string> = {};
           for (const f of fields) {
@@ -165,7 +167,8 @@ const extract = tool({
             if (f.attr) {
               item[f.name] = (el.getAttribute(f.attr) ?? "").trim();
             } else {
-              const text = (el as HTMLElement).innerText ?? el.textContent ?? "";
+              const text =
+                (el as HTMLElement).innerText ?? el.textContent ?? "";
               item[f.name] = text.trim();
             }
           }
