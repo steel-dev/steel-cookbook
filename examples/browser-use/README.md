@@ -23,8 +23,7 @@ result = await agent.run()
 ```bash
 cd examples/browser-use
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). A session viewer URL prints as the script starts. Open it in another tab to watch the agent click through the task in real time.

@@ -8,7 +8,7 @@ higher level; this file covers the specifics agents tend to miss.
 
 Every recipe is a folder under `examples/<slug>/`. The slug is
 lowercase-with-hyphens, no `steel-` prefix. A recipe is self-contained:
-its own `package.json` or `requirements.txt`, a `.env.example`, one or
+its own `package.json` or `pyproject.toml`, a `.env.example`, one or
 two source files, a `LICENSE` (must match the root `LICENSE` exactly),
 and a `README.md`.
 

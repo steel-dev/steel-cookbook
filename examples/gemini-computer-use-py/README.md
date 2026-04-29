@@ -126,8 +126,7 @@ Edit when you add site-specific knowledge. Don't strip the typing and black-scre
 ```bash
 cd examples/gemini-computer-use-py
 cp .env.example .env          # set STEEL_API_KEY and GEMINI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Steel keys live at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). Gemini keys come from [aistudio.google.com/apikey](https://aistudio.google.com/apikey). The script prints a session viewer URL as soon as the Steel session is up. Open it in another tab to watch Gemini drive the browser. Every function call prints as `click_at({...})` or `type_text_at({...})` so you can follow along.

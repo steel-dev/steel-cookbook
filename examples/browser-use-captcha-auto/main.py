@@ -121,7 +121,7 @@ async def wait_for_captcha_solution() -> str:
         now = time.monotonic()
         if now > end_deadline:
             duration_ms = int((now - start) * 1000)
-            return f"⏱️ Timeout: CAPTCHA was not solved within {duration_ms}ms. Please try again or check the page."
+            return f"Timeout: CAPTCHA was not solved within {duration_ms}ms. Please try again or check the page."
 
         try:
             # Get CAPTCHA status from Steel

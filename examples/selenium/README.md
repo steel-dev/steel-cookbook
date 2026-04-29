@@ -41,10 +41,8 @@ From here, `driver.get(...)`, `WebDriverWait`, `By.CLASS_NAME`, and `find_elemen
 
 ```bash
 cd examples/selenium
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
 cp .env.example .env          # set STEEL_API_KEY
-python main.py
+uv run main.py
 ```
 
 Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the browser run live.

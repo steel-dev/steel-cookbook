@@ -74,8 +74,7 @@ These aren't decorative; they're the difference between "works most of the time"
 ```bash
 cd examples/claude-computer-use-py
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [console.anthropic.com](https://console.anthropic.com/). The script prints a session viewer URL as soon as the Steel session is up. Open it in another tab to watch Claude drive the browser live. Each tool call also prints as `computer({...})` so you can follow along in the terminal.

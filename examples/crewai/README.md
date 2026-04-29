@@ -67,9 +67,7 @@ def crew(self) -> CrewAI:
 ```bash
 cd examples/crewai
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). Default `TASK` is `"Research AI LLMs and summarize key developments"`; override via the `TASK` env var or edit `main.py`.

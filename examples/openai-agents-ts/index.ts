@@ -126,7 +126,7 @@ const extract = tool({
   execute: async ({ rowSelector, fields, limit }) => {
     if (!page) throw new Error("open_session must be called first.");
     const t0 = Date.now();
-    // Batch the extraction inside one page.evaluate — serial CDP calls on a
+    // Batch the extraction inside one page.evaluate. Serial CDP calls on a
     // cloud browser are ~200-300ms each, so N*M round-trips burns seconds.
     const items = (await page.evaluate(
       ({

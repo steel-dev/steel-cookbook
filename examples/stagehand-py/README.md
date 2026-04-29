@@ -107,8 +107,7 @@ Phrase instructions the way you'd describe the action to a person: "click the 'A
 ```bash
 cd examples/stagehand-py
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch Stagehand work.

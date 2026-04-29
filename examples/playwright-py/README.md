@@ -21,10 +21,8 @@ Two Python-specific details worth calling out. First, this starter uses the **sy
 
 ```bash
 cd examples/playwright-py
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
 cp .env.example .env          # set STEEL_API_KEY
-python main.py
+uv run main.py
 ```
 
 Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). As the script boots it prints a session viewer URL. Open it in a second tab to watch the browser click through Hacker News in real time.

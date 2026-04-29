@@ -1,3 +1,0 @@
-steel-sdk>=0.16.0
-stagehand>=3.19,<4
-python-dotenv>=1.0.0

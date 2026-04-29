@@ -29,8 +29,7 @@ The `TASK` string closes the loop. It tells the agent to navigate, call `wait_fo
 ```bash
 cd examples/browser-use-captcha-auto
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The default `TASK` points at a public reCAPTCHA v2 checkbox demo so you can verify the flow end-to-end without touching a real target.

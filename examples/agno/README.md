@@ -71,9 +71,7 @@ When `_initialize_browser` fires, it calls `sync_playwright().start()`, connects
 ```bash
 cd examples/agno
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The default task scrapes [quotes.toscrape.com](https://quotes.toscrape.com) across two pages.
@@ -123,4 +121,4 @@ finally:
 
 ## Related
 
-[Agno docs](https://docs.agno.com) · [Steel sessions API](https://app.steel.dev)
+[Agno docs](https://docs.agno.com) · [Agno on GitHub](https://github.com/agno-agi/agno)

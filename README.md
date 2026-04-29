@@ -155,11 +155,9 @@ yarn install
 pnpm install
 ```
 
-**Python:**
+**Python:** ([install `uv`](https://docs.astral.sh/uv/getting-started/installation/) first)
 ```bash
-pip install -r requirements.txt
-# or with pyproject.toml
-pip install -e .
+uv sync
 ```
 
 ### 3. Configure Environment
@@ -183,7 +181,7 @@ npx tsx index.ts
 
 **Python:**
 ```bash
-python main.py
+uv run main.py
 ```
 
 Refer to each example's README for specific requirements and advanced configuration options.

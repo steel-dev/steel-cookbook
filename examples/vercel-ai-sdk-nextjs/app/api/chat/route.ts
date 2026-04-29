@@ -177,7 +177,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ sessionId, rowSelector, fields, limit }) => {
           const { page } = getSession(sessionId);
-          // Batch the whole extraction inside one page.evaluate — serial
+          // Batch the whole extraction inside one page.evaluate. Serial
           // CDP calls (row.$, el.getAttribute, el.innerText) are the single
           // biggest source of latency on a cloud browser.
           const items = (await page.evaluate(

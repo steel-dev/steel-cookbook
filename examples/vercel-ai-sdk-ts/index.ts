@@ -182,8 +182,8 @@ const extract = tool({
 // A "final tool" pattern: the agent calls `reportFindings` last with the
 // Zod-typed result. The tool has no `execute`, so v6 stops the loop as soon
 // as it's called. The structured output is the tool call's `input`.
-// (We can't use `output: Output.object(...)` alongside tools on Anthropic —
-// the provider forces JSON-only mode and disables tool calls.)
+// (We can't use `output: Output.object(...)` alongside tools on Anthropic.
+// The provider forces JSON-only mode and disables tool calls.)
 const reportFindings = tool({
   description:
     "Call this LAST with your final findings. Calling this ends the research.",

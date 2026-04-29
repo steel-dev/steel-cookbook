@@ -84,9 +84,8 @@ Some providers force JSON-only mode when you request structured output. OpenAI l
 ```bash
 cd examples/openai-agents-py
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-playwright install chromium
-python main.py
+uv run playwright install chromium
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). Each tool call prints its latency so you can see where time is going.

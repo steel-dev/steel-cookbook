@@ -35,7 +35,7 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   - Before acting, take a screenshot to observe state.
   - When typing into any input:
     * Clear with Ctrl+A, then Delete.
-    * After submitting (Enter or clicking a button), call wait(1–2s) once, then take a single screenshot and move the mouse aside.
+    * After submitting (Enter or clicking a button), call wait(1-2s) once, then take a single screenshot and move the mouse aside.
     * Do not press Enter repeatedly. If the page state doesn't change after submit+wait+screenshot, change strategy (e.g., focus address bar with Ctrl+L, type the full URL, press Enter once).
   - Computer calls are slow; batch related actions together.
   - Zoom out or scroll so all relevant content is visible before reading.

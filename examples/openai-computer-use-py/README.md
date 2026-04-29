@@ -109,8 +109,7 @@ These rules exist because the model will happily rage-click the same input six t
 ```bash
 cd examples/openai-computer-use-py
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The script prints a session viewer URL as soon as the Steel session is up. Open it in another tab to watch the browser run live. Every reasoning summary and action also prints in the terminal so you can follow along.

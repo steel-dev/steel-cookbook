@@ -138,9 +138,11 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task. Cost i
 ## Make it yours
 
 - **Change the viewport.** `viewportWidth` and `viewportHeight` in the `Agent` constructor set the Steel session `dimensions`. Unlike Anthropic's tool, OpenAI's computer declaration takes no display size, so the model infers resolution from each screenshot. Resize freely.
+- **Swap the model.** The default is `gpt-5.5`. Any Responses-API computer-use model works; update `this.model` in the `Agent` constructor.
 - **Tune reasoning effort.** `reasoning: { effort: "medium" }` in `createResponse` trades latency for planning quality. `"low"` is faster and cheaper; `"high"` is slower and more deliberate on ambiguous pages.
 - **Rewrite the system prompt.** `BROWSER_SYSTEM_PROMPT` holds the browsing conventions: today's date injection, clear-input-before-typing, black-screen recovery. Edit it to match your site or workflow.
-- **Hand off auth.** Computer use can act on any page the browser is already logged into. Pair this recipe with Steel's [credentials](../credentials) or [auth contexts](../auth-context) to start the session authenticated.
+- **Persist a login.** Pass `sessionContext` to `sessions.create` to resume with cookies and local storage from a previous run; the model skips the login flow. See [credentials](../credentials) and [auth-context](../auth-context) for the pattern.
+- **Turn off auto-ack.** Flip `autoAcknowledgeSafety` to `false` to make pending safety checks raise instead of being silently accepted. Useful when wiring this into a human-in-the-loop setup.
 
 ## Related
 

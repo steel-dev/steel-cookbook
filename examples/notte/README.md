@@ -32,9 +32,7 @@ with notte.Session(cdp_url=cdp_url) as notte_session:
 ```bash
 cd examples/notte
 cp .env.example .env          # set STEEL_API_KEY and GEMINI_API_KEY
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [aistudio.google.com](https://aistudio.google.com/app/apikey). The session viewer URL prints as the script starts. Open it in another tab to watch the agent drive the page.

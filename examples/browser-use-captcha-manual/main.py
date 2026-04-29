@@ -66,9 +66,9 @@ def _log_task_status(task: Dict[str, Any], page_url: str) -> None:
 
     print(f"\n   Page: {page_url}")
     print(f"   Task status: {status}")
-    print(f"   🆔 Task ID: {task_id}")
+    print(f"   Task ID: {task_id}")
     if duration:
-        print(f"   ⏱️  Duration: {duration}ms")
+        print(f"   Duration: {duration}ms")
 
 
 @tools.action(
@@ -220,7 +220,7 @@ async def solve_recaptcha_v2_manual() -> str:
 
         if attempt == MAX_POLL_ATTEMPTS:
             elapsed = time.monotonic() - start
-            print(f"\n⏰ Timeout after {elapsed:.1f}s — CAPTCHA not solved.")
+            print(f"\nTimeout after {elapsed:.1f}s. CAPTCHA not solved.")
             return (
                 f"Timeout: reCAPTCHA v2 was not solved within {MAX_POLL_ATTEMPTS} attempts "
                 f"({elapsed:.1f}s). Check the session viewer for details."
@@ -241,7 +241,7 @@ TASK = f"""
 1. Open the following pages in separate tabs:
 {_page_list}
 2. Wait for each page to load completely.
-3. You will see different CAPTCHA challenges on these pages. Use the solve_recaptcha_v2_manual tool — it will poll for all CAPTCHA tasks but only solve the reCAPTCHA v2 one.
+3. You will see different CAPTCHA challenges on these pages. Use the solve_recaptcha_v2_manual tool. It will poll for all CAPTCHA tasks but only solve the reCAPTCHA v2 one.
 4. After the tool reports the reCAPTCHA v2 is solved, go to the Google reCAPTCHA v2 demo tab and click the "Submit" button.
 5. Report the result shown on the page after submission.
 """
@@ -309,7 +309,7 @@ async def main() -> None:
         print("\n" + "=" * 60)
         print("TASK EXECUTION COMPLETED")
         print("=" * 60)
-        print(f"⏱️  Duration: {duration:.1f}s")
+        print(f"Duration: {duration:.1f}s")
         if result:
             print(f"Result:\n{result}")
         print("=" * 60)

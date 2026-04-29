@@ -1,0 +1,11 @@
+[project]
+name = "openai-computer-use-py"
+version = "0.1.0"
+description = "Steel + OpenAI Computer Use: drive a cloud browser with OpenAI's Responses-API computer-use model"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.0",
+    "steel-sdk>=0.17.0",
+]

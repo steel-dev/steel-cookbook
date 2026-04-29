@@ -66,8 +66,7 @@ The tool tracks reCAPTCHA v2 task IDs in `detected_recaptcha_v2`, then for each 
 ```bash
 cd examples/browser-use-captcha-manual
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-pip install -r requirements.txt
-python main.py
+uv run main.py
 ```
 
 Keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The session viewer URL prints as the script starts. Open it in another tab to watch the reCAPTCHA checkbox tick over in real time.

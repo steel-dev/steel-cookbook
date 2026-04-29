@@ -24,7 +24,7 @@ examples/
 └── your-slug/
     ├── README.md
     ├── src/ (or a single .py file for Python)
-    ├── package.json (or requirements.txt / pyproject.toml)
+    ├── package.json (TypeScript) or pyproject.toml (Python)
     └── .env.example
 ```
 
