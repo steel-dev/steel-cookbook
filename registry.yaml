@@ -250,6 +250,16 @@
   created: "2026-04-23"
   updated: "2026-04-24"
 
+- title: Build a typed browser agent with LangGraph
+  slug: langgraph
+  path: examples/langgraph
+  description: Use Steel with LangGraph to build a typed browser agent with an explicit state-machine loop and a structured-output formatter node.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents, Typed output]
+  created: "2026-04-29"
+  updated: "2026-04-29"
+
 - title: Build a multi-agent browser workflow with CrewAI
   slug: crewai
   path: examples/crewai
