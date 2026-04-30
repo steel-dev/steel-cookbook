@@ -6,8 +6,6 @@ Magnitude grew out of end-to-end testing and kept the bias: an agent loop that n
 - `agent.act(instruction)`: describe an interaction in natural language. The agent plans, clicks, types, retries.
 - `agent.stop()`: flush and tear down. Pair with `client.sessions.release()` in a `finally`.
 
-Steel supplies the browser over CDP, so Magnitude never launches its own Chromium:
-
 ```typescript
 const agent = await startBrowserAgent({
   url: "https://github.com/steel-dev/leaderboard",
@@ -26,13 +24,13 @@ const agent = await startBrowserAgent({
 });
 ```
 
-`browser.cdp` is the whole wiring. Magnitude attaches to the context Steel hands back instead of spawning a local browser. `narrate: true` streams a log of what the agent is doing between screenshot turns, which is the setting worth leaving on while you tune prompts. The `url` option does the first navigation for you, so there is no separate `goto` call in `main()`.
+`browser.cdp` is the whole wiring. `narrate: true` streams a log of what the agent is doing between screenshot turns. The `url` option does the first navigation, so there is no separate `goto` call in `main()`.
 
 ## What the demo does
 
-`main()` in `index.ts` walks a three-step flow against Steel's public leaderboard repo:
+`main()` walks a three-step flow against Steel's public leaderboard repo:
 
-1. Extract the user behind the most recent commit, against a small Zod schema:
+1. Extract the user behind the most recent commit:
 
 ```typescript
 const mostRecentCommitter = await agent.extract(
@@ -44,9 +42,7 @@ const mostRecentCommitter = await agent.extract(
 );
 ```
 
-The schema is the contract. Magnitude constrains the model's output against it, and the returned value is typed at the call site. Swap the shape for any read problem: forms, invoices, tables, search results.
-
-2. Act to open the pull request that produced that commit. No selector, no URL; the agent reads the page, finds the link, clicks it:
+2. Act to open the pull request that produced that commit:
 
 ```typescript
 await agent.act(
@@ -54,9 +50,9 @@ await agent.act(
 );
 ```
 
-3. Extract a prose summary of what the PR changed. Same `extract` shape, different schema.
+3. Extract a prose summary of what the PR changed.
 
-The `act` call sits in `try / catch` because the leaderboard head commit is not always tied to a merged PR. When it is not, Magnitude throws and the script logs "No pull request found or accessible" and moves on. Worth copying that pattern for any step that depends on page state you cannot guarantee.
+The `act` call sits in `try / catch` because the leaderboard head commit is not always tied to a merged PR.
 
 ## Run it
 
@@ -67,7 +63,7 @@ npm install
 npm start
 ```
 
-Steel keys live at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys); Anthropic keys at [console.anthropic.com](https://console.anthropic.com/). The script prints a session viewer URL on boot. Open it in another tab to watch Magnitude drive the page.
+Steel keys live at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys); Anthropic keys at [console.anthropic.com](https://console.anthropic.com/).
 
 Your output varies. Structure looks like this:
 
@@ -99,15 +95,13 @@ Releasing Steel session...
 Steel session released successfully
 ```
 
-A full run takes ~45 seconds; most of that is Claude picking actions. You pay for a minute or two of Steel session time plus a handful of Anthropic tokens per `act` / `extract` call. Each agent turn consumes a screenshot, so the bill grows with the number of steps, not the length of the page.
-
-The `finally` block stops the agent first, then releases the session. Reverse that order and Magnitude can try to screenshot a browser Steel already tore down.
+A full run takes ~45 seconds. The `finally` block stops the agent first, then releases the session. Reverse that order and Magnitude can try to screenshot a browser Steel already tore down.
 
 ## Make it yours
 
-- **Swap the schema and prompt.** `extract()` is schema-driven: forms, tables, invoices, search results. Change the Zod shape and the instruction; everything else holds.
-- **Chain `act` calls for multi-step flows.** Login, filter, paginate, export. Each step is one natural-language instruction; errors are catchable per step, like the PR lookup here.
-- **Switch models.** `llm.provider` accepts `"anthropic"` (used here) among others. Point `model` and `apiKey` at a different provider in `startBrowserAgent()` and the rest of the script stays put.
+- **Swap the schema and prompt.** `extract()` is schema-driven: forms, tables, invoices, search results.
+- **Chain `act` calls for multi-step flows.** Login, filter, paginate, export. Each step is one natural-language instruction.
+- **Switch models.** `llm.provider` accepts `"anthropic"` (used here) among others. Point `model` and `apiKey` at a different provider in `startBrowserAgent()`.
 - **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `sessionTimeout` in `client.sessions.create()` for sites with anti-bot.
 
 ## Related

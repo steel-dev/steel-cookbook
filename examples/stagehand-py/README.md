@@ -5,7 +5,7 @@ Stagehand v3 ships two LLM-backed primitives that replace CSS selectors with nat
 - `sessions.extract(instruction, schema)`: describe what you want, pass a JSON schema, get structured data back.
 - `sessions.act(instruction)`: describe an action, Stagehand decides whether to click, type, or scroll.
 
-Both run inside an embedded local Stagehand server that drives a Steel-hosted Chrome over CDP. You get the reasoning (Stagehand), the browser (Steel, with stealth, proxies, live viewer), and the Python async story tying them together.
+Both run inside an embedded local Stagehand server that drives a Steel-hosted Chrome over CDP.
 
 ```python
 stagehand = AsyncStagehand(
@@ -26,13 +26,9 @@ stagehand_session = await stagehand.sessions.start(
 session_id = stagehand_session.data.session_id
 ```
 
-`server="local"` boots an embedded Stagehand server in-process. `browser.type="local"` with a `cdpUrl` tells that server to attach to a browser you already have, which is the Steel session. `model_name` is the LLM that interprets every instruction.
+The Python SDK is async-first. Every `extract`, `act`, and `navigate` call returns a coroutine, and this starter uses `asyncio.run(main())` as the entry point.
 
-The Python SDK is async-first. Every `extract`, `act`, and `navigate` call returns a coroutine, and this starter uses `asyncio.run(main())` as the entry point. There is no sync wrapper; plan to `await` each step.
-
-## The v3 streaming shape
-
-Unlike the TypeScript SDK, where `stagehand.extract(...)` resolves directly to data, the Python v3 SDK exposes extract and act as SSE streams. You iterate events, watch for `finished` or `error`, and pick up the payload from the terminating event. The starter wraps that pattern in `_stream_to_result`:
+Unlike the TypeScript SDK, the Python v3 SDK exposes extract and act as SSE streams. The starter wraps that pattern in `_stream_to_result`:
 
 ```python
 async def _stream_to_result(stream, label):
@@ -49,11 +45,7 @@ async def _stream_to_result(stream, label):
     return result_payload
 ```
 
-The `log` events are Stagehand's internal reasoning trace (which element it picked, why, how confident). Print them during development, silence them in production.
-
-## Typed extraction
-
-`sessions.extract` takes a JSON schema dict and returns data that conforms to it. No Zod, no pydantic required. A plain Python dict is enough:
+`sessions.extract` takes a JSON schema dict and returns data that conforms to it. No Zod, no pydantic required:
 
 ```python
 STORY_SCHEMA = {
@@ -84,11 +76,7 @@ extract_stream = stagehand.sessions.extract(
 stories = await _stream_to_result(extract_stream, "extract")
 ```
 
-Stagehand constrains the LLM's output against the schema, so `stories["stories"]` is a list of dicts with the keys you asked for. If you'd rather work with dataclasses or pydantic models, pass the JSON schema here and validate on your side once the stream resolves.
-
-## Natural-language action
-
-`sessions.act` takes an instruction and no selector. Stagehand inspects the DOM, picks the matching element, and acts:
+`sessions.act` takes an instruction and no selector:
 
 ```python
 act_stream = stagehand.sessions.act(
@@ -100,8 +88,6 @@ act_stream = stagehand.sessions.act(
 await _stream_to_result(act_stream, "act")
 ```
 
-Phrase instructions the way you'd describe the action to a person: "click the 'Add to Cart' button", "type user@example.com in the email field", "scroll to the pricing table". Stagehand handles the mapping.
-
 ## Run it
 
 ```bash
@@ -110,7 +96,7 @@ cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
 uv run main.py
 ```
 
-Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch Stagehand work.
+Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [platform.openai.com](https://platform.openai.com/api-keys). The script prints a session viewer URL as it starts.
 
 Your output varies. Structure looks like this:
 
@@ -135,12 +121,12 @@ Navigated to new stories!
 Automation completed successfully!
 ```
 
-A full run takes ~30 seconds and costs a few cents of Steel session time plus OpenAI tokens for each `extract` / `act` call. The `finally` block in `main()` calls `stagehand.sessions.end`, `stagehand.close()`, and `client.sessions.release()`. Keep all three. Forgetting the last one keeps the Steel browser running until the default 5-minute timeout.
+A full run takes ~30 seconds. The `finally` block in `main()` calls `stagehand.sessions.end`, `stagehand.close()`, and `client.sessions.release()`. Keep all three.
 
 ## Make it yours
 
-- **Swap the schema and prompt.** `STORY_SCHEMA` and the `sessions.extract` instruction in `main.py` are the only parts tied to the Hacker News demo. Replace them with whatever shape you need to read: invoice lines, product grids, table rows.
-- **Chain acts and extracts.** Break a task into natural-language steps, one `await _stream_to_result(...)` per step. Login, navigate, filter, extract.
+- **Swap the schema and prompt.** `STORY_SCHEMA` and the `sessions.extract` instruction in `main.py` are the only parts tied to the Hacker News demo.
+- **Chain acts and extracts.** Break a task into natural-language steps, one `await _stream_to_result(...)` per step.
 - **Try another model.** `openai/gpt-5` is a reasonable default; Claude and Gemini also work. Change `model_name` on `sessions.start` and point `model_api_key` at the matching provider.
 - **Turn on Steel stealth.** Uncomment `use_proxy`, `solve_captcha`, or `session_timeout` in the `client.sessions.create()` call for sites with anti-bot.
 

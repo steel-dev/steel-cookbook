@@ -15,11 +15,9 @@ def researcher(self) -> Agent:
     )
 ```
 
-The `{task}` placeholder is interpolated from the `inputs` dict passed to `kickoff()`, so the same crew runs against any research prompt without a code edit. `gpt-5-nano` is cheap enough for iteration; swap `llm=` for anything LiteLLM supports.
+The `{task}` placeholder is interpolated from the `inputs` dict passed to `kickoff()`, so the same crew runs against any research prompt without a code edit.
 
-## The Steel tool
-
-CrewAI tools are Pydantic-described callables. `SteelScrapeWebsiteTool` subclasses `BaseTool`, declares `args_schema = SteelScrapeWebsiteToolSchema` (a single `url: str` field), and implements `_run`.
+`SteelScrapeWebsiteTool` subclasses `BaseTool`, declares `args_schema = SteelScrapeWebsiteToolSchema` (a single `url: str` field), and implements `_run`:
 
 ```python
 class SteelScrapeWebsiteTool(BaseTool):
@@ -33,34 +31,7 @@ class SteelScrapeWebsiteTool(BaseTool):
         )
 ```
 
-No session lifecycle to manage: `scrape()` is one-shot and returns markdown by default (`formats=["markdown"]`, set in `__init__`). The agent decides when to call the tool based on `name`, `description`, and `args_schema`. `env_vars` declares `STEEL_API_KEY` so CrewAI's introspection knows what the tool requires.
-
-Both agents get the same tool instance. In practice the researcher drives it; giving the analyst access is a low-cost hedge so it can pull one more citation if the researcher skipped something. For full browser control (clicks, forms, login walls), wrap a Steel session with Playwright and expose the page as a tool. For read-only fetch-and-parse, `scrape()` is enough.
-
-## The crew
-
-Two `@task` methods define the work. `research_task` interpolates `{task}` and `{current_year}` into its description and is bound to `self.researcher()`. `reporting_task` reads the researcher's output from the shared crew context; the analyst never needs the original URL.
-
-The starter imports CrewAI's `Crew` under an alias so the local `Crew` class (the `@CrewBase`-decorated one) doesn't collide with the framework type:
-
-```python
-from crewai import Crew as CrewAI
-```
-
-That's why the `@crew` factory below returns `CrewAI`, not `Crew`:
-
-```python
-@crew
-def crew(self) -> CrewAI:
-    return CrewAI(
-        agents=self.agents,
-        tasks=self.tasks,
-        process=Process.sequential,
-        verbose=True,
-    )
-```
-
-`Process.sequential` runs tasks in declaration order and pipes each task's output into the next task's context. `Process.hierarchical` is the alternative (a manager agent delegates); sequential is the right default for a research-then-report flow. The `@CrewBase` decorator on `Crew` is what turns the `@agent` and `@task` methods into the `self.agents` and `self.tasks` lists referenced above.
+No session lifecycle to manage: `scrape()` is one-shot and returns markdown by default.
 
 ## Run it
 
@@ -93,11 +64,11 @@ Running crew...
 Report written to report.md
 ```
 
-A run takes ~60-90 seconds: a few OpenAI tokens per agent turn plus one Steel scrape per URL the researcher visits (usually 2-4). `report.md` is overwritten each run; rename it if you want to keep a history.
+A run takes ~60-90 seconds. `report.md` is overwritten each run.
 
 ## Make it yours
 
-- **Change the task.** Set `TASK="Find the top 3 open-source vector databases and compare licensing"` in `.env` and rerun. No code edit needed; the crew reinterprets the instruction.
+- **Change the task.** Set `TASK="Find the top 3 open-source vector databases and compare licensing"` in `.env` and rerun.
 - **Add an agent.** Slot a fact-checker between researcher and analyst with a new `@agent` and `@task`. `Process.sequential` picks them up in declaration order.
 - **Mix models.** The researcher can stay on `gpt-5-nano` while the analyst runs `gpt-5` or `claude-sonnet-4-6`. Set `llm=` independently on each `Agent`.
 - **Tighten the scraper.** Pass `proxy=True` to `SteelScrapeWebsiteTool()` for sites that block datacenter IPs, or `formats=["html"]` if the markdown conversion strips something you need.

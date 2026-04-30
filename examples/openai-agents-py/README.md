@@ -1,6 +1,6 @@
 # OpenAI Agents SDK Starter (Python)
 
-The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you don't have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer. That shape is distinct from OpenAI's Computer Use, where you own the message loop.
+The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you don't have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer.
 
 This starter wraps a Steel browser as four tools and points the agent at GitHub Trending.
 
@@ -19,65 +19,7 @@ result = await Runner.run(agent, input="...", max_turns=15)
 final: FinalReport = result.final_output
 ```
 
-Each tool is a plain async function wrapped with `@function_tool`. The SDK reads the signature and docstring to build the JSON schema the model sees. `output_type=FinalReport` forces the last turn to produce a Pydantic-validated object, so `result.final_output` is typed. `max_turns=15` is a hard cap on the loop.
-
-## The four tools
-
-`open_session` creates a Steel session, starts Playwright, connects over CDP, and stashes the browser in module globals:
-
-```python
-@function_tool
-async def open_session() -> dict:
-    """Open a Steel cloud browser session. Call exactly once, before anything else."""
-    global _session, _browser, _page, _playwright
-    _session = steel.sessions.create()
-    _playwright = await async_playwright().start()
-    _browser = await _playwright.chromium.connect_over_cdp(
-        f"{_session.websocket_url}&apiKey={STEEL_API_KEY}"
-    )
-    ctx = _browser.contexts[0]
-    _page = ctx.pages[0] if ctx.pages else await ctx.new_page()
-    return {"session_id": _session.id, "live_view_url": _session.session_viewer_url}
-```
-
-Module globals keep the demo readable. For concurrent runs, swap them for the SDK's `RunContextWrapper` (pass a context object into `Runner.run`, read it via the wrapper inside each tool). The session viewer URL is returned to the agent so it can mention it; you can also watch the run live at `app.steel.dev/sessions/<id>`.
-
-`navigate` is a thin wrapper around `page.goto`. `snapshot` returns the page's title, URL, visible text (capped at 4k chars), and the first 50 links. The docstring instructs the agent to call it before `extract`:
-
-```python
-"""Return a readable snapshot of the current page: title, URL, visible
-text (capped), and a list of links. Call BEFORE extract so the agent
-never has to guess CSS selectors."""
-```
-
-This matters. With only `navigate` plus `extract`, the model invents selectors like `.trending-repo` that don't exist on real pages, calls `extract`, gets zero rows, retries. `snapshot` hands it the real DOM signals (visible text, href list) so it picks a selector that actually matches.
-
-`extract` runs one `page.evaluate` to pull N rows with M fields each. The inline comment explains why:
-
-```python
-# Serial CDP round-trips to Steel's cloud browser are ~200-300ms each,
-# so N*M round-trips burns seconds. One evaluate call is <500ms total.
-```
-
-Each field is a `FieldSpec` Pydantic model (`name`, `selector`, optional `attr`). The SDK generates a JSON schema for `FieldSpec` automatically, so the model sees a typed argument instead of a loose dict.
-
-## The typed output
-
-```python
-class Repo(BaseModel):
-    name: str
-    url: str
-    stars: Optional[str] = None
-    description: Optional[str] = None
-
-class FinalReport(BaseModel):
-    summary: str
-    repos: list[Repo] = Field(min_length=1, max_length=5)
-```
-
-`output_type=FinalReport` means the SDK steers the final turn to match the schema and validates the response against `FinalReport`. On failure, the SDK feeds the error back and the agent corrects. `result.final_output` in `main()` is a `FinalReport`, not a string you have to parse.
-
-Some providers force JSON-only mode when you request structured output. OpenAI lets you combine `output_type` with tool calls freely: the agent keeps using `snapshot` / `extract` through the loop, then emits a validated `FinalReport` at the end.
+Each tool is a plain async function wrapped with `@function_tool`. The SDK reads the signature and docstring to build the JSON schema the model sees. `output_type=FinalReport` forces the last turn to produce a Pydantic-validated object, so `result.final_output` is typed.
 
 ## Run it
 
@@ -119,26 +61,20 @@ Releasing Steel session...
 Session released. Replay: https://app.steel.dev/sessions/ab12cd34...
 ```
 
-A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost is a few cents of Steel session time plus OpenAI tokens (`gpt-5-mini` keeps tokens cheap; the full `gpt-5` reasons harder but costs more).
+A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost is a few cents of Steel session time plus OpenAI tokens. The `finally` block in `main` closes Playwright and calls `steel.sessions.release()`.
 
-The `finally` block in `main` closes Playwright and calls `steel.sessions.release()`. Steel bills per session-minute, so don't skip it. A released session keeps its replay URL, printed on shutdown.
-
-## Tracing and sessions
-
-The Agents SDK ships [tracing](https://openai.github.io/openai-agents-python/tracing/) on by default. Each `Runner.run` produces a trace with every model call, tool invocation, and token count, viewable at [platform.openai.com/traces](https://platform.openai.com/traces). No extra code, useful when a run goes sideways and you want to see which turn confused the agent.
-
-If you want to chain runs without replaying history, pass a `session` (e.g. `SQLiteSession("my-convo")`) to `Runner.run`. The SDK persists the turn list so the next `Runner.run` picks up the conversation. That's orthogonal to Steel's browser session: one is agent memory, the other is the Chrome instance.
+The Agents SDK ships [tracing](https://openai.github.io/openai-agents-python/tracing/) on by default. Each `Runner.run` produces a trace viewable at [platform.openai.com/traces](https://platform.openai.com/traces).
 
 ## Make it yours
 
 - **Swap the task.** Change the `input=` string in `main()` and the `FinalReport` schema. Tools stay the same; the agent re-plans.
 - **Add a tool.** Write an async function, decorate with `@function_tool`, add it to `tools=[...]`. A useful fifth tool is `click(selector: str)` that calls `page.click` and waits for navigation.
-- **Hand off to a specialist.** The SDK supports [handoffs](https://openai.github.io/openai-agents-python/handoffs/): define a second `Agent` (say, a `Summarizer` with no tools) and list it in `handoffs=[...]` on the research agent. The browser agent transfers control once it has data.
+- **Hand off to a specialist.** The SDK supports [handoffs](https://openai.github.io/openai-agents-python/handoffs/): define a second `Agent` (say, a `Summarizer` with no tools) and list it in `handoffs=[...]` on the research agent.
 - **Add a guardrail.** Attach an [input or output guardrail](https://openai.github.io/openai-agents-python/guardrails/) to reject off-topic requests or validate the `FinalReport` before it returns.
 - **Swap the model.** `model="gpt-5"` for harder reasoning, `"gpt-5-mini"` (default) for speed and cost.
-- **Raise `max_turns`.** 15 is plenty for single-page extraction. Multi-page flows (login, then extract, then paginate) want 25 to 40.
+- **Raise `max_turns`.** 15 is plenty for single-page extraction. Multi-page flows want 25 to 40.
 - **Use `context`.** Replace module globals with a dataclass passed to `Runner.run(agent, input=..., context=my_ctx)`. Each tool reads it via `RunContextWrapper`. Needed for concurrent runs.
 
 ## Related
 
-[TypeScript version](../openai-agents-ts) · [OpenAI Computer Use (Python)](../openai-computer-use-py) for the raw message loop · [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/)
+[TypeScript version](../openai-agents-ts) · [OpenAI Computer Use (Python)](../openai-computer-use-py) · [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/)

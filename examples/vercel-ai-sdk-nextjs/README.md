@@ -10,31 +10,9 @@ app/
 └── globals.css
 ```
 
-The server/client split is load-bearing. `streamText` holds the Playwright `Browser`, the Steel session handle, and your API keys; none of that can leak to the client. The client only sees message parts coming off `result.toUIMessageStreamResponse()`.
+`app/api/chat/route.ts` pins `runtime = "nodejs"` (Playwright will not run on Edge) and `maxDuration = 120`. `next.config.mjs` lists `playwright`, `playwright-core`, and `steel-sdk` under `serverExternalPackages` so Next skips bundling them into the server build.
 
-## The route
-
-`app/api/chat/route.ts` pins `runtime = "nodejs"` (Playwright will not run on Edge) and `maxDuration = 120` (a 15-step browser loop can blow past the 10-second default). `next.config.mjs` lists `playwright`, `playwright-core`, and `steel-sdk` under `serverExternalPackages` so Next skips bundling them into the server build.
-
-The `POST` handler builds a per-request closure around three variables:
-
-```ts
-let session: Awaited<ReturnType<typeof steel.sessions.create>> | null = null;
-let browser: Browser | null = null;
-let page: Page | null = null;
-```
-
-Every tool's `execute` reads and writes these. That is what keeps one conversation turn glued to one browser. `streamText` runs up to 15 steps (`stopWhen: stepCountIs(15)`), and both `onFinish` and `onAbort` call `cleanup()` to close the browser and `steel.sessions.release(session.id)`. Forgetting the release keeps the session alive until the default 5-minute timeout, and Steel bills per session-minute.
-
-## The four tools
-
-`openSession` creates the Steel session, connects Playwright over CDP, grabs the existing page (Steel sessions start with a blank tab already open), and returns `{ sessionId, liveViewUrl, debugUrl }`. Those URLs flow back through the stream and into the UI.
-
-`navigate` is a thin wrapper over `page.goto` with `waitUntil: "domcontentloaded"` and a 45-second timeout.
-
-`snapshot` runs one `page.evaluate` that returns the page's title, URL, a capped slice of `document.body.innerText`, and up to 50 `{ text, href }` link records. The system prompt tells the model to call this before `extract` so it reads real DOM structure instead of guessing selectors. One round-trip, not fifty.
-
-`extract` takes a `rowSelector`, a list of `{ name, selector, attr? }` fields, and a row limit. The whole extraction runs inside a single `page.evaluate`. Serial CDP calls (`row.$`, `el.getAttribute`, `el.innerText`) are the biggest latency cost on a cloud browser, so batching matters.
+The `POST` handler builds a per-request closure around three variables (`session`, `browser`, `page`) shared by every tool's `execute`, and `streamText` runs up to 15 steps (`stopWhen: stepCountIs(15)`). Both `onFinish` and `onAbort` call `cleanup()` to close the browser and `steel.sessions.release(session.id)`.
 
 A fifth tool, `submitForm`, carries `needsApproval: true`. Its body only runs if your approval UI confirms the call. It ships as a demo hook; wire it up when you add real destructive actions.
 
@@ -54,33 +32,6 @@ prepareStep: async ({ stepNumber, steps }) => {
 },
 ```
 
-Step 0 sees only `openSession`. Once a step has actually called it, `openSession` drops out and the rest appear. The model cannot open a second session even if it tries.
-
-## Streaming tool calls into the UI
-
-`app/page.tsx` is one client component. `useChat()` gives you `messages`, `sendMessage`, and a `status` that walks through `submitted`, `streaming`, `ready`. Messages arrive as `parts` arrays. Text parts render as Markdown (piped through `marked`, sanitized via `isomorphic-dompurify`). Anything with a `type` starting with `tool-` goes through the `ToolCall` component: a collapsible row with the tool name, a colored state dot (`input-streaming`, `output-available`, `output-error`), and the JSON input/output on expand.
-
-Two hooks do most of the orchestration. `durationsRef` records `Date.now()` on the first sighting of each `toolCallId` and stamps an end time when the part transitions to `output-available` or `output-error`, so each tool call shows wall-clock duration. `useMemo` walks every part looking for a `tool-openSession` with an `output`:
-
-```tsx
-const { debugUrl, liveViewUrl, sessionId } = useMemo(() => {
-  for (const m of messages) {
-    for (const part of (m.parts ?? []) as any[]) {
-      if (part?.type === "tool-openSession" && part?.output) {
-        return {
-          debugUrl: part.output.debugUrl ?? null,
-          liveViewUrl: part.output.liveViewUrl ?? null,
-          sessionId: part.output.sessionId ?? null,
-        };
-      }
-    }
-  }
-  return { debugUrl: null, liveViewUrl: null, sessionId: null };
-}, [messages]);
-```
-
-The iframe uses `debugUrl` (interactive embed). The "open in new tab" link uses `liveViewUrl` (shareable viewer). Both arrive through the same stream that renders the message, so the right pane lights up the same second the first tool call resolves.
-
 ## Run it
 
 ```bash
@@ -95,7 +46,7 @@ Get keys at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api
 
 > Go to https://github.com/trending/python and tell me the top 3 AI/ML repos.
 
-A typical run takes ~20 seconds: `openSession` (~3s), `navigate` (~2s), `snapshot` (~1s), `extract` (~1s), then the model writes its reply. Your output varies. The server console logs each step with its tool name and token count; structure looks like this:
+A typical run takes ~20 seconds: `openSession` (~3s), `navigate` (~2s), `snapshot` (~1s), `extract` (~1s), then the model writes its reply. Server console logs each step:
 
 ```text
   step: openSession | 412 tokens
@@ -113,13 +64,13 @@ Push to GitHub, import into Vercel, add `STEEL_API_KEY` and `ANTHROPIC_API_KEY` 
 npx playwright install chromium && next build
 ```
 
-The `/api/chat` route already declares `maxDuration = 120` and `runtime = "nodejs"`, so it runs on Vercel's Node serverless runtime with a 120-second ceiling.
+The `/api/chat` route already declares `maxDuration = 120` and `runtime = "nodejs"`.
 
 ## Make it yours
 
 - **Change the model.** Swap `anthropic("claude-haiku-4-5")` for any model in `@ai-sdk/*`. The Zod tool schemas stay the same.
 - **Add a screenshot tool.** `await page.screenshot({ type: "png" })` returns a Buffer; return it base64-encoded and render it as an `<img>` in the tool-call panel.
-- **Stream a plan step.** Add a `plan` tool with no side effects and a string input. The model can narrate its intent before executing, which reads nicely in chat.
+- **Stream a plan step.** Add a `plan` tool with no side effects and a string input. The model can narrate its intent before executing.
 - **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` options to `steel.sessions.create()` inside `openSession`.
 - **Wire the approval UI.** `needsApproval: true` on `submitForm` pauses execution and surfaces the call as a `tool-submitForm` part in `state: "input-available"`. Render an Approve/Reject pair and call `addToolResult` from `@ai-sdk/react` to resume.
 

@@ -86,3 +86,19 @@ Before opening a PR:
 - Utility recipes (`credentials`, `auth-context`, `profiles`,
   `extensions`, `files-api`) are cross-referenced from other recipes.
   Describe their primitive unambiguously so the cross-links make sense.
+- Cap explanatory subsections at one or two beyond intro / run /
+  make-it-yours. When a README has four or five sections each
+  explaining a framework idiom ("Tools as a record, not an array",
+  "Deps over globals", "The graph is the agent loop"), it reads as AI
+  commentary on someone else's code. The pilots (`playwright-ts`,
+  `browser-use`) get by with zero such sections.
+- Don't restate what the code already shows. A subsection that points
+  out a variable is a record vs. array, that a function takes an
+  injected context, or that a config field is optional, is bloat. Save
+  prose for what's not visible: the integration shape, a non-obvious
+  failure mode, the why behind one specific choice.
+- Don't compare the recipe's framework to others. "Unlike OpenAI
+  Agents SDK, Mastra...", "Claude's SDK does X but here we Y...". The
+  reader picked this recipe; pulling focus to alternatives wastes
+  their attention. Rarely justified (e.g. mobile vs. desktop variants
+  of the same SDK), almost never useful across SDKs.
