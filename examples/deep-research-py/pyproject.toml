@@ -1,0 +1,12 @@
+[project]
+name = "deep-research-py"
+version = "0.1.0"
+description = "Deep-research scenario: Claude Agent SDK orchestrator dispatches parallel Steel-driven researcher subagents."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-agent-sdk>=0.1.71",
+    "playwright>=1.48.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.17.0",
+]

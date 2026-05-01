@@ -320,6 +320,26 @@
   created: "2025-07-30"
   updated: "2026-04-24"
 
+- title: Deep research with Claude Agent SDK subagents
+  slug: deep-research
+  path: examples/deep-research-ts
+  description: Lead orchestrator dispatches parallel researcher subagents, each driving its own Steel browser, and synthesizes findings into a cited Markdown report.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Agents, Subagents]
+  created: "2026-05-01"
+  updated: "2026-05-01"
+
+- title: Deep research with Claude Agent SDK subagents
+  slug: deep-research
+  path: examples/deep-research-py
+  description: Lead orchestrator dispatches parallel researcher subagents, each driving its own Steel browser, and synthesizes findings into a cited Markdown report.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents, Subagents]
+  created: "2026-05-01"
+  updated: "2026-05-01"
+
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
   path: examples/auth-context

@@ -70,6 +70,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="langgraph">LangGraph</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/langgraph) |
 | <a id="pydantic-ai">Pydantic AI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/pydantic-ai) |
 | <a id="claude-agent-sdk">Claude Agent SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-agent-sdk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/claude-agent-sdk-py) |
+| <a id="deep-research">Deep Research (Claude Agent SDK subagents)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/deep-research-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/deep-research-py) |
 
 ### Advanced Features
 
@@ -108,6 +109,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Vercel AI SDK v6 (Next.js)](examples/vercel-ai-sdk-nextjs) - Next.js chat app with streamText, useChat, and an embedded Live View
 - [OpenAI Agents SDK](examples/openai-agents-ts) - Agent with tool() + Zod outputType for structured final answers
 - [Claude Agent SDK](examples/claude-agent-sdk-ts) - Anthropic's first-party agent loop with Steel exposed as in-process MCP tools
+- [Deep Research](examples/deep-research-ts) - Lead orchestrator dispatches parallel researcher subagents on Claude Agent SDK, each driving its own Steel session
 
 **Advanced Features**
 - [Auth Context](examples/auth-context) - Reuse authentication across sessions
@@ -139,6 +141,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [LangGraph](examples/langgraph) - Explicit state-machine agent loop with structured-output formatter
 - [Pydantic AI](examples/pydantic-ai) - Provider-agnostic typed agent with deps_type and output_type
 - [Claude Agent SDK](examples/claude-agent-sdk-py) - Anthropic's first-party agent loop with Steel exposed as in-process MCP tools
+- [Deep Research](examples/deep-research-py) - Lead orchestrator dispatches parallel researcher subagents on Claude Agent SDK, each driving its own Steel session
 
 ---
 
