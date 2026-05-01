@@ -11,11 +11,15 @@ researcher operates its own Steel cloud browser session.
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from typing import Any
 from urllib.parse import quote
 
+import httpx
+from anthropic import AsyncAnthropic
+from bs4 import BeautifulSoup
 from claude_agent_sdk import (
     AgentDefinition,
     AssistantMessage,
@@ -37,6 +41,29 @@ STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "your-anthropic-api-key-here"
 
 steel = Steel(steel_api_key=STEEL_API_KEY)
+anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+
+# Cheap, fast model for the per-page extraction step. Mirrors how Claude Code's
+# WebFetch turns "fetch this URL and answer this question" into one pass over
+# the page content with a small model.
+EXTRACTOR_MODEL = "claude-haiku-4-5-20251001"
+
+# Markers that flag a page as bot-blocked or JS-rendered, so read_url falls
+# back from plain fetch() to a real Steel browser.
+ANTI_BOT_MARKERS = (
+    "just a moment",
+    "verifying you are human",
+    "checking your browser",
+    "enable javascript and cookies",
+    "access denied",
+    "captcha",
+    "pardon our interruption",
+)
+
+
+def looks_blocked(s: str) -> bool:
+    lower = s.lower()[:2000]
+    return any(m in lower for m in ANTI_BOT_MARKERS)
 
 # One Steel session per researcher_id. The orchestrator hands each subagent
 # a unique id (r1, r2, ...) and instructs it to pass that id to every tool
@@ -119,51 +146,145 @@ async def _run_search(page, q: str) -> None:
     )
 
 
+_FAST_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/130.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml",
+}
+
+
+# Tier 1: plain HTTP fetch + BeautifulSoup extraction. Fast and cheap.
+async def fast_fetch(url: str) -> dict[str, Any] | None:
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True, timeout=10.0, headers=_FAST_FETCH_HEADERS
+        ) as client:
+            res = await client.get(url)
+        if res.status_code >= 400:
+            return {"ok": False, "title": "", "text": ""}
+        ct = res.headers.get("content-type", "")
+        if "text/html" not in ct and "text/plain" not in ct:
+            return {"ok": False, "title": "", "text": ""}
+        soup = BeautifulSoup(res.text, "html.parser")
+        for tag in soup(["script", "style", "noscript", "nav", "header", "footer", "iframe", "aside"]):
+            tag.decompose()
+        title_tag = soup.find("title") or soup.find("h1")
+        title = title_tag.get_text(strip=True) if title_tag else ""
+        # Prefer <article> or <main>; fall back to <body>.
+        node = soup.find("article") or soup.find("main") or soup.body or soup
+        text = node.get_text(separator="\n")
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+        return {"ok": True, "title": title, "text": text}
+    except Exception:
+        return None
+
+
+# Tier 2: full Steel browser. Used when fast_fetch is blocked, JS-rendered,
+# or returns suspiciously little content.
+async def browser_fetch(researcher_id: str, url: str) -> dict[str, str]:
+    s = await _ensure_session(researcher_id)
+    page = s["page"]
+    async with s["lock"]:
+        await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+        snap = await page.evaluate(
+            """({maxChars}) => ({
+                title: document.title,
+                text: (document.body.innerText || '').slice(0, maxChars),
+            })""",
+            {"maxChars": 30_000},
+        )
+    return {"title": snap.get("title", ""), "text": snap.get("text", "")}
+
+
+# Final pass: hand the extracted page content + the researcher's question to
+# a small fast model and return its focused answer. This is the value of a
+# "prompted fetch" — the researcher gets a tight extraction back, not a
+# 30k-char raw scrape that bloats its context.
+async def extract_with_haiku(
+    *, url: str, title: str, text: str, prompt: str
+) -> str:
+    trimmed = text[:30_000]
+    sys_prompt = (
+        "You answer the user's question using ONLY the provided page content. "
+        "Be concrete and concise (under 200 words). Quote short phrases when "
+        "useful. If the page does not contain the answer, reply exactly with "
+        "'NOT IN PAGE' and nothing else."
+    )
+    usr = (
+        f"URL: {url}\nTITLE: {title}\n\n"
+        f"QUESTION: {prompt}\n\n"
+        f"PAGE CONTENT:\n{trimmed}"
+    )
+    msg = await anthropic.messages.create(
+        model=EXTRACTOR_MODEL,
+        max_tokens=600,
+        system=sys_prompt,
+        messages=[{"role": "user", "content": usr}],
+    )
+    return "\n".join(b.text for b in msg.content if b.type == "text").strip()
+
+
 @tool(
     "read_url",
-    "Open a URL in your private browser session and return the page title, "
-    "visible text (first 8000 chars), and outbound links. Pass your "
+    "Fetch a URL and answer a focused extraction prompt about its content. "
+    "Tries a plain HTTP fetch first; falls back to a real Steel browser if "
+    "the page is blocked, JS-rendered, or returns little content. The "
+    "`prompt` argument is the SPECIFIC question you want answered from this "
+    "page (e.g. 'which solid-state EV cells shipped in production cars in "
+    "2026?'). Returns a tight extraction, not the raw page. Pass your "
     "researcher_id.",
-    {"researcher_id": str, "url": str},
+    {"researcher_id": str, "url": str, "prompt": str},
 )
 async def read_url(args: dict[str, Any]) -> dict[str, Any]:
     rid = args["researcher_id"]
-    s = await _ensure_session(rid)
-    page = s["page"]
+    url = args["url"]
+    prompt = args["prompt"]
     t0 = time.time()
-    async with s["lock"]:
-        try:
-            snap = await asyncio.wait_for(_run_read(page, args["url"]), timeout=60)
-        except Exception as e:
-            return {
-                "content": [
-                    {
-                        "type": "text",
-                        "text": json.dumps({"error": str(e), "url": args["url"]}),
-                    }
-                ],
-                "is_error": True,
-            }
+    tier = "fetch"
+    try:
+        fast = await fast_fetch(url)
+        if (
+            not fast
+            or not fast.get("ok")
+            or len(fast.get("text", "")) < 500
+            or looks_blocked(fast.get("text", ""))
+            or looks_blocked(fast.get("title", ""))
+        ):
+            tier = "steel"
+            snap = await browser_fetch(rid, url)
+            title = snap["title"]
+            text = snap["text"]
+        else:
+            title = fast["title"]
+            text = fast["text"]
+        extraction = await extract_with_haiku(
+            url=url, title=title, text=text, prompt=prompt
+        )
+    except Exception as e:
+        return {
+            "content": [
+                {"type": "text", "text": json.dumps({"error": str(e), "url": url})}
+            ],
+            "is_error": True,
+        }
     print(
-        f"    [{rid}] read_url '{args['url'][:60]}': "
-        f"{len(snap['text'])} chars ({int((time.time() - t0) * 1000)}ms)"
+        f"    [{rid}] read_url({tier}) '{url[:60]}': "
+        f"{len(extraction)} chars ({int((time.time() - t0) * 1000)}ms)"
     )
-    return {"content": [{"type": "text", "text": json.dumps(snap)}]}
-
-
-async def _run_read(page, url: str) -> dict[str, Any]:
-    await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-    return await page.evaluate(
-        """({maxChars, maxLinks}) => {
-            const text = (document.body.innerText || '').slice(0, maxChars);
-            const links = Array.from(document.querySelectorAll('a[href]'))
-                .slice(0, maxLinks)
-                .map(a => ({ text: (a.innerText || '').trim().slice(0, 80), href: a.href }))
-                .filter(l => l.text && l.href && l.href.startsWith('http'));
-            return { url: location.href, title: document.title, text, links };
-        }""",
-        {"maxChars": 8_000, "maxLinks": 30},
-    )
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": json.dumps(
+                    {"url": url, "title": title, "tier": tier, "extraction": extraction}
+                ),
+            }
+        ]
+    }
 
 
 steel_server = create_sdk_mcp_server(
@@ -173,14 +294,28 @@ steel_server = create_sdk_mcp_server(
 )
 
 
-RESEARCHER_PROMPT = """You are a focused web researcher.
+RESEARCHER_PROMPT = """You are a focused web researcher with a tool budget for iteration.
 
 Your task description includes a researcher_id (e.g. r1, r2). Pass that researcher_id to every tool call so you stay in your own private browser session.
 
-Strict workflow (do not deviate):
-1. Make EXACTLY ONE `web_search` call on a tight, specific query.
-2. Make AT MOST 3 `read_url` calls on the most promising results. Prefer primary sources, official docs, reputable news. Skip paywalls and login walls.
-3. Reply with this exact shape, nothing else:
+You can iterate: search → read → reflect → search again. Budget: about 8 tool calls total. Use them deliberately.
+
+Workflow:
+1. Run an initial `web_search` with a tight, specific query.
+2. For 2-3 promising results, call `read_url` with a SPECIFIC `prompt` describing exactly what fact you want to learn from that page (e.g. "which solid-state EV cells shipped in production cars in 2026 and in which models?"). `read_url` returns a focused extraction; if it returns "NOT IN PAGE", that source is not useful — try another.
+3. After about 5-6 tool calls (typically once you have findings from 3+ pages), pause and emit a compact RECAP block before continuing:
+
+   RECAP:
+   - <claim> [1]
+   - <claim> [2]
+   - <claim> [1][3]
+
+   The RECAP is your authoritative working knowledge from here on. Cite from the RECAP — do not re-cite older raw `read_url` extractions. If a clear gap remains, run ONE more `web_search` with a refined query (a missing angle, a counter-source, a different time scope), read 1-2 more pages, then update the RECAP with any new claims. This keeps your reasoning compact as the loop extends.
+4. Stop when the RECAP covers at least 2-3 cited claims OR you've used most of your budget. Do not exceed about 8 tool calls.
+
+Prefer primary sources, official docs, reputable news. Skip paywalls and login walls. If a domain blocks you twice, move on.
+
+Final reply (exact shape, nothing else; FINDINGS should mirror your final RECAP):
 
 SUB-QUESTION: <restated>
 
@@ -193,7 +328,7 @@ SOURCES:
 [1] <Title> - <URL>
 [2] <Title> - <URL>
 
-Cite every fact. Do not speculate beyond what the sources say. Cap at 4 sources. Do not run extra searches; if the first search yields no usable sources, return an empty FINDINGS block and note that in one line above SOURCES.
+Cite every fact. Do not speculate beyond what the sources say. Cap at 5 sources. If the search yields no usable sources, return an empty FINDINGS block and note that in one line above SOURCES.
 """
 
 
@@ -265,9 +400,10 @@ async def main() -> None:
         agents={
             "researcher": AgentDefinition(
                 description=(
-                    "Focused web researcher. Drives a private Steel browser "
-                    "session to answer one sub-question with cited findings. "
-                    "Use one per sub-question."
+                    "Focused web researcher. Iterates search → read → reflect "
+                    "on a private Steel browser session (with a fast HTTP "
+                    "fallback) to answer one sub-question with cited "
+                    "findings. Use one per sub-question."
                 ),
                 prompt=RESEARCHER_PROMPT,
                 # Researchers see only Steel tools. Don't include Agent;
@@ -275,7 +411,9 @@ async def main() -> None:
                 tools=["mcp__steel__web_search", "mcp__steel__read_url"],
                 mcpServers=["steel"],
                 model="sonnet",
-                maxTurns=8,
+                # Headroom for ~8 tool calls (search + reads + a refinement
+                # round) plus the final cited reply.
+                maxTurns=14,
             ),
         },
         # Enable only the Agent built-in (for subagent dispatch). Empty list

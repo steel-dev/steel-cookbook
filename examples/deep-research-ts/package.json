@@ -18,6 +18,8 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.123",
+    "@anthropic-ai/sdk": "^0.92.0",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "playwright": "^1.50.0",
     "steel-sdk": "^0.18.0",

@@ -8,12 +8,14 @@
  * researcher operates its own Steel cloud browser session.
  */
 
+import Anthropic from "@anthropic-ai/sdk";
 import {
   createSdkMcpServer,
   query,
   tool,
   type AgentDefinition,
 } from "@anthropic-ai/claude-agent-sdk";
+import * as cheerio from "cheerio";
 import * as dotenv from "dotenv";
 import { chromium, type Browser, type Page } from "playwright";
 import Steel from "steel-sdk";
@@ -26,6 +28,29 @@ const ANTHROPIC_API_KEY =
   process.env.ANTHROPIC_API_KEY || "your-anthropic-api-key-here";
 
 const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
+const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+// Cheap, fast model for the per-page extraction step. Mirrors how Claude Code's
+// WebFetch turns "fetch this URL and answer this question" into one pass over
+// the page content with a small model.
+const EXTRACTOR_MODEL = "claude-haiku-4-5-20251001";
+
+// Markers that flag a page as bot-blocked or JS-rendered, so read_url falls
+// back from plain fetch() to a real Steel browser.
+const ANTI_BOT_MARKERS = [
+  "just a moment",
+  "verifying you are human",
+  "checking your browser",
+  "enable javascript and cookies",
+  "access denied",
+  "captcha",
+  "pardon our interruption",
+];
+
+function looksBlocked(s: string): boolean {
+  const lower = s.toLowerCase().slice(0, 2000);
+  return ANTI_BOT_MARKERS.some((m) => lower.includes(m));
+}
 
 // One Steel session per researcher_id. The orchestrator hands each subagent
 // a unique id (r1, r2, ...) and instructs it to pass that id to every tool
@@ -147,57 +172,146 @@ const webSearch = tool(
   },
 );
 
+// Tier 1: plain HTTP fetch + cheerio extraction. Fast and cheap.
+async function fastFetch(url: string): Promise<{
+  ok: boolean;
+  title: string;
+  text: string;
+} | null> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+          "AppleWebKit/537.36 (KHTML, like Gecko) " +
+          "Chrome/130.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { ok: false, title: "", text: "" };
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("text/html") && !ct.includes("text/plain")) {
+      return { ok: false, title: "", text: "" };
+    }
+    const html = await res.text();
+    const $ = cheerio.load(html);
+    $("script, style, noscript, nav, header, footer, iframe, aside").remove();
+    const title =
+      $("title").first().text().trim() || $("h1").first().text().trim();
+    // Prefer <article> or <main>; fall back to <body>.
+    const main = $("article").text() || $("main").text() || $("body").text();
+    const text = main.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    return { ok: true, title, text };
+  } catch {
+    return null;
+  }
+}
+
+// Tier 2: full Steel browser. Used when fastFetch is blocked, JS-rendered,
+// or returns suspiciously little content.
+async function browserFetch(
+  researcherId: string,
+  url: string,
+): Promise<{ title: string; text: string }> {
+  const r = await ensureResearcher(researcherId);
+  return withResearcherLock(r, async () => {
+    await r.page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    return (await r.page.evaluate(
+      ({ maxChars }: { maxChars: number }) => {
+        const text = (document.body.innerText || "").slice(0, maxChars);
+        return { title: document.title, text };
+      },
+      { maxChars: 30_000 },
+    )) as { title: string; text: string };
+  });
+}
+
+// Final pass: hand the extracted page content + the researcher's question to
+// a small fast model and return its focused answer. This is the value of a
+// "prompted fetch" — the researcher gets a tight extraction back, not a
+// 30k-char raw scrape that bloats its context.
+async function extractWithHaiku(args: {
+  url: string;
+  title: string;
+  text: string;
+  prompt: string;
+}): Promise<string> {
+  const trimmed = args.text.slice(0, 30_000);
+  const sys =
+    "You answer the user's question using ONLY the provided page content. " +
+    "Be concrete and concise (under 200 words). Quote short phrases when " +
+    "useful. If the page does not contain the answer, reply exactly with " +
+    "'NOT IN PAGE' and nothing else.";
+  const usr =
+    `URL: ${args.url}\nTITLE: ${args.title}\n\n` +
+    `QUESTION: ${args.prompt}\n\n` +
+    `PAGE CONTENT:\n${trimmed}`;
+  const msg = await anthropic.messages.create({
+    model: EXTRACTOR_MODEL,
+    max_tokens: 600,
+    system: sys,
+    messages: [{ role: "user", content: usr }],
+  });
+  return msg.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+}
+
 const readUrl = tool(
   "read_url",
-  "Open a URL in your private browser session and return the page title, visible text (first 8000 chars), and outbound links. Pass your researcher_id.",
+  "Fetch a URL and answer a focused extraction prompt about its content. " +
+    "Tries a plain HTTP fetch first; falls back to a real Steel browser if " +
+    "the page is blocked, JS-rendered, or returns little content. The " +
+    "`prompt` argument is the SPECIFIC question you want answered from this " +
+    "page (e.g. 'which solid-state EV cells shipped in production cars in " +
+    "2026?'). Returns a tight extraction, not the raw page. Pass your " +
+    "researcher_id.",
   {
     researcher_id: z.string(),
     url: z.string(),
+    prompt: z.string(),
   },
-  async ({ researcher_id, url }) => {
-    const r = await ensureResearcher(researcher_id);
+  async ({ researcher_id, url, prompt }) => {
     const t0 = Date.now();
+    let tier: "fetch" | "steel" = "fetch";
+    let title = "";
+    let text = "";
     try {
-      const snap = await withResearcherLock(r, async () => {
-        await r.page.goto(url, {
-          waitUntil: "domcontentloaded",
-          timeout: 30_000,
-        });
-        return (await r.page.evaluate(
-          ({ maxChars, maxLinks }: { maxChars: number; maxLinks: number }) => {
-            const text = (document.body.innerText || "").slice(0, maxChars);
-            const links = Array.from(document.querySelectorAll("a[href]"))
-              .slice(0, maxLinks)
-              .map((a) => {
-                const anchor = a as HTMLAnchorElement;
-                return {
-                  text: (anchor.innerText || "").trim().slice(0, 80),
-                  href: anchor.href,
-                };
-              })
-              .filter(
-                (l) =>
-                  l.text && l.href && l.href.startsWith("http"),
-              );
-            return {
-              url: location.href,
-              title: document.title,
-              text,
-              links,
-            };
-          },
-          { maxChars: 8_000, maxLinks: 30 },
-        )) as {
-          url: string;
-          title: string;
-          text: string;
-          links: { text: string; href: string }[];
-        };
-      });
+      const fast = await fastFetch(url);
+      if (
+        !fast ||
+        !fast.ok ||
+        fast.text.length < 500 ||
+        looksBlocked(fast.text) ||
+        looksBlocked(fast.title)
+      ) {
+        tier = "steel";
+        const snap = await browserFetch(researcher_id, url);
+        title = snap.title;
+        text = snap.text;
+      } else {
+        title = fast.title;
+        text = fast.text;
+      }
+      const extraction = await extractWithHaiku({ url, title, text, prompt });
       console.log(
-        `    [${researcher_id}] read_url '${url.slice(0, 60)}': ${snap.text.length} chars (${Date.now() - t0}ms)`,
+        `    [${researcher_id}] read_url(${tier}) '${url.slice(0, 60)}': ${extraction.length} chars (${Date.now() - t0}ms)`,
       );
-      return { content: [{ type: "text", text: JSON.stringify(snap) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ url, title, tier, extraction }),
+          },
+        ],
+      };
     } catch (e) {
       return {
         content: [
@@ -215,14 +329,28 @@ const steelServer = createSdkMcpServer({
   tools: [webSearch, readUrl],
 });
 
-const RESEARCHER_PROMPT = `You are a focused web researcher.
+const RESEARCHER_PROMPT = `You are a focused web researcher with a tool budget for iteration.
 
 Your task description includes a researcher_id (e.g. r1, r2). Pass that researcher_id to every tool call so you stay in your own private browser session.
 
-Strict workflow (do not deviate):
-1. Make EXACTLY ONE \`web_search\` call on a tight, specific query.
-2. Make AT MOST 3 \`read_url\` calls on the most promising results. Prefer primary sources, official docs, reputable news. Skip paywalls and login walls.
-3. Reply with this exact shape, nothing else:
+You can iterate: search → read → reflect → search again. Budget: about 8 tool calls total. Use them deliberately.
+
+Workflow:
+1. Run an initial \`web_search\` with a tight, specific query.
+2. For 2-3 promising results, call \`read_url\` with a SPECIFIC \`prompt\` describing exactly what fact you want to learn from that page (e.g. "which solid-state EV cells shipped in production cars in 2026 and in which models?"). \`read_url\` returns a focused extraction; if it returns "NOT IN PAGE", that source is not useful — try another.
+3. After about 5-6 tool calls (typically once you have findings from 3+ pages), pause and emit a compact RECAP block before continuing:
+
+   RECAP:
+   - <claim> [1]
+   - <claim> [2]
+   - <claim> [1][3]
+
+   The RECAP is your authoritative working knowledge from here on. Cite from the RECAP — do not re-cite older raw \`read_url\` extractions. If a clear gap remains, run ONE more \`web_search\` with a refined query (a missing angle, a counter-source, a different time scope), read 1-2 more pages, then update the RECAP with any new claims. This keeps your reasoning compact as the loop extends.
+4. Stop when the RECAP covers at least 2-3 cited claims OR you've used most of your budget. Do not exceed about 8 tool calls.
+
+Prefer primary sources, official docs, reputable news. Skip paywalls and login walls. If a domain blocks you twice, move on.
+
+Final reply (exact shape, nothing else; FINDINGS should mirror your final RECAP):
 
 SUB-QUESTION: <restated>
 
@@ -235,7 +363,7 @@ SOURCES:
 [1] <Title> - <URL>
 [2] <Title> - <URL>
 
-Cite every fact. Do not speculate beyond what the sources say. Cap at 4 sources. Do not run extra searches; if the first search yields no usable sources, return an empty FINDINGS block and note that in one line above SOURCES.`;
+Cite every fact. Do not speculate beyond what the sources say. Cap at 5 sources. If the search yields no usable sources, return an empty FINDINGS block and note that in one line above SOURCES.`;
 
 const ORCHESTRATOR_PROMPT = `You are a deep-research orchestrator. You do not browse the web yourself. You decompose, delegate, and synthesize.
 
@@ -277,15 +405,18 @@ const PROMPT =
 
 const researcher: AgentDefinition = {
   description:
-    "Focused web researcher. Drives a private Steel browser session to " +
-    "answer one sub-question with cited findings. Use one per sub-question.",
+    "Focused web researcher. Iterates search → read → reflect on a private " +
+    "Steel browser session (with a fast HTTP fallback) to answer one " +
+    "sub-question with cited findings. Use one per sub-question.",
   prompt: RESEARCHER_PROMPT,
   // Researchers see only Steel tools. Don't include Agent;
   // subagents can't dispatch their own subagents.
   tools: ["mcp__steel__web_search", "mcp__steel__read_url"],
   mcpServers: ["steel"],
   model: "sonnet",
-  maxTurns: 8,
+  // Headroom for ~8 tool calls (search + reads + a refinement round) plus
+  // the final cited reply.
+  maxTurns: 14,
 };
 
 async function main() {
