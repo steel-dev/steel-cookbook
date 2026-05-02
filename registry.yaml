@@ -260,6 +260,16 @@
   created: "2026-04-29"
   updated: "2026-04-29"
 
+- title: Combine You.com search with Steel browser actions
+  slug: you-com-search
+  path: examples/you-com-search
+  description: Pair the You.com Search and Contents APIs with a Steel cloud browser in a search-then-act LangChain agent that prefers the cheap path and only opens a session when interaction is required.
+  authors: [bsparker]
+  language: Python
+  topics: [Agents, Search]
+  created: "2026-04-30"
+  updated: "2026-04-30"
+
 - title: Build a multi-agent browser workflow with CrewAI
   slug: crewai
   path: examples/crewai
