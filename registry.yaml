@@ -10,7 +10,7 @@
 # - topics are concept-level labels for browse/filter. 1~3 per entry. The
 #   curated sidebar topics are Browser automation / Agents / Computer use /
 #   Steel APIs; other topics (Playwright, Browser Use, Authentication, Typed
-#   output, Captchas, Mobile, Next.js) appear on cards and drive
+#   output, Captchas, Mobile, Next.js, Convex) appear on cards and drive
 #   /cookbook/topics/<topic> views. See CONTRIBUTING.md for the curated list.
 # - created is the publish date for this variant (YYYY-MM-DD). Cards on the
 #   home and topic pages sort by the earliest created across a concept's
@@ -389,3 +389,23 @@
   topics: [Steel APIs, Playwright]
   created: "2024-11-19"
   updated: "2026-04-24"
+
+- title: Chat with any webpage on Convex
+  slug: convex-chat-with-page
+  path: examples/convex-chat-with-page
+  description: Convex app that streams an AI agent's answer about any URL. The agent runs server-side with one Steel-backed scrape tool and pages through long articles via a chunked cache.
+  authors: [nibzard]
+  language: TypeScript
+  topics: [Agents, Convex]
+  created: "2026-05-04"
+  updated: "2026-05-04"
+
+- title: Watch Claude pricing for divergent A/B variants
+  slug: convex-price-watch
+  path: examples/convex-price-watch
+  description: Convex cron plus two parallel Steel proxy probes against claude.com/pricing. Stores per-tier per-region snapshots and surfaces tiers where the probes disagree.
+  authors: [nibzard]
+  language: TypeScript
+  topics: [Steel APIs, Convex]
+  created: "2026-05-04"
+  updated: "2026-05-04"
