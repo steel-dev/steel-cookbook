@@ -230,6 +230,16 @@
   created: "2026-04-29"
   updated: "2026-04-29"
 
+- title: Build a browser agent with Microsoft Agent Framework
+  slug: microsoft-agent-framework
+  path: examples/microsoft-agent-framework
+  description: Use Steel with Microsoft Agent Framework 1.0 (the successor to AutoGen and Semantic Kernel) to build a tool-using browser agent.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents]
+  created: "2026-05-11"
+  updated: "2026-05-11"
+
 - title: Build a typed browser agent with the Vercel AI SDK
   slug: vercel-ai-sdk
   path: examples/vercel-ai-sdk-ts

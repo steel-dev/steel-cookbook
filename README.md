@@ -69,6 +69,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="openai-agents">OpenAI Agents SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/openai-agents-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/openai-agents-py) |
 | <a id="langgraph">LangGraph</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/langgraph) |
 | <a id="pydantic-ai">Pydantic AI</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/pydantic-ai) |
+| <a id="microsoft-agent-framework">Microsoft Agent Framework</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/microsoft-agent-framework) |
 | <a id="claude-agent-sdk">Claude Agent SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-agent-sdk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/claude-agent-sdk-py) |
 | <a id="deep-research">Deep Research (Claude Agent SDK subagents)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/deep-research-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/deep-research-py) |
 
@@ -140,6 +141,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [OpenAI Agents SDK](examples/openai-agents-py) - Agent with @function_tool + Pydantic output_type
 - [LangGraph](examples/langgraph) - Explicit state-machine agent loop with structured-output formatter
 - [Pydantic AI](examples/pydantic-ai) - Provider-agnostic typed agent with deps_type and output_type
+- [Microsoft Agent Framework](examples/microsoft-agent-framework) - 1.0 successor to AutoGen and Semantic Kernel, plain-function `@tool` decorator
 - [Claude Agent SDK](examples/claude-agent-sdk-py) - Anthropic's first-party agent loop with Steel exposed as in-process MCP tools
 - [Deep Research](examples/deep-research-py) - Lead orchestrator dispatches parallel researcher subagents on Claude Agent SDK, each driving its own Steel session
 
