@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env*.local
+
+# convex
+convex/_generated/
+
+# misc
+.DS_Store
+npm-debug.log*

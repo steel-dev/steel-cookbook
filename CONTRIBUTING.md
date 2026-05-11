@@ -11,6 +11,10 @@ Most entries fall into two flavors:
 
 Both live in the same `examples/` folder and are distinguished by topics in `registry.yaml`, not by separate categories.
 
+### Curated topics
+
+Pick 1-3 per entry. Sidebar topics: **Browser automation**, **Agents**, **Computer use**, **Steel APIs**. Card topics: **Playwright**, **Browser Use**, **Authentication**, **Typed output**, **Captchas**, **Mobile**, **Next.js**, **Convex**. Coin a new one only if no existing label fits.
+
 A good entry is:
 
 - **Useful** — solves a need people actually have
