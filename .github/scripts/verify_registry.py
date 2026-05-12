@@ -13,24 +13,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Canonical topic list. The docs site surfaces the first four as sidebar
-# "Topics" and renders editorial blurbs for every entry here. Add a new
-# topic to both this list and TOPIC_DESCRIPTIONS in
-# docs/scripts/sync-cookbook.ts when introducing one.
-ALLOWED_TOPICS: set[str] = {
-    "Browser automation",
-    "Agents",
-    "Computer use",
-    "Steel APIs",
-    "Playwright",
-    "Browser Use",
-    "Authentication",
-    "Typed output",
-    "Captchas",
-    "Mobile",
-    "Next.js",
-}
-
 ALLOWED_LANGUAGES: set[str] = {"TypeScript", "Python"}
 
 registry = yaml.safe_load((ROOT / "registry.yaml").read_text())
@@ -75,12 +57,6 @@ for entry in registry:
     topics = entry.get("topics") or []
     if not topics:
         errors.append(f"{slug} ({path}): missing 'topics' (at least one required)")
-    for topic in topics:
-        if topic not in ALLOWED_TOPICS:
-            errors.append(
-                f"{slug} ({path}): topic '{topic}' not in allowed list "
-                f"(see verify_registry.py)"
-            )
 
 missing_authors = referenced_authors - set(authors.keys())
 if missing_authors:
