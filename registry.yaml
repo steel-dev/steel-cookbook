@@ -599,3 +599,33 @@
   topics: [Computer use]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a browser agent with Google ADK
+  slug: google-adk
+  path: examples/google-adk-go
+  description: Use Steel with Google's Agent Development Kit (ADK) for Go to build a tool-using browser agent that drives a chromedp session over CDP and reads Hacker News.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
+
+- title: Build a browser agent with Google ADK
+  slug: google-adk
+  path: examples/google-adk-py
+  description: Use Steel with Google's Agent Development Kit (ADK) for Python to build a tool-using browser agent that drives a Playwright session over CDP and returns typed Hacker News stories.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents, Typed output]
+  created: "2026-06-23"
+  updated: "2026-06-23"
+
+- title: Build a browser agent with Google ADK
+  slug: google-adk
+  path: examples/google-adk-ts
+  description: Use Steel with Google's Agent Development Kit (ADK) for TypeScript to build a tool-using browser agent that drives a Playwright session over CDP and reads Hacker News.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"

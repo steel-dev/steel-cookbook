@@ -89,6 +89,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="rig">rig (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/rig-rs) |
 | <a id="swiftide">Swiftide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/swiftide-rs) |
 | <a id="langchaingo">LangChainGo (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/langchaingo-go) |
+| <a id="google-adk">Google ADK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/google-adk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/google-adk-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/google-adk-go) |
 
 ### Advanced Features
 
