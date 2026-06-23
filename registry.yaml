@@ -489,3 +489,13 @@
   topics: [Steel APIs]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Scrape a page to Markdown, screenshot, and PDF
+  slug: scrape
+  path: examples/scrape-rs
+  description: Use the Steel Rust SDK's direct API to scrape clean Markdown and save a screenshot and PDF, with no browser library.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs]
+  created: "2026-06-23"
+  updated: "2026-06-23"
