@@ -87,6 +87,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="genkit">Genkit (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/genkit-go) |
 | <a id="eino">Eino (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/eino-go) |
 | <a id="rig">rig (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/rig-rs) |
+| <a id="swiftide">Swiftide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/swiftide-rs) |
 
 ### Advanced Features
 

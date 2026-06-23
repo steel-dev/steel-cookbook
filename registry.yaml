@@ -559,3 +559,13 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a research agent with Swiftide
+  slug: swiftide
+  path: examples/swiftide-rs
+  description: Use Steel with Swiftide to build an agent whose tool reads the web through Steel's scrape endpoint, so the model works from clean Markdown with no browser library.
+  authors: [junhsss]
+  language: Rust
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
