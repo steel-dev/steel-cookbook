@@ -479,3 +479,13 @@
   topics: [Steel APIs]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Scrape a page to Markdown, screenshot, and PDF
+  slug: scrape
+  path: examples/scrape-py
+  description: Use the Steel Python SDK's direct API to scrape a page to Markdown, screenshot, and PDF, saving each artifact to disk with no browser library.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs]
+  created: "2026-06-23"
+  updated: "2026-06-23"

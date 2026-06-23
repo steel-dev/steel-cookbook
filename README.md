@@ -43,7 +43,7 @@ Use Steel's direct API utilities to scrape, screenshot, and PDF a page without a
 
 | Example Name | Languages |
 |--------------|-----------|
-| <a id="scrape">Scrape, Screenshot, and PDF</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/scrape-ts) |
+| <a id="scrape">Scrape, Screenshot, and PDF</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/scrape-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/scrape-py) |
 
 ### AI Agents
 
