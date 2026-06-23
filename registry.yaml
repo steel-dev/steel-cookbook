@@ -439,3 +439,13 @@
   topics: [Browser automation]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Automate a cloud browser with go-rod
+  slug: rod
+  path: examples/rod-go
+  description: Use Steel with go-rod's fluent, chainable API to connect over CDP and scrape quotes.toscrape.com from a cloud browser.
+  authors: [junhsss]
+  language: Go
+  topics: [Browser automation]
+  created: "2026-06-23"
+  updated: "2026-06-23"
