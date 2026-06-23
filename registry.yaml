@@ -509,3 +509,13 @@
   topics: [Computer use]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Drive a browser with OpenAI Computer Use
+  slug: openai-computer-use
+  path: examples/openai-computer-use-go
+  description: Connect OpenAI's Computer Use Assistant to a Steel browser session for autonomous web interactions, via the Responses API and Steel's computer endpoint.
+  authors: [junhsss]
+  language: Go
+  topics: [Computer use]
+  created: "2026-06-23"
+  updated: "2026-06-23"
