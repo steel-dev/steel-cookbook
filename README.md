@@ -32,6 +32,7 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 | <a id="playwright">Playwright Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/playwright-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/playwright-py) |
 | <a id="puppeteer">Puppeteer Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/puppeteer-ts) |
 | <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/selenium) |
+| <a id="chromedp">chromedp (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/chromedp-go) |
 
 ### AI Agents
 

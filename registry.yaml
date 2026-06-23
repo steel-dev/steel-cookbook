@@ -429,3 +429,13 @@
   topics: [Steel APIs, Convex]
   created: "2026-05-04"
   updated: "2026-05-04"
+
+- title: Automate a cloud browser with chromedp
+  slug: chromedp
+  path: examples/chromedp-go
+  description: Use Steel with chromedp to connect over CDP, navigate to Hacker News, extract the top stories, and capture a screenshot.
+  authors: [junhsss]
+  language: Go
+  topics: [Browser automation]
+  created: "2026-06-23"
+  updated: "2026-06-23"
