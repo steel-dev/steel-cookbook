@@ -106,7 +106,7 @@ Expect 60 to 180 seconds and 10 to 30 iterations for a simple browse, plus Anthr
 - **Tune the viewport.** `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` feed both the Steel `dimensions` and the tool definition. Keep them together.
 - **Rework the prompt.** `browser_system_prompt` holds the browsing conventions: date injection, the clear-then-type rule, black-screen recovery.
 - **Raise the ceiling.** `MAX_ITERATIONS` is the safety net for long tasks.
-- **Persist a login.** Pass a session context to `sessions().create` to resume with cookies and local storage. See [credentials](../credentials).
+- **Persist a login.** Pass a session context to `sessions().create` to resume with cookies and local storage. See [credentials](../credentials-ts).
 
 ## Related
 

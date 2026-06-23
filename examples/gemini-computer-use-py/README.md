@@ -108,7 +108,7 @@ A run typically takes 60-180 seconds and 10-30 iterations. Because `generate_con
 - Swap the model. `self.model = "gemini-3-flash-preview"` in `Agent.__init__`.
 - Tune the viewport. `viewport_width` and `viewport_height` in `Agent.__init__` flow into `sessions.create(dimensions=...)`.
 - Gate safety confirmations. Replace the auto-acknowledge branch in `execute_task` with a human prompt.
-- Persist a login. Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials).
+- Persist a login. Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials-ts).
 - Raise the ceiling. `max_iterations=50` in `execute_task` bounds a single task.
 
 ## Related

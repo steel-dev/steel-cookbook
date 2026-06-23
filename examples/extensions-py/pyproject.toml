@@ -1,0 +1,11 @@
+[project]
+name = "extensions-py"
+version = "0.1.0"
+description = "Steel + Extensions (Python): attach a Chrome extension to a session and confirm it injects"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.48.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.17.0",
+]

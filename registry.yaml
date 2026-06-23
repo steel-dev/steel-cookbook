@@ -362,7 +362,7 @@
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
-  path: examples/auth-context
+  path: examples/auth-context-ts
   description: Maintain authenticated sessions across Steel browser instances by capturing and reusing cookies and local storage.
   authors: [junhsss]
   language: TypeScript
@@ -372,7 +372,7 @@
 
 - title: Automate logins with the Credentials API
   slug: credentials
-  path: examples/credentials
+  path: examples/credentials-ts
   description: Use the Steel Credentials API with Playwright to automate flows with stored credentials.
   authors: [danew, junhsss]
   language: TypeScript
@@ -382,7 +382,7 @@
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
-  path: examples/profiles
+  path: examples/profiles-ts
   description: Maintain authenticated sessions across Steel browser instances using profiles.
   authors: [aspectrr, jagadeshjai]
   language: TypeScript
@@ -392,7 +392,7 @@
 
 - title: Upload and run browser extensions
   slug: extensions
-  path: examples/extensions
+  path: examples/extensions-ts
   description: Use the Steel Extensions API with Playwright to upload and run browser extensions.
   authors: [aspectrr, junhsss]
   language: TypeScript
@@ -402,7 +402,7 @@
 
 - title: Move files between your machine and a cloud browser
   slug: files
-  path: examples/files-api
+  path: examples/files-ts
   description: Use the Steel Files API with Playwright to automate file uploads and downloads in the cloud.
   authors: [junhsss]
   language: TypeScript
@@ -619,3 +619,173 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Drive a browser with Gemini Computer Use
+  slug: gemini-computer-use
+  path: examples/gemini-computer-use-go
+  description: Connect Google's Gemini Computer Use to a Steel browser session using the GenAI Go SDK and Steel's computer endpoint for autonomous web interactions.
+  authors: [junhsss]
+  language: Go
+  topics: [Computer use]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Drive a browser with Gemini Computer Use
+  slug: gemini-computer-use
+  path: examples/gemini-computer-use-rs
+  description: Connect Google's Gemini Computer Use to a Steel browser session, calling the Gemini REST API over raw reqwest and Steel's computer endpoint for autonomous web interactions.
+  authors: [junhsss]
+  language: Rust
+  topics: [Computer use]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Reuse authenticated sessions across browsers
+  slug: auth-context
+  path: examples/auth-context-py
+  description: Capture cookies and local storage from one Steel session with Playwright and restore them into a fresh session so the new browser starts already authenticated.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Reuse authenticated sessions across browsers
+  slug: auth-context
+  path: examples/auth-context-go
+  description: Capture cookies and local storage from one Steel session with chromedp and restore them into a fresh session so the new browser starts already authenticated.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Reuse authenticated sessions across browsers
+  slug: auth-context
+  path: examples/auth-context-rs
+  description: Capture cookies and local storage from one Steel session with chromiumoxide and restore them into a fresh session so the new browser starts already authenticated.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Automate logins with the Credentials API
+  slug: credentials
+  path: examples/credentials-py
+  description: Use the Steel Credentials API with Playwright to store a login and let Steel auto-fill the form on a credentials-enabled session.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs, Authentication, Playwright]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Automate logins with the Credentials API
+  slug: credentials
+  path: examples/credentials-go
+  description: Use the Steel Credentials API with chromedp to store a login and let Steel auto-fill the form on a credentials-enabled session.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Automate logins with the Credentials API
+  slug: credentials
+  path: examples/credentials-rs
+  description: Use the Steel Credentials API with chromiumoxide to store a login and let Steel auto-fill the form on a credentials-enabled session.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Persist authenticated sessions with Profiles
+  slug: profiles
+  path: examples/profiles-py
+  description: Persist a browser profile across two Steel sessions with Playwright so cart state survives between distinct browsers.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Persist authenticated sessions with Profiles
+  slug: profiles
+  path: examples/profiles-go
+  description: Persist a browser profile across two Steel sessions with chromedp so cart state survives between distinct browsers.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Persist authenticated sessions with Profiles
+  slug: profiles
+  path: examples/profiles-rs
+  description: Persist a browser profile across two Steel sessions with chromiumoxide so cart state survives between distinct browsers.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs, Authentication]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Upload and run browser extensions
+  slug: extensions
+  path: examples/extensions-py
+  description: Use the Steel Extensions API with Playwright to upload a Chrome extension, attach it to a session, and confirm the UI it injects.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs, Playwright]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Upload and run browser extensions
+  slug: extensions
+  path: examples/extensions-go
+  description: Use the Steel Extensions API with chromedp to upload a Chrome extension, attach it to a session, and confirm the UI it injects.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Upload and run browser extensions
+  slug: extensions
+  path: examples/extensions-rs
+  description: Use the Steel Extensions API with chromiumoxide to upload a Chrome extension, attach it to a session, and confirm the UI it injects.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Move files between your machine and a cloud browser
+  slug: files
+  path: examples/files-py
+  description: Use the Steel Files API with Playwright to upload a local CSV into a session and feed its server-side path to a remote file input over CDP.
+  authors: [junhsss]
+  language: Python
+  topics: [Steel APIs, Playwright]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Move files between your machine and a cloud browser
+  slug: files
+  path: examples/files-go
+  description: Use the Steel Files API with chromedp to upload a local CSV into a session and feed its server-side path to a remote file input over CDP.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Move files between your machine and a cloud browser
+  slug: files
+  path: examples/files-rs
+  description: Use the Steel Files API with chromiumoxide to upload a local CSV into a session and feed its server-side path to a remote file input over CDP.
+  authors: [junhsss]
+  language: Rust
+  topics: [Steel APIs]
+  created: "2026-06-24"
+  updated: "2026-06-24"

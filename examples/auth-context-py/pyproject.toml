@@ -1,0 +1,11 @@
+[project]
+name = "auth-context-py"
+version = "0.1.0"
+description = "Steel + Playwright (Python): capture an auth context and restore it into a fresh session"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.48.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.17.0",
+]

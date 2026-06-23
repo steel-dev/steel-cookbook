@@ -61,7 +61,7 @@ One run costs a few cents of session time. Steel bills per session-minute, which
 - **Swap the target.** The scraping logic lives between the `Your Automations Go Here!` banner comments in `main.py`. Replace `page.goto` and the `story_rows` loop with your own selectors. Session setup, auth, and teardown stay the same.
 - **Harden for anti-bot.** Uncomment `use_proxy`, `solve_captcha`, or `session_timeout` inside `client.sessions.create()` for sites that fingerprint or challenge headless traffic.
 - **Go async.** If you need parallel pages, switch `from playwright.sync_api import sync_playwright` to `playwright.async_api` and rewrite `main()` as `async def`. The Steel connection call is identical, just awaited.
-- **Persist login.** Carry cookies and local storage between runs with [credentials](../credentials).
+- **Persist login.** Carry cookies and local storage between runs with [credentials](../credentials-ts).
 
 ## Related
 

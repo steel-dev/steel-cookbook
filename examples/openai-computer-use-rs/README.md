@@ -81,7 +81,7 @@ A run drives a real session and a vision model across many turns, so it costs a 
 - **Change the task.** Set `TASK` in `.env`, or edit the default in `main`.
 - **Resize the viewport.** `VIEWPORT_WIDTH` and `VIEWPORT_HEIGHT` set both the Steel session dimensions and the `display_width`/`display_height` on the tool. Keep them in sync so the model's coordinates match the page.
 - **Gate safety checks.** Instead of auto-acknowledging every `pending_safety_check`, prompt a human or allowlist specific codes before echoing them back.
-- **Start authenticated.** Pass a session context or credentials to `sessions().create(...)` so the agent begins on a logged-in page. See [auth-context](../auth-context) and [credentials](../credentials).
+- **Start authenticated.** Pass a session context or credentials to `sessions().create(...)` so the agent begins on a logged-in page. See [auth-context](../auth-context-ts) and [credentials](../credentials-ts).
 
 ## Related
 

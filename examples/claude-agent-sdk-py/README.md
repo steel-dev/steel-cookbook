@@ -95,7 +95,7 @@ A run takes ~30 to 50 seconds and 3 to 6 turns. Cost is Steel session-minutes pl
 - **Add a tool.** Decorate a new async function with `@tool`, append it to the `tools` list passed to `create_sdk_mcp_server`. A `click(selector)` tool that calls `page.click` is a useful fifth one.
 - **Hook the lifecycle.** Pass `hooks={"PostToolUse": [...]}` on `ClaudeAgentOptions` to log every tool call, validate arguments, or veto destructive actions. Hook events: `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`.
 - **Resume sessions.** Capture `SystemMessage.data["session_id"]` from the first run, pass `resume=session_id` on the next `ClaudeAgentOptions` to continue with full context.
-- **Hand off auth.** Pair with [credentials](../credentials) or [auth-context](../auth-context) so the Steel session starts already logged in.
+- **Hand off auth.** Pair with [credentials](../credentials-ts) or [auth-context](../auth-context-ts) so the Steel session starts already logged in.
 
 ## Related
 

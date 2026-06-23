@@ -88,7 +88,7 @@ The result is then chunked at paragraph boundaries into ~25k-character pieces (`
 ## Make it yours
 
 - **Plug in real auth.** `ownerId` is a single string. Replace the hardcoded `alice` / `bob` toggle in `App.tsx` with the user id from Clerk, WorkOS, or your auth provider, and the app becomes multi-tenant against real users.
-- **Add login walls.** Compose with the [`credentials`](../credentials) recipe to log in to a real account before scraping, and the [`profiles`](../profiles) recipe to keep cookies across sessions.
+- **Add login walls.** Compose with the [`credentials`](../credentials-ts) recipe to log in to a real account before scraping, and the [`profiles`](../profiles-ts) recipe to keep cookies across sessions.
 - **Solve captchas in-session.** Steel's `solveCaptcha` flag handles the common challenges. Pass it through `commandArgs` on `steel.steel.scrape`.
 - **Swap models.** `openai.chat("gpt-5.4-mini")` is one line in `convex/agent.ts`. Any `@ai-sdk/openai` model that supports tool calls works.
 - **Adjust the cache TTL.** `CACHE_TTL_MS` is 10 minutes in `scrape.ts`. Lower for fast-moving content, raise for static articles.

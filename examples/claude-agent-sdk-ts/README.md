@@ -97,7 +97,7 @@ A run takes ~25 to 45 seconds and 3 to 6 turns. Cost is Steel session-minutes pl
 - **Add a tool.** Define another `tool()`, append it to the `tools` array in `createSdkMcpServer`. A `click(selector)` tool that calls `page.click` is the most common fifth one.
 - **Hook the lifecycle.** Pass a `hooks` option with callbacks for `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart` to audit, log, or block individual tool calls.
 - **Resume sessions.** Capture `session_id` from the first `system`/`init` message, pass `resume: sessionId` on the next `query()` call to keep agent memory across runs.
-- **Persist a login.** Pair with [credentials](../credentials) or [auth-context](../auth-context) so Steel sessions start already authenticated.
+- **Persist a login.** Pair with [credentials](../credentials-ts) or [auth-context](../auth-context-ts) so Steel sessions start already authenticated.
 
 ## Related
 

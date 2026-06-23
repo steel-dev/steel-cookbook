@@ -154,7 +154,7 @@ A run takes ~4 to 6 minutes wall-clock with 3 Steel sessions in parallel. Cost i
 - **Cheaper researchers.** Drop the researcher's `model: "sonnet"` to `"haiku"` for faster, lighter passes. The orchestrator stays on Opus.
 - **Different search engine.** `web_search` drives DuckDuckGo's no-JS HTML endpoint. Swap the URL and the Zod-typed return shape inside the tool body for Bing, a vertical search, or a domain-restricted Google query — or wire in a paid search API and skip Steel for search entirely.
 - **Persist sources.** Add a tool that appends `{ researcher_id, url, extraction }` to a JSONL file before returning. The orchestrator stays unchanged; you get a citable archive of every page each researcher read.
-- **Hand off auth.** For sub-questions behind a login, pair with [credentials](../credentials) or [auth-context](../auth-context) so each Steel session starts already signed in.
+- **Hand off auth.** For sub-questions behind a login, pair with [credentials](../credentials-ts) or [auth-context](../auth-context-ts) so each Steel session starts already signed in.
 
 ## Related
 

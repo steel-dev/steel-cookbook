@@ -95,7 +95,7 @@ Expect ~60-120 seconds and 15-40 iterations for a simple browsing task.
 - **Change the viewport.** `viewportWidth` and `viewportHeight` in the `Agent` constructor set both the Steel session dimensions and the tool definition's `display_width_px`/`display_height_px`. Keep them in sync.
 - **Tune the system prompt.** `BROWSER_SYSTEM_PROMPT` is where the browsing conventions live: date injection, screenshot-after-submit rule, black-screen recovery.
 - **Raise the ceiling.** Long tasks bump against the 50-iteration default in `executeTask`.
-- **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials) or [auth contexts](../auth-context) to start the session authenticated.
+- **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials-ts) or [auth contexts](../auth-context-ts) to start the session authenticated.
 
 ## Related
 

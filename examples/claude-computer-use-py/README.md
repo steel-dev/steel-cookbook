@@ -103,7 +103,7 @@ A run typically takes 60-180 seconds and 10-30 loop iterations.
 - **Change the task.** Edit `TASK` in `.env` or pass it per-run.
 - **Tune the viewport.** `viewport_width` / `viewport_height` in `Agent.__init__`.
 - **Rework the system prompt.** `BROWSER_SYSTEM_PROMPT` is where site-specific knowledge lives.
-- **Persist a login.** Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials).
+- **Persist a login.** Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials-ts).
 - **Raise the ceiling.** `max_iterations=50` in `execute_task` is the safety net.
 
 ## Related

@@ -91,7 +91,7 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task.
 - **Swap the model.** `this.model = "gemini-3-flash-preview"` is the only version string.
 - **Tune the system prompt.** `BROWSER_SYSTEM_PROMPT` carries the browsing conventions: today's date via `formatToday()`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledgement branch with a human approval before the next `executeComputerAction` fires.
-- **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials) or [auth contexts](../auth-context) to start the session already logged in.
+- **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials-ts) or [auth contexts](../auth-context-ts) to start the session already logged in.
 
 ## Related
 

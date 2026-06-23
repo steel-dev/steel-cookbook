@@ -111,7 +111,7 @@ A run typically takes 60-180 seconds and 10-30 iterations. Screenshots are cache
 - **Swap the model.** The default is `gpt-5.5`. Update `self.model` in `Agent.__init__`.
 - **Tune the viewport.** `viewport_width` / `viewport_height` in `Agent.__init__` flow into `sessions.create(dimensions=...)`.
 - **Turn off auto-ack.** Flip `auto_acknowledge_safety = False` to make pending safety checks raise.
-- **Persist a login.** Pass `session_context` to `sessions.create`. See [credentials](../credentials).
+- **Persist a login.** Pass `session_context` to `sessions.create`. See [credentials](../credentials-ts).
 - **Adjust reasoning.** `"effort": "medium"` trades latency for deeper plans. Drop to `"low"` for fast lookups, raise to `"high"` for multi-step research.
 
 ## Related

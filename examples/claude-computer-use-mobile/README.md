@@ -107,7 +107,7 @@ Expect ~60-180 seconds and 15-40 iterations for a typical mobile browse.
 - **Change the start URL.** `SteelBrowser` defaults to `https://amazon.com`. Pass a different URL to the constructor in `main`.
 - **Tighten or loosen the blocklist.** `BLOCKED_DOMAINS` flows through `context.route`.
 - **Tune the system prompt.** `SYSTEM_PROMPT` teaches Claude the mobile conventions. The `<COORDINATE_SYSTEM>` block is rewritten at runtime with the live viewport numbers.
-- **Persist a login.** Pass `sessionContext` into `sessions.create` to resume with cookies and local storage. See [credentials](../credentials).
+- **Persist a login.** Pass `sessionContext` into `sessions.create` to resume with cookies and local storage. See [credentials](../credentials-ts).
 - **Raise the iteration cap.** `maxIterations = 50` in `executeTask` is conservative for long mobile flows.
 
 ## Related

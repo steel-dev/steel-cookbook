@@ -58,7 +58,7 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 - **Swap the target.** Replace the `page.goto` URL and the `page.evaluate` body in `main()`. Session setup, connect, and cleanup stay the same.
 - **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `sessionTimeout` in the `sessions.create()` call for sites with anti-bot.
-- **Persist login.** Reuse cookies and local storage across runs via [credentials](../credentials).
+- **Persist login.** Reuse cookies and local storage across runs via [credentials](../credentials-ts).
 
 ## Related
 

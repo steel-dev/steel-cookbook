@@ -103,7 +103,7 @@ A run typically takes 60-180 seconds across 10-30 model turns. Each turn is one 
 - **Adjust the viewport.** `viewportWidth` and `viewportHeight` feed both the Steel session `Dimensions` and the `computer_use_preview` tool's display size. Keep the two in sync so the model's coordinates match the real screen.
 - **Raise or lower the ceiling.** `maxIterations` bounds the loop at 50 turns. Lower it to cap spend on a flaky task.
 - **Gate safety checks.** Replace the auto-acknowledge block with a prompt or an allowlist before appending to `acks`.
-- **Persist a login.** Pass `SessionContext` to `Sessions.Create` to reuse cookies across runs. See [credentials](../credentials).
+- **Persist a login.** Pass `SessionContext` to `Sessions.Create` to reuse cookies across runs. See [credentials](../credentials-ts).
 
 ## Notes
 

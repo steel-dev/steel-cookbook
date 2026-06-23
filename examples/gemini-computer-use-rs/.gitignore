@@ -1,0 +1,4 @@
+.env
+/target
+*.png
+Cargo.lock

@@ -105,7 +105,7 @@ Expect roughly 60 to 180 seconds and 10 to 40 loop iterations for a simple brows
 - **Tune the viewport.** `viewportWidth` and `viewportHeight` set both the Steel `Dimensions` and the tool's `display_*_px`. Keep them equal.
 - **Rework the system prompt.** `browserSystemPrompt` is where the browsing conventions live: date injection, the screenshot-after-submit rule, black-screen recovery.
 - **Raise the ceiling.** `maxIterations` is the safety net for long tasks.
-- **Hand off auth.** Pass `SessionContext` to `Sessions.Create` to start authenticated. See [credentials](../credentials) and [auth-context](../auth-context).
+- **Hand off auth.** Pass `SessionContext` to `Sessions.Create` to start authenticated. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).
 
 ## Related
 
