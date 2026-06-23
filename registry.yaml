@@ -519,3 +519,13 @@
   topics: [Computer use]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Drive a browser with Claude Computer Use
+  slug: claude-computer-use
+  path: examples/claude-computer-use-rs
+  description: Connect Claude to a Steel browser session for autonomous web interactions, calling the Anthropic Messages API over raw reqwest and Steel's computer endpoint.
+  authors: [junhsss]
+  language: Rust
+  topics: [Computer use]
+  created: "2026-06-23"
+  updated: "2026-06-23"
