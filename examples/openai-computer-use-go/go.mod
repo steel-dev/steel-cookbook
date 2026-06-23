@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/openai/openai-go/v3 v3.41.0
-	github.com/steel-dev/steel-go v0.1.0
+	github.com/steel-dev/steel-go v0.1.1
 )
 
 require (

@@ -32,8 +32,6 @@ const (
 	userID  = "user"
 )
 
-func ptr[T any](v T) *T { return &v }
-
 // browser holds the resources every tool shares. A single Steel session and one
 // chromedp tab are reused across tool calls, so the agent navigates and extracts
 // against the same live page.
@@ -95,8 +93,8 @@ func main() {
 	client := steel.NewClient(steelKey)
 
 	steelSession, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		BlockAds:   ptr(true),
-		Dimensions: &steel.Dimensions{Width: 1280, Height: 800},
+		BlockAds:   steel.F(true),
+		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -199,15 +197,15 @@ func main() {
 	}, func(tc agent.ToolContext, in scrapeInput) (scrapeOutput, error) {
 		start := time.Now()
 		res, err := b.client.Scrape(tc, steel.ClientScrapeParams{
-			URL:    in.URL,
-			Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+			URL:    steel.F(in.URL),
+			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 		})
 		if err != nil {
 			return scrapeOutput{}, err
 		}
 		fmt.Printf("    scrape: %dms\n", time.Since(start).Milliseconds())
-		if res.Content.Markdown != nil {
-			return scrapeOutput{Markdown: *res.Content.Markdown}, nil
+		if res.Content.Markdown != "" {
+			return scrapeOutput{Markdown: res.Content.Markdown}, nil
 		}
 		return scrapeOutput{Markdown: "(no markdown returned)"}, nil
 	})

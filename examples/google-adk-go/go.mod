@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/chromedp/chromedp v0.13.6
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.0
+	github.com/steel-dev/steel-go v0.1.1
 	google.golang.org/adk v1.4.0
 	google.golang.org/genai v1.57.0
 )
@@ -32,6 +32,10 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
