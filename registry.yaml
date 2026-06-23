@@ -549,3 +549,13 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a browser agent with rig
+  slug: rig
+  path: examples/rig-rs
+  description: Use Steel with rig to build an agent that drives a cloud browser over CDP with chromiumoxide through navigate and extract tools, then answers a multi-step web task.
+  authors: [junhsss]
+  language: Rust
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
