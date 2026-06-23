@@ -789,3 +789,23 @@
   topics: [Steel APIs]
   created: "2026-06-24"
   updated: "2026-06-24"
+
+- title: Automate a cloud browser with Playwright
+  slug: playwright
+  path: examples/playwright-go
+  description: Use Steel with playwright-go to connect over CDP and scrape Hacker News, installing only the Playwright driver and skipping the local browser binaries you never run.
+  authors: [junhsss]
+  language: Go
+  topics: [Browser automation, Playwright]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Automate a cloud browser with headless_chrome
+  slug: headless-chrome
+  path: examples/headless-chrome
+  description: Use Steel with headless_chrome, the synchronous Rust equivalent of Puppeteer, to connect over CDP and scrape quotes with element handles.
+  authors: [junhsss]
+  language: Rust
+  topics: [Browser automation]
+  created: "2026-06-24"
+  updated: "2026-06-24"

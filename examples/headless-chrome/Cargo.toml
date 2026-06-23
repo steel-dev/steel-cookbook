@@ -1,0 +1,10 @@
+[package]
+name = "headless-chrome"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+steel-rs = "0.1"
+headless_chrome = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+dotenvy = "0.15"
