@@ -569,3 +569,13 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Scrape a page to Markdown, screenshot, and PDF
+  slug: scrape
+  path: examples/scrape-go
+  description: Use the Steel Go SDK's direct API to scrape a page to clean Markdown, then capture a screenshot and PDF, with no browser library.
+  authors: [junhsss]
+  language: Go
+  topics: [Steel APIs]
+  created: "2026-06-23"
+  updated: "2026-06-23"
