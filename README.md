@@ -34,6 +34,7 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 | <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/selenium) |
 | <a id="chromedp">chromedp (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/chromedp-go) |
 | <a id="rod">go-rod (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/rod-go) |
+| <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide-rs) |
 
 ### AI Agents
 

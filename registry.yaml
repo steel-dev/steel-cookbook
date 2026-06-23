@@ -449,3 +449,13 @@
   topics: [Browser automation]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Automate a cloud browser with chromiumoxide
+  slug: chromiumoxide
+  path: examples/chromiumoxide-rs
+  description: Use Steel with chromiumoxide to connect over CDP, drive the handler task, extract page content, and capture a screenshot.
+  authors: [junhsss]
+  language: Rust
+  topics: [Browser automation]
+  created: "2026-06-23"
+  updated: "2026-06-23"
