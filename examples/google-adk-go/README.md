@@ -104,4 +104,4 @@ ADK Go can pin an agent's reply to a `genai.Schema` through `OutputSchema` on th
 
 ## Related
 
-[Steel + Genkit (Go)](../genkit-go) and [Steel + Eino (Go)](../eino-go) build the same agent shape in other Go frameworks. The [ADK Go quickstart](https://adk.dev/get-started/go/) covers agents, tools, and the runner in depth.
+[Steel + Genkit (Go)](../genkit) and [Steel + Eino (Go)](../eino) build the same agent shape in other Go frameworks. The [ADK Go quickstart](https://adk.dev/get-started/go/) covers agents, tools, and the runner in depth.

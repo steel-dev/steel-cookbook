@@ -126,4 +126,4 @@ A run takes ~20 to 40 seconds and a handful of agent turns on Hacker News. Cost 
 
 ## Related
 
-[Steel + Genkit (Go)](../genkit-go) · [Steel + Pydantic AI (Python)](../pydantic-ai) · [Google ADK Python documentation](https://google.github.io/adk-docs/)
+[Steel + Genkit (Go)](../genkit) · [Steel + Pydantic AI (Python)](../pydantic-ai) · [Google ADK Python documentation](https://google.github.io/adk-docs/)

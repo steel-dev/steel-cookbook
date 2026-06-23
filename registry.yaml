@@ -432,7 +432,7 @@
 
 - title: Automate a cloud browser with chromedp
   slug: chromedp
-  path: examples/chromedp-go
+  path: examples/chromedp
   description: Use Steel with chromedp to connect over CDP, navigate to Hacker News, extract the top stories, and capture a screenshot.
   authors: [junhsss]
   language: Go
@@ -442,7 +442,7 @@
 
 - title: Automate a cloud browser with go-rod
   slug: rod
-  path: examples/rod-go
+  path: examples/rod
   description: Use Steel with go-rod's fluent, chainable API to connect over CDP and scrape quotes.toscrape.com from a cloud browser.
   authors: [junhsss]
   language: Go
@@ -452,7 +452,7 @@
 
 - title: Automate a cloud browser with chromiumoxide
   slug: chromiumoxide
-  path: examples/chromiumoxide-rs
+  path: examples/chromiumoxide
   description: Use Steel with chromiumoxide to connect over CDP, drive the handler task, extract page content, and capture a screenshot.
   authors: [junhsss]
   language: Rust
@@ -522,7 +522,7 @@
 
 - title: Build a browser agent with Genkit
   slug: genkit
-  path: examples/genkit-go
+  path: examples/genkit
   description: Use Steel with Genkit Go to build a tool-calling agent that navigates and extracts from a chromedp-backed browser and completes a web task.
   authors: [junhsss]
   language: Go
@@ -532,7 +532,7 @@
 
 - title: Build a browser agent with Eino
   slug: eino
-  path: examples/eino-go
+  path: examples/eino
   description: Use Steel with the ByteDance Eino framework to build a ReAct agent that calls Steel's scrape API as a tool to research and answer a web question.
   authors: [junhsss]
   language: Go
@@ -542,7 +542,7 @@
 
 - title: Build a browser agent with rig
   slug: rig
-  path: examples/rig-rs
+  path: examples/rig
   description: Use Steel with rig to build an agent that drives a cloud browser over CDP with chromiumoxide through navigate and extract tools, then answers a multi-step web task.
   authors: [junhsss]
   language: Rust
@@ -552,7 +552,7 @@
 
 - title: Build a research agent with Swiftide
   slug: swiftide
-  path: examples/swiftide-rs
+  path: examples/swiftide
   description: Use Steel with Swiftide to build an agent whose tool reads the web through Steel's scrape endpoint, so the model works from clean Markdown with no browser library.
   authors: [junhsss]
   language: Rust
@@ -572,7 +572,7 @@
 
 - title: Build a browser agent with LangChainGo
   slug: langchaingo
-  path: examples/langchaingo-go
+  path: examples/langchaingo
   description: Use Steel with LangChainGo's zero-shot ReAct (MRKL) agent and a string-in, string-out scrape tool so Claude reads a page and answers a question.
   authors: [junhsss]
   language: Go

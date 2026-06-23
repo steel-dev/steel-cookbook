@@ -13,7 +13,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
-ALLOWED_LANGUAGES: set[str] = {"TypeScript", "Python"}
+ALLOWED_LANGUAGES: set[str] = {"TypeScript", "Python", "Go", "Rust"}
 
 registry = yaml.safe_load((ROOT / "registry.yaml").read_text())
 authors = yaml.safe_load((ROOT / "authors.yaml").read_text())

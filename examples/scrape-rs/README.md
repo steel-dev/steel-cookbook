@@ -64,4 +64,4 @@ Three calls cost a few cents of browser time total. Steel bills per session-minu
 
 ## Related
 
-[TypeScript version](../scrape-ts) and [Python version](../scrape-py) cover the same three endpoints. For a full browser session you connect to and drive over CDP, see [chromiumoxide-rs](../chromiumoxide-rs). For the HTTP surface these methods wrap, see the [reqwest docs](https://docs.rs/reqwest) and [Tokio docs](https://tokio.rs).
+[TypeScript version](../scrape-ts) and [Python version](../scrape-py) cover the same three endpoints. For a full browser session you connect to and drive over CDP, see [chromiumoxide](../chromiumoxide). For the HTTP surface these methods wrap, see the [reqwest docs](https://docs.rs/reqwest) and [Tokio docs](https://tokio.rs).

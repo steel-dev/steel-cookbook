@@ -32,9 +32,9 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 | <a id="playwright">Playwright Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/playwright-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/playwright-py) |
 | <a id="puppeteer">Puppeteer Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/puppeteer-ts) |
 | <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/selenium) |
-| <a id="chromedp">chromedp (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/chromedp-go) |
-| <a id="rod">go-rod (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/rod-go) |
-| <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide-rs) |
+| <a id="chromedp">chromedp (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/chromedp) |
+| <a id="rod">go-rod (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/rod) |
+| <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide) |
 
 ### Steel APIs
 
@@ -83,11 +83,11 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="microsoft-agent-framework">Microsoft Agent Framework</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/microsoft-agent-framework) |
 | <a id="claude-agent-sdk">Claude Agent SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-agent-sdk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/claude-agent-sdk-py) |
 | <a id="deep-research">Deep Research (Claude Agent SDK subagents)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/deep-research-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/deep-research-py) |
-| <a id="genkit">Genkit (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/genkit-go) |
-| <a id="eino">Eino (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/eino-go) |
-| <a id="rig">rig (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/rig-rs) |
-| <a id="swiftide">Swiftide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/swiftide-rs) |
-| <a id="langchaingo">LangChainGo (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/langchaingo-go) |
+| <a id="genkit">Genkit (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/genkit) |
+| <a id="eino">Eino (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/eino) |
+| <a id="rig">rig (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/rig) |
+| <a id="swiftide">Swiftide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/swiftide) |
+| <a id="langchaingo">LangChainGo (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/langchaingo) |
 | <a id="google-adk">Google ADK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/google-adk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/google-adk-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/google-adk-go) |
 
 ### Advanced Features
