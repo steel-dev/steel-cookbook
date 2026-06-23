@@ -579,3 +579,13 @@
   topics: [Steel APIs]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a browser agent with LangChainGo
+  slug: langchaingo
+  path: examples/langchaingo-go
+  description: Use Steel with LangChainGo's zero-shot ReAct (MRKL) agent and a string-in, string-out scrape tool so Claude reads a page and answers a question.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
