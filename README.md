@@ -85,6 +85,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="claude-agent-sdk">Claude Agent SDK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/claude-agent-sdk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/claude-agent-sdk-py) |
 | <a id="deep-research">Deep Research (Claude Agent SDK subagents)</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/deep-research-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/deep-research-py) |
 | <a id="genkit">Genkit (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/genkit-go) |
+| <a id="eino">Eino (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/eino-go) |
 
 ### Advanced Features
 

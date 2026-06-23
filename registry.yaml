@@ -539,3 +539,13 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a browser agent with Eino
+  slug: eino
+  path: examples/eino-go
+  description: Use Steel with the ByteDance Eino framework to build a ReAct agent that calls Steel's scrape API as a tool to research and answer a web question.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
