@@ -529,3 +529,13 @@
   topics: [Computer use]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Build a browser agent with Genkit
+  slug: genkit
+  path: examples/genkit-go
+  description: Use Steel with Genkit Go to build a tool-calling agent that navigates and extracts from a chromedp-backed browser and completes a web task.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents]
+  created: "2026-06-23"
+  updated: "2026-06-23"
