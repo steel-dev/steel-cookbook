@@ -170,7 +170,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = steel.sessions().create(steel::SessionCreateParams::default()).await?;
     println!("Session: {}", session.session_viewer_url);
 
-    let cdp_url = format!("{}&apiKey={}", session.websocket_url, steel_api_key);
+    let raw = format!("{}&apiKey={}", session.websocket_url, steel_api_key);
+    let cdp_url = match (raw.find("://"), raw.find('?')) {
+        (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
+            format!("{}/{}", &raw[..q], &raw[q..])
+        }
+        _ => raw,
+    };
     let (mut browser, mut handler) = Browser::connect(cdp_url).await?;
     let handler_task = tokio::spawn(async move { while handler.next().await.is_some() {} });
 

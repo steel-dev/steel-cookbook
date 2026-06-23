@@ -35,17 +35,14 @@ func (t scrapeTool) Call(ctx context.Context, input string) (string, error) {
 	url := strings.Trim(strings.TrimSpace(input), "\"'")
 
 	resp, err := t.client.Scrape(ctx, steel.ClientScrapeParams{
-		URL:    url,
-		Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+		URL:    steel.F(url),
+		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 	})
 	if err != nil {
 		return "", err
 	}
 
-	markdown := ""
-	if resp.Content.Markdown != nil {
-		markdown = *resp.Content.Markdown
-	}
+	markdown := resp.Content.Markdown
 	if runes := []rune(markdown); len(runes) > 6000 {
 		markdown = string(runes[:6000])
 	}

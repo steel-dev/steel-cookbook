@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	anthropicsdk "github.com/anthropics/anthropic-sdk-go"
 	"github.com/chromedp/chromedp"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -19,8 +20,6 @@ import (
 )
 
 const model = "anthropic/claude-haiku-4-5"
-
-func ptr[T any](v T) *T { return &v }
 
 // browser holds the resources every tool shares. A single Steel session and one
 // chromedp tab are reused across tool calls, so the agent navigates and extracts
@@ -85,8 +84,8 @@ func main() {
 	client := steel.NewClient(steelKey)
 
 	session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		BlockAds:   ptr(true),
-		Dimensions: &steel.SessionCreateParamsDimensions{Width: 1280, Height: 800},
+		BlockAds:   steel.F(true),
+		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -176,15 +175,15 @@ func main() {
 			start := time.Now()
 			// ToolContext embeds context.Context, so it doubles as the request ctx.
 			res, err := b.client.Scrape(tc, steel.ClientScrapeParams{
-				URL:    in.URL,
-				Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+				URL:    steel.F(in.URL),
+				Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 			})
 			if err != nil {
 				return "", err
 			}
 			fmt.Printf("    scrape: %dms\n", time.Since(start).Milliseconds())
-			if res.Content.Markdown != nil {
-				return *res.Content.Markdown, nil
+			if res.Content.Markdown != "" {
+				return res.Content.Markdown, nil
 			}
 			return "(no markdown returned)", nil
 		},
@@ -195,15 +194,18 @@ func main() {
 		ai.WithSystem(
 			"You operate a Steel cloud browser through tools. "+
 				"Navigate to the page, then use extract with CSS selectors to read structured rows. "+
-				"Reach for scrape when you need an article's text as Markdown. Do not invent data.",
+				"Reach for scrape when you need an article's text as Markdown. Do not invent data. "+
+				"Call each tool the minimum number of times: once you have the rows you need, "+
+				"stop calling tools and return the final structured report.",
 		),
 		ai.WithPrompt(
 			"Go to https://news.ycombinator.com and return the top 5 stories. "+
 				"For each give its rank, title, the destination URL, and the points as shown.",
 		),
 		ai.WithTools(navigate, extract, scrape),
-		ai.WithMaxTurns(12),
+		ai.WithMaxTurns(24),
 		ai.WithOutputType(Report{}),
+		ai.WithConfig(&anthropicsdk.MessageNewParams{MaxTokens: 4096}),
 	)
 	if err != nil {
 		fmt.Printf("\nAgent error: %v\n", err)

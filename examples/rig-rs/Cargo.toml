@@ -7,6 +7,7 @@ edition = "2021"
 steel-rs = "0.1"
 rig-core = "0.39"
 chromiumoxide = "0.9"
+async-tungstenite = { version = "0.32", features = ["tokio-native-tls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3"
 serde = { version = "1", features = ["derive"] }

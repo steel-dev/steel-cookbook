@@ -4,15 +4,30 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/cdp"
 	steel "github.com/steel-dev/steel-go"
 )
 
-func ptr[T any](v T) *T { return &v }
+func connectCDP(ctx context.Context, wsURL string) (*cdp.Client, error) {
+	key := make([]byte, 16)
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
+	}
+	header := http.Header{"Sec-WebSocket-Key": {base64.StdEncoding.EncodeToString(key)}}
+	ws := &cdp.WebSocket{}
+	if err := ws.Connect(ctx, wsURL, header); err != nil {
+		return nil, err
+	}
+	return cdp.New().Start(ws), nil
+}
 
 func main() {
 	apiKey := os.Getenv("STEEL_API_KEY")
@@ -26,7 +41,7 @@ func main() {
 
 	fmt.Println("Creating Steel session...")
 	session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		Dimensions: &steel.SessionCreateParamsDimensions{Width: 1280, Height: 800},
+		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -44,7 +59,12 @@ func main() {
 	}()
 
 	cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, apiKey)
-	browser := rod.New().ControlURL(cdpURL).MustConnect()
+	cdpClient, err := connectCDP(ctx, cdpURL)
+	if err != nil {
+		fmt.Printf("Failed to connect to browser: %v\n", err)
+		os.Exit(1)
+	}
+	browser := rod.New().Client(cdpClient).MustConnect()
 	defer browser.MustClose()
 	fmt.Println("Connected to browser via go-rod")
 

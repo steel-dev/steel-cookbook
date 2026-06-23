@@ -460,16 +460,6 @@
   created: "2026-06-23"
   updated: "2026-06-23"
 
-- title: Automate a cloud browser with thirtyfour over WebDriver
-  slug: thirtyfour
-  path: examples/thirtyfour-rs
-  description: Use Steel with thirtyfour, injecting the steel-api-key and session-id headers through a custom reqwest client to drive the browser over WebDriver.
-  authors: [junhsss]
-  language: Rust
-  topics: [Browser automation]
-  created: "2026-06-23"
-  updated: "2026-06-23"
-
 - title: Scrape a page to Markdown, screenshot, and PDF
   slug: scrape
   path: examples/scrape-ts

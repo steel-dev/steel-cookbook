@@ -22,8 +22,6 @@ const (
 	maxIterations  = 50
 )
 
-func ptr[T any](v T) *T { return &v }
-
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -152,12 +150,12 @@ func newAgent(steelKey, openaiKey string) *agent {
 
 func (a *agent) initialize(ctx context.Context) error {
 	sess, err := a.steel.Sessions.Create(ctx, steel.SessionCreateParams{
-		BlockAds: ptr(true),
-		Timeout:  ptr(int64(900000)),
-		Dimensions: &steel.SessionCreateParamsDimensions{
-			Width:  viewportWidth,
-			Height: viewportHeight,
-		},
+		BlockAds: steel.F(true),
+		Timeout:  steel.F(int64(900000)),
+		Dimensions: steel.F(steel.SessionCreateParamsDimensions{
+			Width:  steel.F(int64(viewportWidth)),
+			Height: steel.F(int64(viewportHeight)),
+		}),
 	})
 	if err != nil {
 		return err
@@ -184,15 +182,15 @@ func (a *agent) cleanup(ctx context.Context) {
 func (a *agent) takeScreenshot(ctx context.Context) (string, error) {
 	resp, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
 		Action:                              "take_screenshot",
-		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.ComputerActionRequestVariant7ActionTakeScreenshot},
+		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestVariant7ActionTakeScreenshot)},
 	})
 	if err != nil {
 		return "", err
 	}
-	if resp.Base64Image == nil || *resp.Base64Image == "" {
+	if resp.Base64Image == "" {
 		return "", fmt.Errorf("no screenshot returned from Steel")
 	}
-	return *resp.Base64Image, nil
+	return resp.Base64Image, nil
 }
 
 // run sends one Steel computer action and returns the screenshot it captures. Every
@@ -202,8 +200,8 @@ func (a *agent) run(ctx context.Context, params steel.SessionComputerParams) (st
 	if err != nil {
 		return "", err
 	}
-	if resp.Base64Image != nil && *resp.Base64Image != "" {
-		return *resp.Base64Image, nil
+	if resp.Base64Image != "" {
+		return resp.Base64Image, nil
 	}
 	return a.takeScreenshot(ctx)
 }
@@ -211,39 +209,39 @@ func (a *agent) run(ctx context.Context, params steel.SessionComputerParams) (st
 // executeAction maps OpenAI's computer-use vocabulary onto Steel's Input API.
 func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 	cx, cy := int64(viewportWidth/2), int64(viewportHeight/2)
-	coords := func() *[]float64 {
+	coords := func() []float64 {
 		x, y := act.X, act.Y
 		if x == 0 && y == 0 {
 			x, y = cx, cy
 		}
-		return ptr([]float64{float64(x), float64(y)})
+		return []float64{float64(x), float64(y)}
 	}
 
 	switch act.Type {
 	case "click":
 		body := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.ComputerActionRequestVariant1ActionClickMouse,
-			Button:      ptr(mapButton(act.Button)),
-			Coordinates: coords(),
-			Screenshot:  ptr(true),
+			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
+			Button:      steel.F(mapButton(act.Button)),
+			Coordinates: steel.F(coords()),
+			Screenshot:  steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: body})
 
 	case "double_click":
 		body := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.ComputerActionRequestVariant1ActionClickMouse,
-			Button:      ptr(steel.ComputerActionRequestVariant1ButtonLeft),
-			Coordinates: coords(),
-			NumClicks:   ptr(float64(2)),
-			Screenshot:  ptr(true),
+			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
+			Button:      steel.F(steel.ComputerActionRequestVariant1ButtonLeft),
+			Coordinates: steel.F(coords()),
+			NumClicks:   steel.F(float64(2)),
+			Screenshot:  steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: body})
 
 	case "move":
 		body := &steel.ComputerActionRequestMoveMouse{
-			Action:      steel.ComputerActionRequestVariant0ActionMoveMouse,
-			Coordinates: *coords(),
-			Screenshot:  ptr(true),
+			Action:      steel.F(steel.ComputerActionRequestVariant0ActionMoveMouse),
+			Coordinates: steel.F(coords()),
+			Screenshot:  steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "move_mouse", ComputerActionRequestMoveMouse: body})
 
@@ -256,47 +254,47 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 			path = [][]float64{{float64(cx), float64(cy)}, {float64(act.X), float64(act.Y)}}
 		}
 		body := &steel.ComputerActionRequestDragMouse{
-			Action:     steel.ComputerActionRequestVariant2ActionDragMouse,
-			Path:       path,
-			Screenshot: ptr(true),
+			Action:     steel.F(steel.ComputerActionRequestVariant2ActionDragMouse),
+			Path:       steel.F(path),
+			Screenshot: steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "drag_mouse", ComputerActionRequestDragMouse: body})
 
 	case "scroll":
 		body := &steel.ComputerActionRequestScroll{
-			Action:      steel.ComputerActionRequestVariant3ActionScroll,
-			Coordinates: coords(),
-			Screenshot:  ptr(true),
+			Action:      steel.F(steel.ComputerActionRequestVariant3ActionScroll),
+			Coordinates: steel.F(coords()),
+			Screenshot:  steel.F(true),
 		}
 		if act.ScrollX != 0 {
-			body.DeltaX = ptr(float64(act.ScrollX))
+			body.DeltaX = steel.F(float64(act.ScrollX))
 		}
 		if act.ScrollY != 0 {
-			body.DeltaY = ptr(float64(act.ScrollY))
+			body.DeltaY = steel.F(float64(act.ScrollY))
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "scroll", ComputerActionRequestScroll: body})
 
 	case "keypress":
 		body := &steel.ComputerActionRequestPressKey{
-			Action:     steel.ComputerActionRequestVariant4ActionPressKey,
-			Keys:       normalizeKeys(act.Keys),
-			Screenshot: ptr(true),
+			Action:     steel.F(steel.ComputerActionRequestVariant4ActionPressKey),
+			Keys:       steel.F(normalizeKeys(act.Keys)),
+			Screenshot: steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "press_key", ComputerActionRequestPressKey: body})
 
 	case "type":
 		body := &steel.ComputerActionRequestTypeText{
-			Action:     steel.ComputerActionRequestVariant5ActionTypeText,
-			Text:       act.Text,
-			Screenshot: ptr(true),
+			Action:     steel.F(steel.ComputerActionRequestVariant5ActionTypeText),
+			Text:       steel.F(act.Text),
+			Screenshot: steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "type_text", ComputerActionRequestTypeText: body})
 
 	case "wait":
 		body := &steel.ComputerActionRequestWait{
-			Action:     steel.ComputerActionRequestVariant6ActionWait,
-			Duration:   1,
-			Screenshot: ptr(true),
+			Action:     steel.F(steel.ComputerActionRequestVariant6ActionWait),
+			Duration:   steel.F(float64(1)),
+			Screenshot: steel.F(true),
 		}
 		return a.run(ctx, steel.SessionComputerParams{Action: "wait", ComputerActionRequestWait: body})
 

@@ -116,26 +116,21 @@ func buildAgent(ctx context.Context, client *steel.Client, anthropicKey string) 
 func scrapePage(client *steel.Client) func(context.Context, scrapePageArgs) (string, error) {
 	return func(ctx context.Context, args scrapePageArgs) (string, error) {
 		t0 := time.Now()
-		format := []steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}
 		res, err := client.Scrape(ctx, steel.ClientScrapeParams{
-			URL:    args.URL,
-			Format: &format,
+			URL:    steel.F(args.URL),
+			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 		})
 		if err != nil {
 			return "", fmt.Errorf("scrape %s: %w", args.URL, err)
 		}
 
-		markdown := ""
-		if res.Content.Markdown != nil {
-			markdown = *res.Content.Markdown
-		}
-		markdown = truncate(markdown, 8000)
+		markdown := truncate(res.Content.Markdown, 8000)
 		fmt.Printf("    scrape_page %s -> %d chars in %dms\n", args.URL, len(markdown), time.Since(t0).Milliseconds())
 
 		payload := map[string]any{
 			"url":         args.URL,
-			"title":       deref(res.Metadata.Title),
-			"description": deref(res.Metadata.Description),
+			"title":       res.Metadata.Title,
+			"description": res.Metadata.Description,
 			"markdown":    markdown,
 		}
 		return encode(payload)
@@ -149,10 +144,9 @@ func extractLinks(client *steel.Client) func(context.Context, extractLinksArgs) 
 			limit = 40
 		}
 		t0 := time.Now()
-		format := []steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}
 		res, err := client.Scrape(ctx, steel.ClientScrapeParams{
-			URL:    args.URL,
-			Format: &format,
+			URL:    steel.F(args.URL),
+			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 		})
 		if err != nil {
 			return "", fmt.Errorf("scrape %s: %w", args.URL, err)
@@ -192,13 +186,6 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }
 
 func envOr(key, fallback string) string {

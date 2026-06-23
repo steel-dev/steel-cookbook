@@ -48,7 +48,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
-    let cdp_url = format!("{websocket_url}&apiKey={api_key}");
+    let raw = format!("{websocket_url}&apiKey={api_key}");
+    let cdp_url = match (raw.find("://"), raw.find('?')) {
+        (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
+            format!("{}/{}", &raw[..q], &raw[q..])
+        }
+        _ => raw,
+    };
 
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
 

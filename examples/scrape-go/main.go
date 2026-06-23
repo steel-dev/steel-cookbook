@@ -13,15 +13,6 @@ import (
 	steel "github.com/steel-dev/steel-go"
 )
 
-func ptr[T any](v T) *T { return &v }
-
-func deref(s *string, fallback string) string {
-	if s == nil || *s == "" {
-		return fallback
-	}
-	return *s
-}
-
 func main() {
 	_ = godotenv.Load()
 
@@ -57,18 +48,21 @@ func run(apiKey, targetURL string) error {
 	fmt.Printf("\nScraping %s to markdown...\n", targetURL)
 
 	scraped, err := client.Scrape(ctx, steel.ClientScrapeParams{
-		URL:    targetURL,
-		Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+		URL:    steel.F(targetURL),
+		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
 	})
 	if err != nil {
 		return fmt.Errorf("scrape: %w", err)
 	}
 
-	markdown := deref(scraped.Content.Markdown, "")
-	title := deref(scraped.Metadata.Title, "(no title)")
+	markdown := scraped.Content.Markdown
+	title := scraped.Metadata.Title
+	if title == "" {
+		title = "(no title)"
+	}
 
 	fmt.Printf("HTTP %d | %s\n", scraped.Metadata.StatusCode, title)
-	if desc := deref(scraped.Metadata.Description, ""); desc != "" {
+	if desc := scraped.Metadata.Description; desc != "" {
 		fmt.Printf("Description: %s\n", desc)
 	}
 	fmt.Printf("Links found: %d\n", len(scraped.Links))
@@ -84,8 +78,8 @@ func run(apiKey, targetURL string) error {
 
 	fmt.Println("\nCapturing a full-page screenshot...")
 	shot, err := client.Screenshot(ctx, steel.ClientScreenshotParams{
-		URL:      targetURL,
-		FullPage: ptr(true),
+		URL:      steel.F(targetURL),
+		FullPage: steel.F(true),
 	})
 	if err != nil {
 		return fmt.Errorf("screenshot: %w", err)
@@ -94,7 +88,7 @@ func run(apiKey, targetURL string) error {
 
 	fmt.Println("\nRendering the page to PDF...")
 	pdf, err := client.Pdf(ctx, steel.ClientPdfParams{
-		URL: targetURL,
+		URL: steel.F(targetURL),
 	})
 	if err != nil {
 		return fmt.Errorf("pdf: %w", err)
