@@ -589,3 +589,13 @@
   topics: [Agents]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Drive a browser with OpenAI Computer Use
+  slug: openai-computer-use
+  path: examples/openai-computer-use-rs
+  description: Connect OpenAI's Computer Use Assistant to a Steel browser session for autonomous web interactions, calling the Responses API over raw reqwest and Steel's computer endpoint.
+  authors: [junhsss]
+  language: Rust
+  topics: [Computer use]
+  created: "2026-06-23"
+  updated: "2026-06-23"
