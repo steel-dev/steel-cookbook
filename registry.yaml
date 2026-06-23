@@ -469,3 +469,13 @@
   topics: [Browser automation]
   created: "2026-06-23"
   updated: "2026-06-23"
+
+- title: Scrape a page to Markdown, screenshot, and PDF
+  slug: scrape
+  path: examples/scrape-ts
+  description: Use the Steel TypeScript SDK's direct API to scrape a page to clean Markdown for LLM context, plus screenshot and PDF, with no browser library.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Steel APIs]
+  created: "2026-06-23"
+  updated: "2026-06-23"

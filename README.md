@@ -37,6 +37,14 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 | <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide-rs) |
 | <a id="thirtyfour">thirtyfour / WebDriver (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/thirtyfour-rs) |
 
+### Steel APIs
+
+Use Steel's direct API utilities to scrape, screenshot, and PDF a page without a browser library.
+
+| Example Name | Languages |
+|--------------|-----------|
+| <a id="scrape">Scrape, Screenshot, and PDF</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/scrape-ts) |
+
 ### AI Agents
 
 AI-powered browser automation that can understand, reason about, and interact with web pages autonomously.
