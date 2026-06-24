@@ -3,13 +3,13 @@ module steel-cookbook/credentials-go
 go 1.24
 
 require (
+	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b
 	github.com/chromedp/chromedp v0.13.6
 	github.com/joho/godotenv v1.5.1
 	github.com/steel-dev/steel-go v0.1.3
 )
 
 require (
-	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/go-json-experiment/json v0.0.0-20250211171154-1ae217ad3535 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect

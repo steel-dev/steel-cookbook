@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 
+use chromiumoxide::cdp::browser_protocol::security::SetIgnoreCertificateErrorsParams;
 use chromiumoxide::Browser;
 use futures::StreamExt;
 use steel::{CredentialCreateParams, SessionCreateParams, SessionCreateParamsCredentials, Steel};
@@ -37,7 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match create {
         Ok(_) => println!("Credential stored"),
-        Err(err) if err.to_string().contains("Credential already exists") => {
+        Err(err) if err.to_string().contains("already exists") => {
             println!("Credential already exists, moving on");
         }
         Err(err) => return Err(err.into()),
@@ -78,25 +79,32 @@ async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 
-    println!("Connected over CDP, opening {ORIGIN}...");
-    let page = browser.new_page(ORIGIN).await?;
-    page.wait_for_navigation().await?;
+    let page = browser.new_page("about:blank").await?;
+    page.execute(SetIgnoreCertificateErrorsParams::new(true)).await?;
 
-    page.find_element("#AccountLink").await?.click().await?;
+    println!("Opening the login page; Steel auto-fills it from the vault...");
+    page.goto(format!("{ORIGIN}/login.jsp")).await?;
 
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    let mut filled = String::new();
+    for _ in 0..100 {
+        if let Ok(result) = page
+            .evaluate(r#"(document.querySelector('#uid') ? document.querySelector('#uid').value : "").trim()"#)
+            .await
+        {
+            if let Ok(value) = result.into_value::<String>() {
+                if !value.is_empty() {
+                    filled = value;
+                    break;
+                }
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
 
-    let heading = page
-        .find_element("h1")
-        .await?
-        .inner_text()
-        .await?
-        .unwrap_or_default();
-
-    if heading.trim() == "Hello Admin User" {
-        println!("Success, you are logged in");
+    if !filled.is_empty() {
+        println!("Success: Steel auto-filled the login form with {filled:?} from the vault, no credentials in this code.");
     } else {
-        println!("Uh oh, something went wrong (heading was {heading:?})");
+        println!("Uh oh, the login form was not auto-filled.");
     }
 
     handle.abort();

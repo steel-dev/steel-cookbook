@@ -1,6 +1,6 @@
 # Credentials Vault
 
-The automation in `main.go` never types a username or a password. It navigates to a site, clicks the login link, and reads the heading to confirm it is signed in. The login itself happens server-side: Steel keeps the credential in a vault, watches the page for a matching form, and fills it. Your chromedp code stays a plain navigation script.
+The automation in `main.go` never types a username or a password. It opens the site's login page and confirms that Steel auto-filled the form from the vault. The login itself happens server-side: Steel keeps the credential in a vault, watches the page for a matching form, and fills it. Your chromedp code stays a plain navigation script.
 
 Wiring it up is two API calls. Store the credential against an origin:
 
@@ -21,11 +21,11 @@ client.Sessions.Create(ctx, steel.SessionCreateParams{
 
 `SessionCreateParamsCredentials{}` is the opt-in. Leave it off and the vault is ignored for that session. The zero value uses the defaults; its fields (`AutoSubmit`, `BlurFields`, `ExactOrigin`) tune whether Steel presses submit for you, masks the typed values, and matches the origin exactly.
 
-## The two-second wait
+## Confirming the fill
 
-After `chromedp.Click("#AccountLink", ...)` the script does `chromedp.Sleep(2 * time.Second)` before reading the `h1`. That window lets Steel detect the form, fill it, and let the page settle on the post-login view. A fixed sleep keeps the demo short. In production, prefer a deterministic wait such as `chromedp.WaitVisible` on an element that only exists once you are signed in.
+After navigating to `/login.jsp`, the script polls the username field (`#uid`) until Steel injects the vaulted value, then reports success. With the default `AutoSubmit`, Steel also presses submit, so the filled field is only briefly visible — polling catches it as soon as it lands. The demo site currently serves an expired certificate, so the run first sends `Security.setIgnoreCertificateErrors`; drop that for a site with a valid certificate.
 
-Re-running `Credentials.Create` for an origin that already has a stored credential returns an error whose message contains `Credential already exists`. The script checks for that string and continues, so repeat runs are idempotent.
+Re-running `Credentials.Create` for an origin that already has a stored credential returns an error whose message contains `already exists`. The script checks for that string and continues, so repeat runs are idempotent.
 
 ## Run it
 
@@ -45,8 +45,8 @@ Storing credential...
 Credential stored.
 Creating Steel session with credentials enabled...
 Session created. Watch it live at https://app.steel.dev/sessions/ab12cd34...
-Navigating to the demo site...
-Success, you are logged in
+Opening the login page; Steel auto-fills it from the vault...
+Success: Steel auto-filled the login form with "admin" from the vault, no credentials in this code.
 Releasing session...
 ```
 
@@ -54,7 +54,7 @@ On a second run the credential is already in the vault, so the first lines read 
 
 ## Make it yours
 
-- **Target another site.** Change `origin` and the `Value` map, then point `chromedp.Navigate` and the `#AccountLink` click at the new login trigger. Steel handles detection for any standard username/password form.
+- **Target another site.** Change `origin` and the `Value` map, then point the navigation and the polled field selector at the new login form. Steel handles detection for any standard username/password form.
 - **Tune the fill.** Set `AutoSubmit`, `BlurFields`, or `ExactOrigin` on `SessionCreateParamsCredentials` to control submit behavior, value masking, and origin matching.
 - **Manage creds out of band.** `Credentials.List`, `Credentials.Update`, and `Credentials.Delete` let a setup script rotate or audit stored values while `main.go` stays focused on the workflow.
 

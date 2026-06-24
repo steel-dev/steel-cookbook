@@ -9,7 +9,7 @@ This recipe wires it up with two SDK calls, then connects [chromiumoxide](https:
 ```rust
 match create {
     Ok(_) => println!("Credential stored"),
-    Err(err) if err.to_string().contains("Credential already exists") => {
+    Err(err) if err.to_string().contains("already exists") => {
         println!("Credential already exists, moving on");
     }
     Err(err) => return Err(err.into()),
@@ -25,7 +25,7 @@ client.sessions().create(SessionCreateParams {
 }).await?
 ```
 
-From there it is ordinary chromiumoxide: navigate to the Altoro Mutual test site, click `#AccountLink` to surface the login form, give Steel a couple of seconds to fill and submit, then read the `h1`. "Hello Admin User" means the fill worked. In production you would replace the fixed `sleep` with a wait on a post-login selector.
+From there it is ordinary chromiumoxide: open the Altoro Mutual login page and poll the username field (`#uid`) until Steel injects the vaulted value, which is the proof the fill landed. With the default `auto_submit` Steel also submits the form, so the filled field is only briefly visible — polling catches it as soon as it appears. The test site currently serves an expired certificate, so the page first sends `SetIgnoreCertificateErrorsParams`; drop that for a site with a valid certificate.
 
 ## Run it
 
@@ -44,8 +44,8 @@ Storing credential for https://demo.testfire.net...
 Credential stored
 Creating Steel session with credentials enabled...
 Session live at https://app.steel.dev/sessions/ab12cd34...
-Connected over CDP, opening https://demo.testfire.net...
-Success, you are logged in
+Opening the login page; Steel auto-fills it from the vault...
+Success: Steel auto-filled the login form with "admin" from the vault, no credentials in this code.
 Releasing session...
 Session released
 ```
@@ -54,7 +54,7 @@ On a second run the first lines read `Credential already exists, moving on`; the
 
 ## Make it yours
 
-- **Swap the target site.** Change `ORIGIN` and the `value` map in `credentials().create`, then point `new_page` and the trigger click at your site. Steel handles detection as long as the page exposes a standard username/password input pair.
+- **Swap the target site.** Change `ORIGIN` and the `value` map in `credentials().create`, then point the navigation and the polled field selector at your site. Steel handles detection as long as the page exposes a standard username/password input pair.
 - **Tune the fill.** `SessionCreateParamsCredentials` carries `auto_submit`, `blur_fields`, and `exact_origin`. Set them on the struct instead of taking the default to control whether Steel presses submit, blurs filled fields, or matches the origin exactly.
 - **Manage credentials out of band.** `credentials().list`, `update`, and `delete` let a setup script rotate or audit stored creds while `main.rs` stays focused on the workflow.
 

@@ -82,8 +82,9 @@ func run(apiKey string) error {
 	var screenshot []byte
 	err = chromedp.Run(runCtx,
 		chromedp.Navigate("https://www.csvplot.com/"),
+		chromedp.WaitReady("#load-file", chromedp.ByQuery),
 		setRemoteFileInput("#load-file", uploaded.Path),
-		chromedp.WaitVisible("svg.main-svg", chromedp.ByQuery),
+		waitForChart("svg.main-svg"),
 		chromedp.FullScreenshot(&screenshot, 90),
 	)
 	if err != nil {
@@ -97,6 +98,22 @@ func run(apiKey string) error {
 	fmt.Printf("Saved chart to %s\n", shotPath)
 
 	return nil
+}
+
+func waitForChart(selector string) chromedp.Action {
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		expr := fmt.Sprintf(`document.querySelectorAll(%q).length > 0`, selector)
+		for i := 0; i < 60; i++ {
+			var ready bool
+			if err := chromedp.Evaluate(expr, &ready).Do(ctx); err == nil && ready {
+				return nil
+			}
+			if err := chromedp.Sleep(500 * time.Millisecond).Do(ctx); err != nil {
+				return err
+			}
+		}
+		return fmt.Errorf("chart %q did not render", selector)
+	})
 }
 
 func setRemoteFileInput(selector, remotePath string) chromedp.Action {

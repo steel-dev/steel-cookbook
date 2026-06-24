@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
 	steel "github.com/steel-dev/steel-go"
@@ -33,6 +34,34 @@ func main() {
 	}
 }
 
+// evalString runs a JS expression with a short timeout so a navigation that
+// destroys the execution context mid-eval bounces back instead of blocking.
+func evalString(ctx context.Context, expr string) string {
+	ictx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	var out string
+	_ = chromedp.Evaluate(expr, &out).Do(ictx)
+	return out
+}
+
+// waitForAutofill polls the login form until Steel injects the vaulted username,
+// before the credential's auto-submit navigates away.
+func waitForAutofill(out *string, selector string) chromedp.Action {
+	expr := fmt.Sprintf(`(document.querySelector(%q) ? document.querySelector(%q).value : "").trim()`, selector, selector)
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		for i := 0; i < 100; i++ {
+			if v := evalString(ctx, expr); v != "" {
+				*out = v
+				return nil
+			}
+			if err := chromedp.Sleep(200 * time.Millisecond).Do(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func run(apiKey string) error {
 	ctx := context.Background()
 	client := steel.NewClient(apiKey)
@@ -45,7 +74,7 @@ func run(apiKey string) error {
 	switch {
 	case err == nil:
 		fmt.Println("Credential stored.")
-	case strings.Contains(err.Error(), "Credential already exists"):
+	case strings.Contains(err.Error(), "already exists"):
 		fmt.Println("Credential already exists, moving on.")
 	default:
 		return fmt.Errorf("create credential: %w", err)
@@ -78,23 +107,22 @@ func run(apiKey string) error {
 	runCtx, cancelRun := context.WithTimeout(browserCtx, 60*time.Second)
 	defer cancelRun()
 
-	fmt.Println("Navigating to the demo site...")
-	var heading string
+	fmt.Println("Opening the login page; Steel auto-fills it from the vault...")
+	var filledUser string
 	err = chromedp.Run(runCtx,
-		chromedp.Navigate(origin),
-		chromedp.WaitVisible("#AccountLink", chromedp.ByID),
-		chromedp.Click("#AccountLink", chromedp.ByID),
-		chromedp.Sleep(2*time.Second),
-		chromedp.Text("h1", &heading, chromedp.ByQuery),
+		security.Enable(),
+		security.SetIgnoreCertificateErrors(true),
+		chromedp.Navigate(origin+"/login.jsp"),
+		waitForAutofill(&filledUser, "#uid"),
 	)
 	if err != nil {
 		return fmt.Errorf("run tasks: %w", err)
 	}
 
-	if strings.TrimSpace(heading) == "Hello Admin User" {
-		fmt.Println("Success, you are logged in")
+	if filledUser != "" {
+		fmt.Printf("Success: Steel auto-filled the login form with %q from the vault, no credentials in this code.\n", filledUser)
 	} else {
-		fmt.Printf("Uh oh, something went wrong. Heading was %q\n", strings.TrimSpace(heading))
+		fmt.Println("Uh oh, the login form was not auto-filled.")
 	}
 
 	return nil

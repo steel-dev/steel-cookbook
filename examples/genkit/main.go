@@ -194,16 +194,16 @@ func main() {
 		ai.WithSystem(
 			"You operate a Steel cloud browser through tools. "+
 				"Navigate to the page, then use extract with CSS selectors to read structured rows. "+
-				"Reach for scrape when you need an article's text as Markdown. Do not invent data. "+
-				"Call each tool the minimum number of times: once you have the rows you need, "+
-				"stop calling tools and return the final structured report.",
+				"Call extract at most twice; if the rows still look incomplete or messy, call scrape "+
+				"once to get the page as Markdown and build the answer from that instead. Do not invent data. "+
+				"As soon as you can fill in the report, stop calling tools and return it.",
 		),
 		ai.WithPrompt(
 			"Go to https://news.ycombinator.com and return the top 5 stories. "+
 				"For each give its rank, title, the destination URL, and the points as shown.",
 		),
 		ai.WithTools(navigate, extract, scrape),
-		ai.WithMaxTurns(24),
+		ai.WithMaxTurns(30),
 		ai.WithOutputType(Report{}),
 		ai.WithConfig(&anthropicsdk.MessageNewParams{MaxTokens: 4096}),
 	)

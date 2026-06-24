@@ -3,8 +3,10 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::time::Duration;
 
 use chromiumoxide::Browser;
+use chromiumoxide::Element;
 use chromiumoxide::Page;
 use futures::StreamExt;
 use steel::types::*;
@@ -12,6 +14,16 @@ use steel::Steel;
 
 const LOGIN_URL: &str = "https://practice.expandtesting.com/login";
 const SECURE_URL: &str = "https://practice.expandtesting.com/secure";
+
+async fn wait_for(page: &Page, selector: &str) -> Result<Element, Box<dyn Error>> {
+    for _ in 0..50 {
+        if let Ok(el) = page.find_element(selector).await {
+            return Ok(el);
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    Err(format!("timed out waiting for selector {selector:?}").into())
+}
 
 fn to_write_context(context: SessionContext) -> SessionCreateParamsSessionContext {
     let cookies = context.cookies.map(|cookies| {
@@ -46,25 +58,38 @@ fn to_write_context(context: SessionContext) -> SessionCreateParamsSessionContex
     }
 }
 
+async fn type_into(page: &Page, selector: &str, text: &str) -> Result<(), Box<dyn Error>> {
+    let el = wait_for(page, selector).await?;
+    el.focus().await?;
+    el.type_str(text).await?;
+    Ok(())
+}
+
 async fn login(page: &Page) -> Result<(), Box<dyn Error>> {
     page.goto(LOGIN_URL).await?.wait_for_navigation().await?;
-    page.find_element("input[name=username]")
-        .await?
-        .type_str("practice")
-        .await?;
-    page.find_element("input[name=password]")
-        .await?
-        .type_str("SuperSecretPassword!")
-        .await?;
-    page.find_element("button[type=submit]").await?.click().await?;
-    page.wait_for_navigation().await?;
-    Ok(())
+    type_into(page, "input[name=username]", "practice").await?;
+    type_into(page, "input[name=password]", "SuperSecretPassword!").await?;
+    wait_for(page, "button[type=submit]").await?.click().await?;
+    for _ in 0..50 {
+        if let Ok(Some(url)) = page.url().await {
+            if !url.ends_with("/login") {
+                return Ok(());
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    Err("login did not complete (still on /login after submit)".into())
 }
 
 async fn verify_auth(page: &Page) -> Result<bool, Box<dyn Error>> {
     page.goto(SECURE_URL).await?.wait_for_navigation().await?;
-    let text = page.find_element("#username").await?.inner_text().await?;
-    Ok(text.map_or(false, |t| t.contains("Hi, practice!")))
+    match wait_for(page, "#username").await {
+        Ok(el) => Ok(el
+            .inner_text()
+            .await?
+            .map_or(false, |t| t.contains("Hi, practice!"))),
+        Err(_) => Ok(false),
+    }
 }
 
 fn normalize_cdp_url(websocket_url: &str, api_key: &str) -> String {
