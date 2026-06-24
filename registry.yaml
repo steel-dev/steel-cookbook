@@ -809,3 +809,23 @@
   topics: [Browser automation]
   created: "2026-06-24"
   updated: "2026-06-24"
+
+- title: Expose a Steel browser to any MCP client
+  slug: mcp
+  path: examples/mcp-go
+  description: Build a Model Context Protocol server in Go with the official SDK and chromedp that hands any MCP client a Steel cloud browser through explicit session-handle tools.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents, MCP]
+  created: "2026-06-24"
+  updated: "2026-06-24"
+
+- title: Expose a Steel browser to any MCP client
+  slug: mcp
+  path: examples/mcp-rs
+  description: Build a Model Context Protocol server in Rust with rmcp and chromiumoxide that hands any MCP client a Steel cloud browser through explicit session-handle tools.
+  authors: [junhsss]
+  language: Rust
+  topics: [Agents, MCP]
+  created: "2026-06-24"
+  updated: "2026-06-24"
