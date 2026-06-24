@@ -676,7 +676,7 @@
   description: Use the Steel Credentials API with Playwright to store a login and let Steel auto-fill the form on a credentials-enabled session.
   authors: [junhsss]
   language: Python
-  topics: [Steel APIs, Authentication, Playwright]
+  topics: [Steel APIs, Authentication]
   created: "2026-06-24"
   updated: "2026-06-24"
 
