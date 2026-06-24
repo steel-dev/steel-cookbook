@@ -191,7 +191,7 @@ func (a *Agent) computer(ctx context.Context, body steel.SessionComputerParams) 
 func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
 	resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
 		Action:                              "take_screenshot",
-		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestVariant7ActionTakeScreenshot)},
+		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestTakeScreenshotActionTakeScreenshot)},
 	})
 	if err != nil {
 		return "", err
@@ -212,7 +212,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 	switch act.Action {
 	case "mouse_move":
 		req := &steel.ComputerActionRequestMoveMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant0ActionMoveMouse),
+			Action:      steel.F(steel.ComputerActionRequestMoveMouseActionMoveMouse),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
 		}
@@ -222,13 +222,13 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		return a.computer(ctx, steel.SessionComputerParams{Action: "move_mouse", ComputerActionRequestMoveMouse: req})
 
 	case "left_mouse_down", "left_mouse_up":
-		clickType := steel.ComputerActionRequestVariant1ClickTypeDown
+		clickType := steel.ComputerActionRequestClickMouseClickTypeDown
 		if act.Action == "left_mouse_up" {
-			clickType = steel.ComputerActionRequestVariant1ClickTypeUp
+			clickType = steel.ComputerActionRequestClickMouseClickTypeUp
 		}
 		req := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
-			Button:      steel.F(steel.ComputerActionRequestVariant1ButtonLeft),
+			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
+			Button:      steel.F(steel.ComputerActionRequestClickMouseButtonLeft),
 			ClickType:   steel.F(clickType),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
@@ -239,15 +239,15 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		return a.computer(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: req})
 
 	case "left_click", "right_click", "middle_click", "double_click", "triple_click":
-		button := steel.ComputerActionRequestVariant1ButtonLeft
+		button := steel.ComputerActionRequestClickMouseButtonLeft
 		switch act.Action {
 		case "right_click":
-			button = steel.ComputerActionRequestVariant1ButtonRight
+			button = steel.ComputerActionRequestClickMouseButtonRight
 		case "middle_click":
-			button = steel.ComputerActionRequestVariant1ButtonMiddle
+			button = steel.ComputerActionRequestClickMouseButtonMiddle
 		}
 		req := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
+			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
 			Button:      steel.F(button),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
@@ -267,7 +267,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		sx, sy := a.center()
 		path := [][]float64{{float64(sx), float64(sy)}, coords}
 		req := &steel.ComputerActionRequestDragMouse{
-			Action:     steel.F(steel.ComputerActionRequestVariant2ActionDragMouse),
+			Action:     steel.F(steel.ComputerActionRequestDragMouseActionDragMouse),
 			Path:       steel.F(path),
 			Screenshot: steel.F(true),
 		}
@@ -291,7 +291,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 			dy = float64(step * amount)
 		}
 		req := &steel.ComputerActionRequestScroll{
-			Action:      steel.F(steel.ComputerActionRequestVariant3ActionScroll),
+			Action:      steel.F(steel.ComputerActionRequestScrollActionScroll),
 			Coordinates: steel.F(coords),
 			DeltaX:      steel.F(dx),
 			DeltaY:      steel.F(dy),
@@ -308,7 +308,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 			keys = []string{}
 		}
 		req := &steel.ComputerActionRequestPressKey{
-			Action:     steel.F(steel.ComputerActionRequestVariant4ActionPressKey),
+			Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
 			Keys:       steel.F(keys),
 			Screenshot: steel.F(true),
 		}
@@ -319,7 +319,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 
 	case "type":
 		req := &steel.ComputerActionRequestTypeText{
-			Action:     steel.F(steel.ComputerActionRequestVariant5ActionTypeText),
+			Action:     steel.F(steel.ComputerActionRequestTypeTextActionTypeText),
 			Text:       steel.F(act.Text),
 			Screenshot: steel.F(true),
 		}
@@ -334,7 +334,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 			d = *act.Duration
 		}
 		req := &steel.ComputerActionRequestWait{
-			Action:     steel.F(steel.ComputerActionRequestVariant6ActionWait),
+			Action:     steel.F(steel.ComputerActionRequestWaitActionWait),
 			Duration:   steel.F(d),
 			Screenshot: steel.F(true),
 		}
@@ -346,7 +346,7 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 	case "cursor_position":
 		if _, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
 			Action:                                 "get_cursor_position",
-			ComputerActionRequestGetCursorPosition: &steel.ComputerActionRequestGetCursorPosition{Action: steel.F(steel.ComputerActionRequestVariant8ActionGetCursorPosition)},
+			ComputerActionRequestGetCursorPosition: &steel.ComputerActionRequestGetCursorPosition{Action: steel.F(steel.ComputerActionRequestGetCursorPositionActionGetCursorPosition)},
 		}); err != nil {
 			return "", err
 		}

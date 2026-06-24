@@ -159,13 +159,13 @@ fn keys_from(action: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn map_button(btn: &str) -> ComputerActionRequestVariant1Button {
+fn map_button(btn: &str) -> ComputerActionRequestClickMouseButton {
     match btn.to_lowercase().as_str() {
-        "right" => ComputerActionRequestVariant1Button::Right,
-        "middle" | "wheel" => ComputerActionRequestVariant1Button::Middle,
-        "back" => ComputerActionRequestVariant1Button::Back,
-        "forward" => ComputerActionRequestVariant1Button::Forward,
-        _ => ComputerActionRequestVariant1Button::Left,
+        "right" => ComputerActionRequestClickMouseButton::Right,
+        "middle" | "wheel" => ComputerActionRequestClickMouseButton::Middle,
+        "back" => ComputerActionRequestClickMouseButton::Back,
+        "forward" => ComputerActionRequestClickMouseButton::Forward,
+        _ => ComputerActionRequestClickMouseButton::Left,
     }
 }
 
@@ -257,7 +257,6 @@ impl Agent {
             .computer(
                 id,
                 SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
-                    action: ComputerActionRequestVariant7Action::TakeScreenshot,
                 }),
             )
             .await?;
@@ -274,7 +273,6 @@ impl Agent {
 
         let params = match typ {
             "click" => SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                action: ComputerActionRequestVariant1Action::ClickMouse,
                 button: Some(map_button(
                     action.get("button").and_then(|v| v.as_str()).unwrap_or("left"),
                 )),
@@ -286,8 +284,7 @@ impl Agent {
             }),
 
             "double_click" => SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                action: ComputerActionRequestVariant1Action::ClickMouse,
-                button: Some(ComputerActionRequestVariant1Button::Left),
+                button: Some(ComputerActionRequestClickMouseButton::Left),
                 click_type: None,
                 coordinates: Some(coords),
                 hold_keys: None,
@@ -296,21 +293,18 @@ impl Agent {
             }),
 
             "move" => SessionComputerParams::MoveMouse(ComputerActionRequestMoveMouse {
-                action: ComputerActionRequestVariant0Action::MoveMouse,
                 coordinates: coords,
                 hold_keys: None,
                 screenshot: Some(true),
             }),
 
             "drag" => SessionComputerParams::DragMouse(ComputerActionRequestDragMouse {
-                action: ComputerActionRequestVariant2Action::DragMouse,
                 hold_keys: None,
                 path: parse_path(action).unwrap_or_else(|| vec![vec![cx, cy], vec![x, y]]),
                 screenshot: Some(true),
             }),
 
             "scroll" => SessionComputerParams::Scroll(ComputerActionRequestScroll {
-                action: ComputerActionRequestVariant3Action::Scroll,
                 coordinates: Some(coords),
                 delta_x: Some(action.get("scroll_x").and_then(|v| v.as_f64()).unwrap_or(0.0)),
                 delta_y: Some(action.get("scroll_y").and_then(|v| v.as_f64()).unwrap_or(0.0)),
@@ -319,21 +313,18 @@ impl Agent {
             }),
 
             "keypress" => SessionComputerParams::PressKey(ComputerActionRequestPressKey {
-                action: ComputerActionRequestVariant4Action::PressKey,
                 duration: None,
                 keys: keys_from(action),
                 screenshot: Some(true),
             }),
 
             "type" => SessionComputerParams::TypeText(ComputerActionRequestTypeText {
-                action: ComputerActionRequestVariant5Action::TypeText,
                 hold_keys: None,
                 screenshot: Some(true),
                 text: action.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
             }),
 
             "wait" => SessionComputerParams::Wait(ComputerActionRequestWait {
-                action: ComputerActionRequestVariant6Action::Wait,
                 duration: 1.0,
                 screenshot: Some(true),
             }),

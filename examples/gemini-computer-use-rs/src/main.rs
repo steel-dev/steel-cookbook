@@ -239,7 +239,6 @@ impl Agent {
             .computer(
                 id,
                 SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
-                    action: ComputerActionRequestVariant7Action::TakeScreenshot,
                 }),
             )
             .await?;
@@ -249,8 +248,7 @@ impl Agent {
 
     fn click_params(x: f64, y: f64, screenshot: bool) -> SessionComputerParams {
         SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-            action: ComputerActionRequestVariant1Action::ClickMouse,
-            button: Some(ComputerActionRequestVariant1Button::Left),
+            button: Some(ComputerActionRequestClickMouseButton::Left),
             click_type: None,
             coordinates: Some(vec![x, y]),
             hold_keys: None,
@@ -261,7 +259,6 @@ impl Agent {
 
     fn press_keys_params(keys: Vec<String>, screenshot: bool) -> SessionComputerParams {
         SessionComputerParams::PressKey(ComputerActionRequestPressKey {
-            action: ComputerActionRequestVariant4Action::PressKey,
             duration: None,
             keys,
             screenshot: Some(screenshot),
@@ -270,7 +267,6 @@ impl Agent {
 
     fn type_text_params(text: String) -> SessionComputerParams {
         SessionComputerParams::TypeText(ComputerActionRequestTypeText {
-            action: ComputerActionRequestVariant5Action::TypeText,
             hold_keys: None,
             screenshot: None,
             text,
@@ -279,7 +275,6 @@ impl Agent {
 
     fn wait_params(duration: f64, screenshot: bool) -> SessionComputerParams {
         SessionComputerParams::Wait(ComputerActionRequestWait {
-            action: ComputerActionRequestVariant6Action::Wait,
             duration,
             screenshot: Some(screenshot),
         })
@@ -287,7 +282,6 @@ impl Agent {
 
     fn scroll_params(x: f64, y: f64, dx: f64, dy: f64) -> SessionComputerParams {
         SessionComputerParams::Scroll(ComputerActionRequestScroll {
-            action: ComputerActionRequestVariant3Action::Scroll,
             coordinates: Some(vec![x, y]),
             delta_x: Some(dx),
             delta_y: Some(dy),
@@ -315,7 +309,6 @@ impl Agent {
                 let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
                 self.run_action(SessionComputerParams::MoveMouse(
                     ComputerActionRequestMoveMouse {
-                        action: ComputerActionRequestVariant0Action::MoveMouse,
                         coordinates: vec![x, y],
                         hold_keys: None,
                         screenshot: Some(true),
@@ -478,7 +471,6 @@ impl Agent {
                 let end_y = Self::denormalize_y(arg_f64(args, "destination_y", 0.0));
                 self.run_action(SessionComputerParams::DragMouse(
                     ComputerActionRequestDragMouse {
-                        action: ComputerActionRequestVariant2Action::DragMouse,
                         hold_keys: None,
                         path: vec![vec![start_x, start_y], vec![end_x, end_y]],
                         screenshot: Some(true),

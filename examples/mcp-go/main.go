@@ -16,10 +16,6 @@ import (
 	"github.com/steel-dev/steel-go"
 )
 
-// ptr returns a pointer to v. The Steel session params are plain pointer fields,
-// so a one-line helper reads better than scattering &local throwaways.
-func ptr[T any](v T) *T { return &v }
-
 // session is one live Steel browser behind one chromedp tab. The Steel session id
 // doubles as the handle the model threads back on every later call, so the server
 // never keeps hidden per-connection state: every tool says which browser it means.
@@ -64,7 +60,7 @@ func (s *server) releaseAll() {
 	for _, sess := range live {
 		sess.cancelTab()
 		sess.cancelAlloc()
-		if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseAllParams{}); err != nil {
+		if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseParams{}); err != nil {
 			log.Printf("release %s: %v", sess.id, err)
 		}
 	}
@@ -79,8 +75,8 @@ type createOutput struct {
 
 func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ createInput) (*mcp.CallToolResult, createOutput, error) {
 	steelSession, err := s.steel.Sessions.Create(ctx, steel.SessionCreateParams{
-		BlockAds:   ptr(true),
-		Dimensions: &steel.Dimensions{Width: 1280, Height: 800},
+		BlockAds:   steel.F(true),
+		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		return nil, createOutput{}, err
@@ -96,7 +92,7 @@ func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ cr
 	if err := chromedp.Run(tab); err != nil {
 		cancelTab()
 		cancelAlloc()
-		_, _ = s.steel.Sessions.Release(context.Background(), steelSession.ID, steel.SessionReleaseAllParams{})
+		_, _ = s.steel.Sessions.Release(context.Background(), steelSession.ID, steel.SessionReleaseParams{})
 		return nil, createOutput{}, err
 	}
 
@@ -234,7 +230,7 @@ func (s *server) releaseSession(_ context.Context, _ *mcp.CallToolRequest, in re
 
 	sess.cancelTab()
 	sess.cancelAlloc()
-	if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseAllParams{}); err != nil {
+	if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseParams{}); err != nil {
 		return nil, releaseOutput{}, err
 	}
 	log.Printf("released session %s", sess.id)

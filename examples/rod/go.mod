@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/go-rod/rod v0.116.2
-	github.com/steel-dev/steel-go v0.1.1
+	github.com/steel-dev/steel-go v0.1.3
 )
 
 require (

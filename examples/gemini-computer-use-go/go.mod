@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.1
+	github.com/steel-dev/steel-go v0.1.3
 	google.golang.org/genai v1.61.0
 )
 

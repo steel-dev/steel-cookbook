@@ -107,18 +107,18 @@ func normalizeKeys(keys []string) []string {
 	return out
 }
 
-func mapButton(btn string) steel.ComputerActionRequestVariant1Button {
+func mapButton(btn string) steel.ComputerActionRequestClickMouseButton {
 	switch strings.ToLower(btn) {
 	case "right":
-		return steel.ComputerActionRequestVariant1ButtonRight
+		return steel.ComputerActionRequestClickMouseButtonRight
 	case "middle", "wheel":
-		return steel.ComputerActionRequestVariant1ButtonMiddle
+		return steel.ComputerActionRequestClickMouseButtonMiddle
 	case "back":
-		return steel.ComputerActionRequestVariant1ButtonBack
+		return steel.ComputerActionRequestClickMouseButtonBack
 	case "forward":
-		return steel.ComputerActionRequestVariant1ButtonForward
+		return steel.ComputerActionRequestClickMouseButtonForward
 	default:
-		return steel.ComputerActionRequestVariant1ButtonLeft
+		return steel.ComputerActionRequestClickMouseButtonLeft
 	}
 }
 
@@ -182,7 +182,7 @@ func (a *agent) cleanup(ctx context.Context) {
 func (a *agent) takeScreenshot(ctx context.Context) (string, error) {
 	resp, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
 		Action:                              "take_screenshot",
-		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestVariant7ActionTakeScreenshot)},
+		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestTakeScreenshotActionTakeScreenshot)},
 	})
 	if err != nil {
 		return "", err
@@ -220,7 +220,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 	switch act.Type {
 	case "click":
 		body := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
+			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
 			Button:      steel.F(mapButton(act.Button)),
 			Coordinates: steel.F(coords()),
 			Screenshot:  steel.F(true),
@@ -229,8 +229,8 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "double_click":
 		body := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant1ActionClickMouse),
-			Button:      steel.F(steel.ComputerActionRequestVariant1ButtonLeft),
+			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
+			Button:      steel.F(steel.ComputerActionRequestClickMouseButtonLeft),
 			Coordinates: steel.F(coords()),
 			NumClicks:   steel.F(float64(2)),
 			Screenshot:  steel.F(true),
@@ -239,7 +239,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "move":
 		body := &steel.ComputerActionRequestMoveMouse{
-			Action:      steel.F(steel.ComputerActionRequestVariant0ActionMoveMouse),
+			Action:      steel.F(steel.ComputerActionRequestMoveMouseActionMoveMouse),
 			Coordinates: steel.F(coords()),
 			Screenshot:  steel.F(true),
 		}
@@ -254,7 +254,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 			path = [][]float64{{float64(cx), float64(cy)}, {float64(act.X), float64(act.Y)}}
 		}
 		body := &steel.ComputerActionRequestDragMouse{
-			Action:     steel.F(steel.ComputerActionRequestVariant2ActionDragMouse),
+			Action:     steel.F(steel.ComputerActionRequestDragMouseActionDragMouse),
 			Path:       steel.F(path),
 			Screenshot: steel.F(true),
 		}
@@ -262,7 +262,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "scroll":
 		body := &steel.ComputerActionRequestScroll{
-			Action:      steel.F(steel.ComputerActionRequestVariant3ActionScroll),
+			Action:      steel.F(steel.ComputerActionRequestScrollActionScroll),
 			Coordinates: steel.F(coords()),
 			Screenshot:  steel.F(true),
 		}
@@ -276,7 +276,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "keypress":
 		body := &steel.ComputerActionRequestPressKey{
-			Action:     steel.F(steel.ComputerActionRequestVariant4ActionPressKey),
+			Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
 			Keys:       steel.F(normalizeKeys(act.Keys)),
 			Screenshot: steel.F(true),
 		}
@@ -284,7 +284,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "type":
 		body := &steel.ComputerActionRequestTypeText{
-			Action:     steel.F(steel.ComputerActionRequestVariant5ActionTypeText),
+			Action:     steel.F(steel.ComputerActionRequestTypeTextActionTypeText),
 			Text:       steel.F(act.Text),
 			Screenshot: steel.F(true),
 		}
@@ -292,7 +292,7 @@ func (a *agent) executeAction(ctx context.Context, act action) (string, error) {
 
 	case "wait":
 		body := &steel.ComputerActionRequestWait{
-			Action:     steel.F(steel.ComputerActionRequestVariant6ActionWait),
+			Action:     steel.F(steel.ComputerActionRequestWaitActionWait),
 			Duration:   steel.F(float64(1)),
 			Screenshot: steel.F(true),
 		}

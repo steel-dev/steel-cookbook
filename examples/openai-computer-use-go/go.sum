@@ -1,5 +1,7 @@
 github.com/openai/openai-go/v3 v3.41.0 h1:9GkxcN02U5NG0WGdQjZ0cTSu/pMXEyzL2LfF0ruZCck=
 github.com/openai/openai-go/v3 v3.41.0/go.mod h1:cdufnVK14cWcT9qA1rRtrXx4FTRsgbDPW7Ia7SS5cZo=
+github.com/steel-dev/steel-go v0.1.3 h1:2ATITw1++bYdWqoxkOKKyAeMpWEF5NwAwmNnDJnkP3I=
+github.com/steel-dev/steel-go v0.1.3/go.mod h1:bebRqHxEi6cJlfvQTZrhPibDCuOEuojHKuhFlUGQ/AQ=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

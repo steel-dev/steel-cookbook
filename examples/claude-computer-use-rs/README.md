@@ -28,7 +28,6 @@ Going the other direction, `execute_computer_action` reads that loose `input` an
 ```rust
 "left_click" | "right_click" | "middle_click" | "double_click" | "triple_click" => {
     SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-        action: ComputerActionRequestVariant1Action::ClickMouse,
         button: Some(button),
         coordinates: Some(vec![coords.0, coords.1]),
         num_clicks,

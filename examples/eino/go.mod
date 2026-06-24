@@ -6,7 +6,7 @@ require (
 	github.com/cloudwego/eino v0.9.9
 	github.com/cloudwego/eino-ext/components/model/claude v0.1.20
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.1
+	github.com/steel-dev/steel-go v0.1.3
 )
 
 require (

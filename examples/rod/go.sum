@@ -1,5 +1,7 @@
 github.com/go-rod/rod v0.116.2 h1:A5t2Ky2A+5eD/ZJQr1EfsQSe5rms5Xof/qj296e+ZqA=
 github.com/go-rod/rod v0.116.2/go.mod h1:H+CMO9SCNc2TJ2WfrG+pKhITz57uGNYU43qYHh438Mg=
+github.com/steel-dev/steel-go v0.1.3 h1:2ATITw1++bYdWqoxkOKKyAeMpWEF5NwAwmNnDJnkP3I=
+github.com/steel-dev/steel-go v0.1.3/go.mod h1:bebRqHxEi6cJlfvQTZrhPibDCuOEuojHKuhFlUGQ/AQ=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.14.4 h1:uo0p8EbA09J7RQaflQ1aBRffTR7xedD2bcIVSYxLnkM=
 github.com/tidwall/gjson v1.14.4/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

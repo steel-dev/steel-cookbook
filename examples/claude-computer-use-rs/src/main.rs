@@ -230,7 +230,6 @@ impl Agent {
             .computer(
                 id,
                 SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
-                    action: ComputerActionRequestVariant7Action::TakeScreenshot,
                 }),
             )
             .await?;
@@ -255,7 +254,6 @@ impl Agent {
 
         let params = match action {
             "mouse_move" => SessionComputerParams::MoveMouse(ComputerActionRequestMoveMouse {
-                action: ComputerActionRequestVariant0Action::MoveMouse,
                 coordinates: vec![coords.0, coords.1],
                 hold_keys: opt_keys(split_keys(key)),
                 screenshot: Some(true),
@@ -263,12 +261,11 @@ impl Agent {
 
             "left_mouse_down" | "left_mouse_up" => {
                 SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                    action: ComputerActionRequestVariant1Action::ClickMouse,
-                    button: Some(ComputerActionRequestVariant1Button::Left),
+                    button: Some(ComputerActionRequestClickMouseButton::Left),
                     click_type: Some(if action == "left_mouse_down" {
-                        ComputerActionRequestVariant1ClickType::Down
+                        ComputerActionRequestClickMouseClickType::Down
                     } else {
-                        ComputerActionRequestVariant1ClickType::Up
+                        ComputerActionRequestClickMouseClickType::Up
                     }),
                     coordinates: Some(vec![coords.0, coords.1]),
                     hold_keys: opt_keys(split_keys(key)),
@@ -279,9 +276,9 @@ impl Agent {
 
             "left_click" | "right_click" | "middle_click" | "double_click" | "triple_click" => {
                 let button = match action {
-                    "right_click" => ComputerActionRequestVariant1Button::Right,
-                    "middle_click" => ComputerActionRequestVariant1Button::Middle,
-                    _ => ComputerActionRequestVariant1Button::Left,
+                    "right_click" => ComputerActionRequestClickMouseButton::Right,
+                    "middle_click" => ComputerActionRequestClickMouseButton::Middle,
+                    _ => ComputerActionRequestClickMouseButton::Left,
                 };
                 let num_clicks = match action {
                     "double_click" => Some(2.0),
@@ -289,7 +286,6 @@ impl Agent {
                     _ => None,
                 };
                 SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                    action: ComputerActionRequestVariant1Action::ClickMouse,
                     button: Some(button),
                     click_type: None,
                     coordinates: Some(vec![coords.0, coords.1]),
@@ -302,7 +298,6 @@ impl Agent {
             "left_click_drag" => {
                 let (start_x, start_y) = Self::center();
                 SessionComputerParams::DragMouse(ComputerActionRequestDragMouse {
-                    action: ComputerActionRequestVariant2Action::DragMouse,
                     hold_keys: opt_keys(split_keys(key)),
                     path: vec![vec![start_x, start_y], vec![coords.0, coords.1]],
                     screenshot: Some(true),
@@ -326,7 +321,6 @@ impl Agent {
                     _ => (0.0, step * amount),
                 };
                 SessionComputerParams::Scroll(ComputerActionRequestScroll {
-                    action: ComputerActionRequestVariant3Action::Scroll,
                     coordinates: Some(vec![coords.0, coords.1]),
                     delta_x: Some(dx),
                     delta_y: Some(dy),
@@ -342,7 +336,6 @@ impl Agent {
                     None
                 };
                 SessionComputerParams::PressKey(ComputerActionRequestPressKey {
-                    action: ComputerActionRequestVariant4Action::PressKey,
                     duration,
                     keys: normalize_keys(split_keys(text)),
                     screenshot: Some(true),
@@ -350,14 +343,12 @@ impl Agent {
             }
 
             "type" => SessionComputerParams::TypeText(ComputerActionRequestTypeText {
-                action: ComputerActionRequestVariant5Action::TypeText,
                 hold_keys: opt_keys(split_keys(key)),
                 screenshot: Some(true),
                 text: text.unwrap_or("").to_string(),
             }),
 
             "wait" => SessionComputerParams::Wait(ComputerActionRequestWait {
-                action: ComputerActionRequestVariant6Action::Wait,
                 duration: input.get("duration").and_then(|v| v.as_f64()).unwrap_or(1.0),
                 screenshot: Some(true),
             }),
@@ -372,7 +363,6 @@ impl Agent {
                         id,
                         SessionComputerParams::GetCursorPosition(
                             ComputerActionRequestGetCursorPosition {
-                                action: ComputerActionRequestVariant8Action::GetCursorPosition,
                             },
                         ),
                     )

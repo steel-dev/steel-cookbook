@@ -7,7 +7,7 @@ The interesting part in Go is the seam between the two SDKs, because each models
 ```go
 case "click":
     body := &steel.ComputerActionRequestClickMouse{
-        Action:      steel.ComputerActionRequestVariant1ActionClickMouse,
+        Action:      steel.ComputerActionRequestClickMouseActionClickMouse,
         Button:      ptr(mapButton(act.Button)),
         Coordinates: coords(),
         Screenshot:  ptr(true),
