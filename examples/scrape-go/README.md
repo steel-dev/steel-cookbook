@@ -69,4 +69,4 @@ A scrape call costs a few cents of browser time. Steel starts and tears down the
 
 ## Related
 
-[scrape-ts](../scrape-ts) and [scrape-py](../scrape-py) are the same direct API in TypeScript and Python, where the Python recipe writes the screenshot and PDF to disk. [scrape-rs](../scrape-rs) is the Rust version. For a full browser you drive yourself, [chromedp](../chromedp) and [rod](../rod) connect over CDP instead.
+[scrape-ts](../scrape-ts) and [scrape-py](../scrape-py) are the same direct API in TypeScript and Python, where the Python recipe writes the screenshot and PDF to disk. [scrape-rs](../scrape-rs) is the Rust version. For a full browser you drive yourself, [chromedp](../chromedp) and [Rod](../rod) connect over CDP instead.

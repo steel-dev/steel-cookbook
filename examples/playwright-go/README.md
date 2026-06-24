@@ -13,7 +13,7 @@ Steel returns a context with a page already open, so there is no `NewContext` / 
 
 ## The driver, not the browser
 
-playwright-go is not a pure-Go CDP client the way [chromedp](../chromedp) and [go-rod](../rod) are. It drives the same Node-based Playwright driver the other language bindings use, so that driver has to exist on disk before `playwright.Run()` will start. The program installs it on the first line of `run`:
+playwright-go is not a pure-Go CDP client the way [chromedp](../chromedp) and [Rod](../rod) are. It drives the same Node-based Playwright driver the other language bindings use, so that driver has to exist on disk before `playwright.Run()` will start. The program installs it on the first line of `run`:
 
 ```go
 if err := playwright.Install(&playwright.RunOptions{SkipInstallBrowsers: true}); err != nil {
@@ -70,4 +70,4 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 ## Related
 
-[chromedp](../chromedp) and [go-rod](../rod) are the pure-Go options: both speak CDP directly with no Node driver to install, so compare their `main.go` against this one to decide whether the Playwright API is worth the extra dependency. The [TypeScript](../playwright-ts) and [Python](../playwright-py) starters connect to Steel the same way through the official Playwright bindings. See the [playwright-go docs](https://pkg.go.dev/github.com/playwright-community/playwright-go) for the full page, locator, and screenshot API.
+[chromedp](../chromedp) and [Rod](../rod) are the pure-Go options: both speak CDP directly with no Node driver to install, so compare their `main.go` against this one to decide whether the Playwright API is worth the extra dependency. The [TypeScript](../playwright-ts) and [Python](../playwright-py) starters connect to Steel the same way through the official Playwright bindings. See the [playwright-go docs](https://pkg.go.dev/github.com/playwright-community/playwright-go) for the full page, locator, and screenshot API.

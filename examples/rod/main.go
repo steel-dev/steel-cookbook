@@ -1,4 +1,4 @@
-// Connect go-rod to a Steel cloud browser over CDP and scrape quotes.
+// Connect Rod to a Steel cloud browser over CDP and scrape quotes.
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/rod
 package main
 
@@ -66,7 +66,7 @@ func main() {
 	}
 	browser := rod.New().Client(cdpClient).MustConnect()
 	defer browser.MustClose()
-	fmt.Println("Connected to browser via go-rod")
+	fmt.Println("Connected to browser via Rod")
 
 	fmt.Println("Scraping quotes.toscrape.com...")
 	page := browser.MustPage("https://quotes.toscrape.com").MustWaitStable()

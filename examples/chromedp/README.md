@@ -70,4 +70,4 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 ## Related
 
-[Playwright version](../playwright-ts) and [Python Playwright](../playwright-py) connect over CDP the same way with a different driver. [go-rod](../rod) is the other Go option, with a fluent page API instead of a task list. chromedp's own [examples](https://github.com/chromedp/chromedp/tree/master/examples) cover clicks, downloads, and network interception.
+[Playwright version](../playwright-ts) and [Python Playwright](../playwright-py) connect over CDP the same way with a different driver. [Rod](../rod) is the other Go option, with a fluent page API instead of a task list. chromedp's own [examples](https://github.com/chromedp/chromedp/tree/master/examples) cover clicks, downloads, and network interception.

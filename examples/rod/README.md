@@ -1,6 +1,6 @@
-# go-rod on a Steel browser (Go)
+# Rod on a Steel browser (Go)
 
-go-rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a websocket, so `ControlURL` is the only seam you need: hand go-rod the session's websocket URL with your key appended, and the rest of your code is ordinary go-rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
+Rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a websocket, so `ControlURL` is the only seam you need: hand Rod the session's websocket URL with your key appended, and the rest of your code is ordinary Rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
 
 ```go
 cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, apiKey)
@@ -14,7 +14,7 @@ page := browser.MustPage("https://quotes.toscrape.com").MustWaitStable()
 
 ## The connect URL
 
-`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. go-rod connects to exactly the URL you give it and does not rewrite the address, so the key has to be in the string before `ControlURL` sees it. If you forget it, the websocket handshake is rejected and `MustConnect` panics before the first page loads.
+`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. Rod connects to exactly the URL you give it and does not rewrite the address, so the key has to be in the string before `ControlURL` sees it. If you forget it, the websocket handshake is rejected and `MustConnect` panics before the first page loads.
 
 The session itself comes from the Steel SDK. `client.Sessions.Create` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the websocket URL to connect, the viewer URL to print, and the ID to release at the end.
 
@@ -26,7 +26,7 @@ session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
 
 Every field on `SessionCreateParams` is a pointer, so an omitted field is a real "unset" rather than a zero value the API has to guess about. The `ptr` helper at the top of `main.go` is a one-line generic that wraps a literal in a pointer, which is what lets you write `Dimensions` inline and, later, flags like `SolveCaptcha: ptr(true)`.
 
-The one field worth setting deliberately on a longer job is `Timeout`. It is the hard cap on session lifetime in milliseconds and defaults to 300000, five minutes. A scrape that needs longer has to raise it at creation time, because there is no way to extend a session once it is live: when the timeout elapses, Steel releases the browser out from under you and the next go-rod call fails. For the quick scrape here the default is plenty, and the deferred `Release` ends the session in well under a second anyway.
+The one field worth setting deliberately on a longer job is `Timeout`. It is the hard cap on session lifetime in milliseconds and defaults to 300000, five minutes. A scrape that needs longer has to raise it at creation time, because there is no way to extend a session once it is live: when the timeout elapses, Steel releases the browser out from under you and the next Rod call fails. For the quick scrape here the default is plenty, and the deferred `Release` ends the session in well under a second anyway.
 
 ## The Must idiom
 
@@ -44,9 +44,9 @@ for i, card := range cards {
 }
 ```
 
-`MustElements` returns `rod.Elements`, which is a `[]*Element`, so you range over it like any slice. Scoping the next query to `card` (calling `MustElement` on the element, not the page) is how go-rod expresses "find this inside that": each `.text` and `.author` lookup is relative to its own card, not the whole document. After the loop, `MustScreenshot("quotes.png")` writes a PNG of the rendered page to disk.
+`MustElements` returns `rod.Elements`, which is a `[]*Element`, so you range over it like any slice. Scoping the next query to `card` (calling `MustElement` on the element, not the page) is how Rod expresses "find this inside that": each `.text` and `.author` lookup is relative to its own card, not the whole document. After the loop, `MustScreenshot("quotes.png")` writes a PNG of the rendered page to disk.
 
-The screenshot is captured on the remote browser and streamed back as bytes, so the PNG lands on your machine even though Chrome never ran locally. The same is true of `MustHTML` and `page.MustEval` for JavaScript: go-rod issues the CDP command, Steel runs it in the cloud, and you get the result. This is the reason a scrape needs no local Chrome and no driver binary on your path.
+The screenshot is captured on the remote browser and streamed back as bytes, so the PNG lands on your machine even though Chrome never ran locally. The same is true of `MustHTML` and `page.MustEval` for JavaScript: Rod issues the CDP command, Steel runs it in the cloud, and you get the result. This is the reason a scrape needs no local Chrome and no driver binary on your path.
 
 ## Watch it run
 
@@ -69,7 +69,7 @@ Your output varies with the site. Structure looks like this:
 Creating Steel session...
 Session live at https://app.steel.dev/sessions/ab12cd34...
 
-Connected to browser via go-rod
+Connected to browser via Rod
 Scraping quotes.toscrape.com...
 
 Found 10 quotes on the page:
@@ -102,4 +102,4 @@ A run takes a few seconds and costs a few cents of browser time. Steel bills per
 
 ## Related
 
-[chromedp version](../chromedp) drives the same kind of Steel session with a different Go library: chromedp batches actions into a single `Run` call rather than chaining element handles, so comparing the two `main.go` files is a quick way to decide which style fits your code. See the [go-rod documentation](https://go-rod.github.io) for the full selector, input, and waiting API, and the [Playwright starter](../playwright-ts) for the same connect-over-CDP idea in TypeScript.
+[chromedp version](../chromedp) drives the same kind of Steel session with a different Go library: chromedp batches actions into a single `Run` call rather than chaining element handles, so comparing the two `main.go` files is a quick way to decide which style fits your code. See the [Rod documentation](https://go-rod.github.io) for the full selector, input, and waiting API, and the [Playwright starter](../playwright-ts) for the same connect-over-CDP idea in TypeScript.
