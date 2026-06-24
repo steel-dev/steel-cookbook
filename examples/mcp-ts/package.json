@@ -1,0 +1,21 @@
+{
+  "name": "mcp-ts",
+  "version": "0.1.0",
+  "description": "Expose a Steel cloud browser to any MCP client",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.0",
+    "steel-sdk": "^0.16",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}

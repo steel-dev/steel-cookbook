@@ -1,0 +1,12 @@
+[project]
+name = "mcp-py"
+version = "0.1.0"
+description = "Expose a Steel cloud browser to any MCP client"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.2.0",
+    "playwright>=1.48.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.16.0",
+]
