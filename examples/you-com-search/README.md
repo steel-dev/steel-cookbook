@@ -33,7 +33,7 @@ async def youcom_contents(urls: list[str]) -> dict:
         r = await client.post(
             f"{YOU_BASE}/contents",
             json={"urls": urls, "formats": ["markdown"]},
-            headers={"X-API-Key": YOUCOM_API_KEY, ...},
+            headers={"X-API-Key": YDC_API_KEY, ...},
         )
     ...
 ```
@@ -79,7 +79,7 @@ result = await executor.ainvoke({"input": question})
 
 ```bash
 cd examples/you-com-search
-cp .env.example .env          # set STEEL_API_KEY, ANTHROPIC_API_KEY, YOUCOM_API_KEY
+cp .env.example .env          # set STEEL_API_KEY, ANTHROPIC_API_KEY, YDC_API_KEY
 uv sync
 uv run playwright install chromium
 uv run main.py
