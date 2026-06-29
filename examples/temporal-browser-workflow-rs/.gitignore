@@ -1,0 +1,4 @@
+.env
+/target
+Cargo.lock
+artifacts/

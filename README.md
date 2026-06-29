@@ -36,6 +36,7 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 | <a id="rod">Rod (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/rod) |
 | <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide) |
 | <a id="headless-chrome">headless_chrome (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/headless-chrome) |
+| <a id="temporal-browser-workflow">Temporal Browser Workflow</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/temporal-browser-workflow-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/temporal-browser-workflow-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/temporal-browser-workflow-go) [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/temporal-browser-workflow-rs) |
 
 ### Steel APIs
 
@@ -113,6 +114,7 @@ Steel platform features that enhance your browser automation workflows with pers
 **Basics**
 - [Playwright](examples/playwright-ts) - Playwright with TypeScript and session management
 - [Puppeteer](examples/puppeteer-ts) - Puppeteer with CDP connection and cloud browser automation
+- [Temporal Browser Workflow](examples/temporal-browser-workflow-ts) - Durable batch capture with Temporal activities and Steel scraping
 
 **AI Computer Use**
 - [Claude Computer Use](examples/claude-computer-use-ts) - Autonomous web interactions with Claude
@@ -144,6 +146,7 @@ Steel platform features that enhance your browser automation workflows with pers
 **Basics**
 - [Playwright](examples/playwright-py) - Playwright with Python
 - [Selenium](examples/selenium) - Selenium WebDriver integration
+- [Temporal Browser Workflow](examples/temporal-browser-workflow-py) - Durable batch capture with Temporal activities and Steel scraping
 
 **AI Computer Use**
 - [Claude Computer Use](examples/claude-computer-use-py) - Autonomous browser control with Claude

@@ -420,6 +420,46 @@
   created: "2026-06-29"
   updated: "2026-06-29"
 
+- title: Run a durable browser workflow with Temporal
+  slug: temporal-browser-workflow
+  path: examples/temporal-browser-workflow-ts
+  description: Build a Temporal TypeScript Workflow that schedules retryable Steel browser Activities to capture page summaries, screenshots, and Markdown artifacts.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Browser automation, Temporal]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser workflow with Temporal
+  slug: temporal-browser-workflow
+  path: examples/temporal-browser-workflow-py
+  description: Build a Temporal Python Workflow that keeps Steel scraping and screenshot downloads inside retryable Activities.
+  authors: [junhsss]
+  language: Python
+  topics: [Browser automation, Temporal]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser workflow with Temporal
+  slug: temporal-browser-workflow
+  path: examples/temporal-browser-workflow-go
+  description: Build a Temporal Go Workflow that batches Steel scrape and screenshot Activities with typed results and local artifacts.
+  authors: [junhsss]
+  language: Go
+  topics: [Browser automation, Temporal]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser workflow with Temporal
+  slug: temporal-browser-workflow
+  path: examples/temporal-browser-workflow-rs
+  description: Build a Temporal Rust Workflow with prerelease SDK macros and a Steel capture Activity that writes Markdown and screenshot artifacts.
+  authors: [junhsss]
+  language: Rust
+  topics: [Browser automation, Temporal]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
 - title: Chat with any webpage on Convex
   slug: convex-chat-with-page
   path: examples/convex-chat-with-page

@@ -1,0 +1,18 @@
+[project]
+name = "temporal-browser-workflow-py"
+version = "0.1.0"
+description = "Run durable Steel browser capture workflows with Temporal and Python"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.19.0",
+    "temporalio>=1.29.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main", "workflows"]
