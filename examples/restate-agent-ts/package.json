@@ -1,0 +1,23 @@
+{
+  "name": "restate-agent-ts",
+  "version": "1.0.0",
+  "description": "Durable browser research agent with Restate, Steel, and TypeScript",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@restatedev/restate-sdk": "^1.15.1",
+    "dotenv": "^16.4.5",
+    "steel-sdk": "^0.18.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0"
+  }
+}

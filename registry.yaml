@@ -859,3 +859,43 @@
   topics: [Agents, MCP]
   created: "2026-06-24"
   updated: "2026-06-24"
+
+- title: Run a durable browser agent with Restate
+  slug: restate-agent
+  path: examples/restate-agent-ts
+  description: Build a Restate Virtual Object in TypeScript that uses durable OpenAI planning steps and Steel scraping to answer browser research questions.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Agents, Restate]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser agent with Restate
+  slug: restate-agent
+  path: examples/restate-agent-py
+  description: Build a Restate Virtual Object in Python that stores browser observations in session state and wraps Steel scraping in durable steps.
+  authors: [junhsss]
+  language: Python
+  topics: [Agents, Restate]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser agent with Restate
+  slug: restate-agent
+  path: examples/restate-agent-go
+  description: Build a reflected Restate Virtual Object in Go that journals OpenAI planner calls and Steel scrape tool executions.
+  authors: [junhsss]
+  language: Go
+  topics: [Agents, Restate]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
+- title: Run a durable browser agent with Restate
+  slug: restate-agent
+  path: examples/restate-agent-rs
+  description: Build a Rust Restate Virtual Object that uses Json-wrapped durable steps for OpenAI planning and Steel browser scraping.
+  authors: [junhsss]
+  language: Rust
+  topics: [Agents, Restate]
+  created: "2026-06-29"
+  updated: "2026-06-29"

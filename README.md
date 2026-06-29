@@ -90,6 +90,7 @@ Specialized frameworks that provide high-level abstractions for building AI-powe
 | <a id="swiftide">Swiftide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/swiftide) |
 | <a id="langchaingo">LangChainGo (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/langchaingo) |
 | <a id="google-adk">Google ADK</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/google-adk-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/google-adk-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/google-adk-go) |
+| <a id="restate-agent">Restate Durable Agent</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/restate-agent-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/restate-agent-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/restate-agent-go) [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/restate-agent-rs) |
 
 ### Advanced Features
 
@@ -129,6 +130,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [OpenAI Agents SDK](examples/openai-agents-ts) - Agent with tool() + Zod outputType for structured final answers
 - [Claude Agent SDK](examples/claude-agent-sdk-ts) - Anthropic's first-party agent loop with Steel exposed as in-process MCP tools
 - [Deep Research](examples/deep-research-ts) - Lead orchestrator dispatches parallel researcher subagents on Claude Agent SDK, each driving its own Steel session
+- [Restate Durable Agent](examples/restate-agent-ts) - Durable browser research session with Restate state and Steel scraping
 
 **Advanced Features**
 - [Auth Context](examples/auth-context) - Reuse authentication across sessions
@@ -162,6 +164,7 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Microsoft Agent Framework](examples/microsoft-agent-framework) - 1.0 successor to AutoGen and Semantic Kernel, plain-function `@tool` decorator
 - [Claude Agent SDK](examples/claude-agent-sdk-py) - Anthropic's first-party agent loop with Steel exposed as in-process MCP tools
 - [Deep Research](examples/deep-research-py) - Lead orchestrator dispatches parallel researcher subagents on Claude Agent SDK, each driving its own Steel session
+- [Restate Durable Agent](examples/restate-agent-py) - Durable browser research session with Restate state and Steel scraping
 
 ---
 

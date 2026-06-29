@@ -1,0 +1,12 @@
+[project]
+name = "restate-agent-py"
+version = "0.1.0"
+description = "Durable browser research agent with Restate, Steel, and Python"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "hypercorn>=0.17.3",
+    "python-dotenv>=1.0.0",
+    "restate-sdk[serde]>=1.0.0",
+    "steel-sdk>=0.19.0",
+]
