@@ -376,7 +376,7 @@
   description: Use the Steel Credentials API with Playwright to automate flows with stored credentials.
   authors: [danew, junhsss]
   language: TypeScript
-  topics: [Steel APIs, Authentication, Playwright]
+  topics: [Steel APIs, Authentication]
   created: "2024-11-19"
   updated: "2026-04-24"
 
