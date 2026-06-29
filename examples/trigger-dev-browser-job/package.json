@@ -1,0 +1,34 @@
+{
+  "name": "trigger-dev-browser-job",
+  "version": "1.0.0",
+  "description": "Run a Steel browser workflow as a Trigger.dev background job",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "trigger.dev dev",
+    "deploy": "trigger.dev deploy",
+    "trigger": "tsx index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "steel",
+    "trigger-dev",
+    "background-jobs",
+    "browser-automation",
+    "playwright"
+  ],
+  "author": "Steel Dev",
+  "license": "MIT",
+  "dependencies": {
+    "@trigger.dev/sdk": "^3.3.0",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.0",
+    "steel-sdk": "^0.16",
+    "zod": "^3.25.76 || ^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "trigger.dev": "^3.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.2"
+  }
+}

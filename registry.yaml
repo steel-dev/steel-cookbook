@@ -410,6 +410,16 @@
   created: "2024-11-19"
   updated: "2026-04-24"
 
+- title: Run a Steel browser job with Trigger.dev
+  slug: trigger-dev-browser-job
+  path: examples/trigger-dev-browser-job
+  description: Queue a Trigger.dev task that creates a Steel session, drives Playwright over CDP, saves artifacts, and releases the browser in cleanup.
+  authors: [junhsss]
+  language: TypeScript
+  topics: [Browser automation, Trigger.dev]
+  created: "2026-06-29"
+  updated: "2026-06-29"
+
 - title: Chat with any webpage on Convex
   slug: convex-chat-with-page
   path: examples/convex-chat-with-page
