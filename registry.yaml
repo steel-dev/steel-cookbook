@@ -90,6 +90,16 @@
   created: "2025-02-20"
   updated: "2026-04-24"
 
+- title: Fill long text quickly with Browser Use
+  slug: browser-use-fast-typing
+  path: examples/browser-use-fast-typing
+  description: Add fast-fill tools to a Browser Use agent for long text values over remote CDP.
+  authors: [danew]
+  language: Python
+  topics: [Agents, Browser Use]
+  created: "2026-06-12"
+  updated: "2026-06-12"
+
 - title: Solve CAPTCHAs automatically in a Browser Use agent
   slug: browser-use-captcha-auto
   path: examples/browser-use-captcha-auto
