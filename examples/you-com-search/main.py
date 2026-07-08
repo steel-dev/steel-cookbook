@@ -22,7 +22,7 @@ load_dotenv()
 
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "your-anthropic-api-key-here"
-YOUCOM_API_KEY = os.getenv("YOUCOM_API_KEY") or "your-youcom-api-key-here"
+YDC_API_KEY = os.getenv("YDC_API_KEY") or "your-youcom-api-key-here"
 
 YOU_BASE = "https://ydc-index.io/v1"
 
@@ -75,7 +75,7 @@ async def youcom_search(
         r = await client.get(
             f"{YOU_BASE}/search",
             params=params,
-            headers={"X-API-Key": YOUCOM_API_KEY},
+            headers={"X-API-Key": YDC_API_KEY},
         )
     r.raise_for_status()
     data = r.json()
@@ -112,7 +112,7 @@ async def youcom_contents(urls: list[str]) -> dict:
             f"{YOU_BASE}/contents",
             json={"urls": urls, "formats": ["markdown"]},
             headers={
-                "X-API-Key": YOUCOM_API_KEY,
+                "X-API-Key": YDC_API_KEY,
                 "Content-Type": "application/json",
             },
         )
@@ -230,8 +230,8 @@ async def main() -> None:
     if ANTHROPIC_API_KEY == "your-anthropic-api-key-here":
         print("Set ANTHROPIC_API_KEY in .env (https://console.anthropic.com/)")
         sys.exit(1)
-    if YOUCOM_API_KEY == "your-youcom-api-key-here":
-        print("Set YOUCOM_API_KEY in .env (https://you.com/platform)")
+    if YDC_API_KEY == "your-youcom-api-key-here":
+        print("Set YDC_API_KEY in .env (https://you.com/platform)")
         sys.exit(1)
 
     question = (
