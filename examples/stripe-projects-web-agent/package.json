@@ -1,0 +1,37 @@
+{
+  "name": "stripe-projects-web-agent",
+  "version": "1.0.0",
+  "description": "A Stripe Projects browser research agent powered by Steel and OpenRouter",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "test": "node --test tests/url-safety.test.mjs",
+    "start": "next start",
+    "deploy": "node scripts/deploy-vercel.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/react": "^3.0.0",
+    "ai": "^6.0.0",
+    "next": "^15.5.0",
+    "playwright": "^1.50.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "steel-sdk": "^0.18.0",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}

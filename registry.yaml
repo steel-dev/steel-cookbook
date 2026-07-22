@@ -260,6 +260,16 @@
   created: "2026-04-23"
   updated: "2026-04-24"
 
+- title: Build a live browser agent with Stripe Projects
+  slug: stripe-projects-web-agent
+  path: examples/stripe-projects-web-agent
+  description: Stripe Projects provisions Steel, OpenRouter, and Vercel for a Next.js browser agent with embedded Steel Live View and a bounded tool loop.
+  authors: [nibzard]
+  language: TypeScript
+  topics: [Agents, Next.js]
+  created: "2026-07-16"
+  updated: "2026-07-17"
+
 - title: Build a typed browser agent with LangGraph
   slug: langgraph
   path: examples/langgraph

@@ -125,6 +125,11 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: npm run -s build
 
+      - name: Test Stripe Projects URL guard
+        if: matrix.id == 'stripe-projects-web-agent'
+        working-directory: ${{ matrix.dir }}
+        run: npm test
+
       - name: Install uv
         if: matrix.kind == 'python'
         uses: astral-sh/setup-uv@v6
