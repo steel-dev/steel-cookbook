@@ -63,7 +63,7 @@ A default run takes ~25 seconds. The `finally` block calls `client.sessions.rele
 - **Raise `max_steps`.** Bump the ceiling on `notte.Agent(...)` for multi-page flows.
 - **Swap the reasoning model.** Change `reasoning_model` on `notte.Agent`. Flash for speed, GPT-5 or Sonnet for ambiguity.
 - **Switch to deep perception.** Pass `perception_type="deep"` to `notte.Session(...)` when the fast heuristics miss elements.
-- **Turn on stealth.** Add `use_proxy=True`, `solve_captcha=True`, or `session_timeout=1800000` to `client.sessions.create()` for sites with anti-bot.
+- **Turn on stealth.** Add `use_proxy=True`, `solve_captcha=True`, or `api_timeout=1800000` to `client.sessions.create()` for sites with anti-bot. The session duration is `api_timeout`; the Python SDK keeps `timeout` for the HTTP request.
 
 ## Related
 

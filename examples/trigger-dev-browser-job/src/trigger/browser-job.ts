@@ -96,7 +96,7 @@ export const browserJob = task({
 
       session = await steel.sessions.create({
         blockAds: true,
-        sessionTimeout: 600000,
+        timeout: 600000,
       });
 
       logger.info("Steel session ready", {

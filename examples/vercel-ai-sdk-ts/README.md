@@ -65,7 +65,7 @@ A full run takes ~20 seconds and costs a few cents of Steel session time plus a 
 - **Swap the model.** `claude-haiku-4-5` is the default. For harder tasks, try `anthropic("claude-sonnet-4-6")`, `openai("gpt-5")`, or `google("gemini-2.5-pro")`. You can also use the [AI Gateway](https://vercel.com/docs/ai-gateway) string form, like `"anthropic/claude-haiku-4-5"`, to route through Vercel.
 - **Add tools.** A `click` tool wrapping `page.click`, a `fill` tool over `page.fill`, a `screenshot` tool that returns a base64 PNG for vision models.
 - **Phase-gate steps.** Use `prepareStep` to restrict which tools are callable on a given step. See the AI SDK's [loop control](https://ai-sdk.dev/docs/agents/loop-control) page.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` to `steel.sessions.create({...})` inside `openSession` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` to `steel.sessions.create({...})` inside `openSession` for sites with anti-bot.
 
 ## Related
 
