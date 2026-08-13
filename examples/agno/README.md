@@ -58,7 +58,7 @@ The `finally` block in `main()` calls `tools.close_session()`, which releases th
 
 - **Change the task.** Set `TASK` in `.env` or edit the default in `main.py`.
 - **Add tools.** Append any method to the `tools` list in `SteelTools.__init__`: `click_selector(selector)`, `fill_form(field, value)`, `wait_for_text(text)`. Typed signature plus docstring, Agno handles the rest.
-- **Turn on stealth.** Pass flags to `self.client.sessions.create()` inside `_ensure_session`: `use_proxy=True`, `solve_captcha=True`, `session_timeout=600000`.
+- **Turn on stealth.** Pass flags to `self.client.sessions.create()` inside `_ensure_session`: `use_proxy=True`, `solve_captcha=True`, `api_timeout=600000`. The session duration is `api_timeout` because the Python SDK reserves `timeout` for the HTTP request.
 - **Swap the model.** `OpenAIChat(id="gpt-5-nano", ...)` is cheap and fast. Agno also ships `agno.models.anthropic.Claude` and others; the toolkit stays the same.
 
 ## Related

@@ -90,7 +90,7 @@ It serves at `http://localhost:4111` and reads the `mastra` registry exported fr
 - **Add a tool.** A `click` tool wrapping `page.click`, a `screenshot` tool returning a base64 PNG. Add to the `tools` record.
 - **Add memory.** Install `@mastra/memory` plus a storage adapter (`@mastra/libsql`), pass `memory` on the `Agent`, then call `generate(prompt, { memory: { resource, thread } })` to persist conversation across runs. See [Mastra memory docs](https://mastra.ai/docs/memory/overview).
 - **Wrap it in a workflow.** For multi-step pipelines (login → scrape → summarize) where each step needs to be retryable or human-resumable, port the tool calls into `createStep` blocks under a `createWorkflow`. See [Mastra workflows](https://mastra.ai/docs/workflows/overview).
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` to `steel.sessions.create({...})` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` to `steel.sessions.create({...})` for sites with anti-bot.
 
 ## Related
 

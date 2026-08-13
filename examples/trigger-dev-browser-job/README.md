@@ -14,7 +14,7 @@ export const browserJob = task({
   retry: { maxAttempts: 3 },
   queue: { concurrencyLimit: 2 },
   run: async (payload) => {
-    session = await steel.sessions.create({ sessionTimeout: 600000 });
+    session = await steel.sessions.create({ timeout: 600000 });
     browser = await chromium.connectOverCDP(
       `${session.websocketUrl}&apiKey=${steelApiKey}`
     );

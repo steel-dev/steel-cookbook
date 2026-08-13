@@ -73,7 +73,7 @@ A full run is ~20-40 seconds. Cost is a few cents of Steel session time plus Ope
 - **Add handoffs.** Pass `handoffs: [writerAgent]` on the `Agent`. The SDK routes between agents based on each one's description.
 - **Add a guardrail.** Wire `inputGuardrails` or `outputGuardrails` on the `Agent` to vet the user's prompt or the final message. See the [guardrails guide](https://openai.github.io/openai-agents-js/guides/guardrails).
 - **Use a stronger model.** `model: "gpt-5"` plans better on ambiguous pages at the cost of tokens and latency.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or a longer `sessionTimeout` to `sessions.create()` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or a longer `timeout` to `sessions.create()` for sites with anti-bot.
 
 ## Related
 
