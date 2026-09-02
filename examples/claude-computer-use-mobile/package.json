@@ -18,7 +18,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.123.0",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
     "steel-sdk": "^0.18.0",
