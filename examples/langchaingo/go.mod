@@ -1,6 +1,6 @@
 module steel-cookbook/langchaingo
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/joho/godotenv v1.5.1
@@ -36,8 +36,8 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	go.starlark.net v0.0.0-20230302034142-4b1e35fe2254 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
