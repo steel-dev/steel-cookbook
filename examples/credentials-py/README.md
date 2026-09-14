@@ -60,7 +60,7 @@ On a second run the credential already exists, so you see `Credential already ex
 
 - **Swap the target site.** Change `origin` and `value` in `credentials.create`, then update the `page.goto` URL and the login-trigger click in `main.py`. Steel detects the form as long as the page uses a standard username and password input pair.
 - **Manage credentials separately.** `client.credentials.list()`, `client.credentials.update(...)`, and `client.credentials.delete(...)` let you rotate or audit stored logins without touching the automation. Seed credentials from a one-off setup script and keep `main.py` about the workflow.
-- **Stack it with other session options.** `use_proxy`, `solve_captcha`, and `session_timeout` slot in next to `credentials={}` in `sessions.create()`. The vault coexists with every other knob.
+- **Stack it with other session options.** `use_proxy`, `solve_captcha`, and `api_timeout` slot in next to `credentials={}` in `sessions.create()`. The vault coexists with every other knob. `api_timeout` is the session duration; the Python SDK keeps `timeout` for the HTTP request.
 
 ## When to use this vs. auth-context
 

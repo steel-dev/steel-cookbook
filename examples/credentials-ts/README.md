@@ -70,7 +70,7 @@ On a second run the credential already exists, so you see `Credential already ex
 
 - **Swap the target site.** Change the `origin` and `value` in `credentials.create`, then update `page.goto` and the login-trigger click in `index.ts`. Steel handles the form detection as long as the page exposes a standard username/password input pair.
 - **Manage credentials out of band.** `client.credentials.list()`, `client.credentials.retrieve(id)`, and `client.credentials.delete(id)` let you rotate or audit stored creds without touching automation code. Create credentials from a setup script and keep `index.ts` focused on the workflow.
-- **Combine with stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` alongside `credentials: {}` in `sessions.create()`. The vault works with every other session option.
+- **Combine with stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` alongside `credentials: {}` in `sessions.create()`. The vault works with every other session option.
 
 ## When to use this vs. auth-context
 

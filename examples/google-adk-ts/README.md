@@ -91,7 +91,7 @@ This agent has no `outputSchema`. ADK disables tool calls when an output schema 
 - **Add a tool.** A `click` tool wrapping `page.click`, or a `screenshot` tool returning a base64 PNG. Build it with `new FunctionTool({ name, description, parameters, execute })` and add it to the agent's `tools` array.
 - **Persist sessions.** Swap `InMemoryRunner` for a `Runner` with a `DatabaseSessionService` to keep conversation state across runs; the session ID is the thread key.
 - **Run Vertex instead of AI Studio.** Set `GOOGLE_GENAI_USE_VERTEXAI=TRUE` plus `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`, and construct `new Gemini({ model, vertexai: true })`.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` to `steel.sessions.create({...})` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` to `steel.sessions.create({...})` for sites with anti-bot.
 
 ## Related
 

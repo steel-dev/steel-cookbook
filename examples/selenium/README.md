@@ -79,7 +79,7 @@ A run costs a few cents of session time. Steel bills per session-minute, so `mai
 ## Make it yours
 
 - **Swap the target.** The scraping logic sits between the `Your Automations Go Here!` banner comments in `main.py`. Replace `driver.get(...)` and the `story_elements` loop with your own selectors; session setup and teardown stay put.
-- **Extend the session.** Pass `session_timeout=1800000` (30 minutes) alongside `is_selenium=True` in `sessions.create()` for longer runs. Keep `is_selenium=True`; it is the switch that provisions a WebDriver node.
+- **Extend the session.** Pass `api_timeout=1800000` (30 minutes) alongside `is_selenium=True` in `sessions.create()` for longer runs. Keep `is_selenium=True`; it is the switch that provisions a WebDriver node. The session duration is `api_timeout` because the Python SDK reserves `timeout` for the HTTP request.
 - **Wait on DOM state.** Each command is an HTTP round-trip, so blind `time.sleep` calls compound latency. Prefer `WebDriverWait` with `expected_conditions` (as in the example) to block on the specific element or state you need.
 - **Reuse the headers pattern.** `CustomRemoteConnection` is how you inject any extra header into every WebDriver request. The same subclass shape works for custom tracing or routing headers you want to attach per call.
 

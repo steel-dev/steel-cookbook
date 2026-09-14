@@ -267,7 +267,7 @@ async def main() -> None:
         # Create Steel session
         print("\nCreating Steel session with CAPTCHA solving enabled...")
         session = client.sessions.create(
-            timeout=300000,  # 5 minutes timeout for the session
+            api_timeout=300000,  # 5 minutes timeout for the session
             solve_captcha=True,
             stealth_config={
                 "auto_captcha_solving": False,  # Disable auto-solving for manual control

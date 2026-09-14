@@ -53,7 +53,7 @@ def main():
         # Create a new Steel session with is_selenium=True
         session = client.sessions.create(
             is_selenium=True,              # Enable Selenium mode (required)
-            # session_timeout=1800000,     # Session timeout in ms (default: 5 mins)
+            # api_timeout=1800000,         # Session timeout in ms (default: 5 mins)
         )
         print(session)
 
