@@ -6,6 +6,11 @@
 # Add yourself when you contribute your first recipe.
 # All fields optional; the site falls back to the handle if blank.
 
+ado-webco:
+  name: Adolfo Marinucci
+  website: https://devinbox.io
+  avatar:
+
 aspectrr:
   name: Collin Pfeifer
   website:
