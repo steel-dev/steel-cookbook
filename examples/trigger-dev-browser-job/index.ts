@@ -4,7 +4,7 @@
  */
 
 import "dotenv/config";
-import { tasks } from "@trigger.dev/sdk/v3";
+import { tasks } from "@trigger.dev/sdk";
 import type { browserJob } from "./src/trigger/browser-job";
 
 const DEFAULT_TARGET_URL = "https://news.ycombinator.com";

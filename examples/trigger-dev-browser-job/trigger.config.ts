@@ -4,13 +4,14 @@
  */
 
 import "dotenv/config";
-import { defineConfig } from "@trigger.dev/sdk/v3";
+import { defineConfig } from "@trigger.dev/sdk";
 
 export default defineConfig({
   project: process.env.TRIGGER_PROJECT_REF ?? "proj_your_project_ref",
   dirs: ["./src/trigger"],
   runtime: "node",
   logLevel: "log",
+  maxDuration: 300,
   retries: {
     enabledInDev: true,
     default: {
