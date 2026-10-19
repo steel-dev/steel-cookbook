@@ -9,7 +9,7 @@ use chromiumoxide::page::ScreenshotParams;
 use chromiumoxide::Browser;
 use futures::StreamExt;
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, Content, Implementation, ServerCapabilities, ServerInfo};
+use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerInfo};
 use rmcp::transport::stdio;
 use rmcp::{
     schemars, tool, tool_handler, tool_router, ErrorData as McpError, ServerHandler, ServiceExt,
@@ -115,7 +115,7 @@ impl SteelMcp {
         };
         self.sessions.lock().await.insert(session.id.clone(), entry);
 
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             json!({ "session_id": session.id, "live_view_url": session.session_viewer_url })
                 .to_string(),
         )]))
@@ -143,7 +143,7 @@ impl SteelMcp {
             .await
             .map_err(internal)?
             .unwrap_or_default();
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             json!({ "url": resolved, "title": title }).to_string(),
         )]))
     }
@@ -175,7 +175,7 @@ impl SteelMcp {
             .map_err(internal)?
             .into_value()
             .map_err(internal)?;
-        Ok(CallToolResult::success(vec![Content::text(text)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(text)]))
     }
 
     #[tool(description = "Capture a PNG screenshot of the current page in the session.")]
@@ -190,7 +190,7 @@ impl SteelMcp {
             .await
             .map_err(internal)?;
         let data = base64::engine::general_purpose::STANDARD.encode(&bytes);
-        Ok(CallToolResult::success(vec![Content::image(
+        Ok(CallToolResult::success(vec![ContentBlock::image(
             data,
             "image/png".to_string(),
         )]))
@@ -215,7 +215,7 @@ impl SteelMcp {
             .sessions()
             .release(&entry.steel_id, Default::default())
             .await;
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             json!({ "released": session_id }).to_string(),
         )]))
     }

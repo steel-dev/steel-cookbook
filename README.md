@@ -100,11 +100,11 @@ Steel platform features that enhance your browser automation workflows with pers
 
 | Feature | Example |
 |---------|---------|
-| <a id="auth-context">Auth Context Reuse</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/auth-context) Reuse authentication state (cookies, local storage) across sessions |
-| <a id="profiles">Persistent Profiles</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/profiles) Maintain browser state across sessions with persistent profiles |
-| <a id="credentials">Credential Management</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/credentials) Securely store and automatically inject credentials |
-| <a id="extensions">Browser Extensions</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/extensions) Load and use browser extensions in cloud browsers |
-| <a id="files">File Handling</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/files-api) Upload and download files in cloud browser sessions |
+| <a id="auth-context">Auth Context Reuse</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/auth-context-ts) Reuse authentication state (cookies, local storage) across sessions |
+| <a id="profiles">Persistent Profiles</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/profiles-ts) Maintain browser state across sessions with persistent profiles |
+| <a id="credentials">Credential Management</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/credentials-ts) Securely store and automatically inject credentials |
+| <a id="extensions">Browser Extensions</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/extensions-ts) Load and use browser extensions in cloud browsers |
+| <a id="files">File Handling</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/files-ts) Upload and download files in cloud browser sessions |
 
 ---
 
@@ -137,11 +137,11 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Restate Durable Agent](examples/restate-agent-ts) - Durable browser research session with Restate state and Steel scraping
 
 **Advanced Features**
-- [Auth Context](examples/auth-context) - Reuse authentication across sessions
-- [Profiles](examples/profiles) - Persistent browser profiles
-- [Credentials](examples/credentials) - Credential management and injection
-- [Extensions](examples/extensions) - Browser extension support
-- [Files API](examples/files-api) - File upload and download handling
+- [Auth Context](examples/auth-context-ts) - Reuse authentication across sessions
+- [Profiles](examples/profiles-ts) - Persistent browser profiles
+- [Credentials](examples/credentials-ts) - Credential management and injection
+- [Extensions](examples/extensions-ts) - Browser extension support
+- [Files API](examples/files-ts) - File upload and download handling
 
 ### Python
 

@@ -3,7 +3,6 @@
 
 timeout = 30
 max_redirects = 10
-include_fragments = false
 require_https = false
 
 cache = true
@@ -12,7 +11,7 @@ max_cache_age = "1d"
 max_retries = 3
 retry_wait_time = 2
 
-skip_code_blocks = true
+include_verbatim = false
 
 exclude_path = [
     ".git/",
@@ -35,8 +34,6 @@ exclude = [
 ]
 
 # Accept 403 (bot-gated) and 429 (rate-limited) as valid
-accept = [200, 201, 202, 203, 204, 403, 429]
+accept = ["200..=204", "403", "429"]
 
-headers = [
-    "User-Agent=Mozilla/5.0 (compatible; lychee; steel-cookbook)"
-]
+user_agent = "Mozilla/5.0 (compatible; lychee; steel-cookbook)"
