@@ -76,6 +76,5 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 ## Related
 
 - [scrape-rs](../scrape-rs) reaches the same page without a browser library, through Steel's `scrape` and `screenshot` endpoints. Start there if you only need content or an image and never touch the DOM.
-- [thirtyfour-rs](../thirtyfour-rs) drives Steel over WebDriver instead of CDP, the Rust counterpart to the Selenium recipe.
 - [playwright-py](../playwright-py) is the same connect-over-CDP shape in Python, useful for comparing the handler model against Playwright's.
 - [chromiumoxide docs](https://docs.rs/chromiumoxide) cover the `Page`, `Element`, and `ScreenshotParams` APIs in full.

@@ -106,4 +106,4 @@ A full run takes ~45 seconds. The `finally` block stops the agent first, then re
 
 ## Related
 
-[Magnitude docs](https://docs.magnitude.run)
+[Magnitude docs](https://docs.magnitude.dev)
