@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 steel-rs = "0.1"
-rmcp = { version = "1", features = ["server", "macros", "transport-io", "schemars"] }
+rmcp = { version = "2", features = ["server", "macros", "transport-io", "schemars"] }
 chromiumoxide = "0.9"
 async-tungstenite = { version = "0.32", features = ["tokio-native-tls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }

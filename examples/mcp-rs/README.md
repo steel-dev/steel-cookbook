@@ -45,7 +45,7 @@ Restart the client and ask it to open a page and read it back. It calls `create_
 
 - **Add a tool.** Write one more `async fn` with a `#[tool]` attribute and a `Parameters<T>` argument carrying `session_id`. A `click` tool is `entry.page.find_element(sel).await?.click().await?`.
 - **Start authenticated.** Pass a populated `SessionCreateParams` to `sessions().create` to attach a [profile](../profiles-rs) or [credentials](../credentials-rs) so the session opens already logged in.
-- **Return richer output.** Tools here return `Content::text` and `Content::image`. Swap in structured JSON content when a client wants typed fields instead of a string.
+- **Return richer output.** Tools here return `ContentBlock::text` and `ContentBlock::image`. Swap in structured JSON content when a client wants typed fields instead of a string.
 
 ## Related
 
