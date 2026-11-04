@@ -4,6 +4,8 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` take that id and act on the browser; `release_session` closes it.
 
+Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+
 ## Each tool declares its shape, the id ties them together
 
 Every tool is a `server.registerTool` call: a name, a description, an `inputSchema` written as a Zod shape, and the handler. The shape is the contract the client sees and the type of the handler's argument in one place:
