@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 	steel "github.com/steel-dev/sdk/go"
 	"github.com/steel-dev/sdk/go/option"
 )
