@@ -5,7 +5,7 @@ The automation in `main.go` never types a username or a password. It opens the s
 Wiring it up is two API calls. Store the credential against an origin:
 
 ```go
-client.Credentials.Create(ctx, steel.CredentialCreateParams{
+client.Credentials.New(ctx, steel.CredentialNewParams{
 	Origin: steel.F("https://demo.testfire.net"),
 	Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
 })
@@ -14,18 +14,18 @@ client.Credentials.Create(ctx, steel.CredentialCreateParams{
 Then opt the session into the vault with an empty config struct:
 
 ```go
-client.Sessions.Create(ctx, steel.SessionCreateParams{
-	Credentials: steel.F(steel.SessionCreateParamsCredentials{}),
+client.Sessions.New(ctx, steel.SessionNewParams{
+	Credentials: steel.F(steel.SessionNewParamsCredentials{}),
 })
 ```
 
-`SessionCreateParamsCredentials{}` is the opt-in. Leave it off and the vault is ignored for that session. The zero value uses the defaults; its fields (`AutoSubmit`, `BlurFields`, `ExactOrigin`) tune whether Steel presses submit for you, masks the typed values, and matches the origin exactly.
+`SessionNewParamsCredentials{}` is the opt-in. Leave it off and the vault is ignored for that session. The zero value uses the defaults; its fields (`AutoSubmit`, `BlurFields`, `ExactOrigin`) tune whether Steel presses submit for you, masks the typed values, and matches the origin exactly.
 
 ## Confirming the fill
 
-After navigating to `/login.jsp`, the script polls the username field (`#uid`) until Steel injects the vaulted value, then reports success. With the default `AutoSubmit`, Steel also presses submit, so the filled field is only briefly visible — polling catches it as soon as it lands. The demo site currently serves an expired certificate, so the run first sends `Security.setIgnoreCertificateErrors`; drop that for a site with a valid certificate.
+After navigating to `/login.jsp`, the script polls the username field (`#uid`) until Steel injects the vaulted value, then reports success. With the default `AutoSubmit`, Steel also presses submit, so the filled field is only briefly visible, and polling catches it as soon as it lands. The demo site currently serves an expired certificate, so the run first sends `Security.setIgnoreCertificateErrors`; drop that for a site with a valid certificate.
 
-Re-running `Credentials.Create` for an origin that already has a stored credential returns an error whose message contains `already exists`. The script checks for that string and continues, so repeat runs are idempotent.
+Re-running `Credentials.New` for an origin that already has a stored credential returns an error whose message contains `already exists`. The script checks for that string and continues, so repeat runs are idempotent.
 
 ## Run it
 
@@ -55,7 +55,7 @@ On a second run the credential is already in the vault, so the first lines read 
 ## Make it yours
 
 - **Target another site.** Change `origin` and the `Value` map, then point the navigation and the polled field selector at the new login form. Steel handles detection for any standard username/password form.
-- **Tune the fill.** Set `AutoSubmit`, `BlurFields`, or `ExactOrigin` on `SessionCreateParamsCredentials` to control submit behavior, value masking, and origin matching.
+- **Tune the fill.** Set `AutoSubmit`, `BlurFields`, or `ExactOrigin` on `SessionNewParamsCredentials` to control submit behavior, value masking, and origin matching.
 - **Manage creds out of band.** `Credentials.List`, `Credentials.Update`, and `Credentials.Delete` let a setup script rotate or audit stored values while `main.go` stays focused on the workflow.
 
 ## Related

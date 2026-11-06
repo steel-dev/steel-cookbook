@@ -13,7 +13,8 @@ import (
 	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const origin = "https://demo.testfire.net"
@@ -64,10 +65,10 @@ func waitForAutofill(out *string, selector string) chromedp.Action {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Storing credential...")
-	_, err := client.Credentials.Create(ctx, steel.CredentialCreateParams{
+	_, err := client.Credentials.New(ctx, steel.CredentialNewParams{
 		Origin: steel.F(origin),
 		Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
 	})
@@ -81,8 +82,8 @@ func run(apiKey string) error {
 	}
 
 	fmt.Println("Creating Steel session with credentials enabled...")
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		Credentials: steel.F(steel.SessionCreateParamsCredentials{}),
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
+		Credentials: steel.F(steel.SessionNewParamsCredentials{}),
 	})
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
@@ -91,7 +92,7 @@ func run(apiKey string) error {
 
 	defer func() {
 		fmt.Println("Releasing session...")
-		if _, err := client.Sessions.Release(ctx, sess.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, sess.ID); err != nil {
 			fmt.Println("Release failed:", err)
 		}
 	}()
