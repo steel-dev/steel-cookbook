@@ -13,7 +13,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	"github.com/steel-dev/steel-go"
+	"github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
@@ -90,11 +91,11 @@ func main() {
 	fmt.Println("============================================================")
 
 	ctx := context.Background()
-	client := steel.NewClient(steelKey)
+	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
-	steelSession, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	steelSession, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		BlockAds:   steel.F(true),
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -106,7 +107,7 @@ func main() {
 	// session keeps running until the default 5-minute timeout.
 	defer func() {
 		fmt.Println("\nReleasing Steel session...")
-		if _, err := client.Sessions.Release(ctx, steelSession.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, steelSession.ID); err != nil {
 			fmt.Printf("Error releasing session: %v\n", err)
 			return
 		}
@@ -196,9 +197,9 @@ func main() {
 		Description: "Fetch any URL as clean Markdown via Steel's scrape API. Use this to read an article or comment page without driving the tab.",
 	}, func(tc agent.ToolContext, in scrapeInput) (scrapeOutput, error) {
 		start := time.Now()
-		res, err := b.client.Scrape(tc, steel.ClientScrapeParams{
+		res, err := b.client.Scrape(tc, steel.ScrapeParams{
 			URL:    steel.F(in.URL),
-			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+			Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 		})
 		if err != nil {
 			return scrapeOutput{}, err

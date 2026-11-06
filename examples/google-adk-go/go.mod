@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/chromedp/chromedp v0.13.6
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.3
+	github.com/steel-dev/sdk/go v0.21.0
 	google.golang.org/adk v1.4.0
 	google.golang.org/genai v1.57.0
 )
