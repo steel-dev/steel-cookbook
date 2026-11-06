@@ -7,8 +7,8 @@ A Steel session can hand you a snapshot of its browser state: cookies, localStor
 captured, _ := client.Sessions.Context(ctx, first.ID)
 
 // Restore them into a brand new session #2
-second, _ := client.Sessions.Create(ctx, steel.SessionCreateParams{
-    SessionContext: restoreContext(captured),
+second, _ := client.Sessions.New(ctx, steel.SessionNewParams{
+    SessionContext: steel.F(restoreContext(captured)),
 })
 ```
 
@@ -16,9 +16,9 @@ second, _ := client.Sessions.Create(ctx, steel.SessionCreateParams{
 
 ## The read type is not the write type
 
-This is the one sharp edge in the Go SDK. `Sessions.Context` returns a `*steel.SessionContext` with plain Go values: `Cookies []steel.SessionContextCookie`, `LocalStorage map[string]map[string]string`, and so on. The create side wants a `steel.SessionCreateParamsSessionContext`, where every field is wrapped in `param.Field[...]` and built with `steel.F(...)`. So you cannot pass the captured value straight back in: you read concrete values and you write wrapped ones.
+This is the one sharp edge in the Go SDK. `Sessions.Context` returns a `*steel.SessionContext` with plain Go values: `Cookies []steel.SessionContextCookie`, `LocalStorage map[string]map[string]string`, and so on. The create side wants a `steel.SessionNewParamsSessionContext`, where every field is wrapped in `param.Field[...]` and built with `steel.F(...)`. So you cannot pass the captured value straight back in: you read concrete values and you write wrapped ones.
 
-`restoreContext` does that bridge. It rebuilds each cookie into a `steel.SessionCreateParamsSessionContextCookie`, wrapping `Name`, `Value`, `Domain`, `Path`, `Expires`, `HTTPOnly`, and `Secure` with `steel.F`. The `SameSite` enum is the same named type on both sides (`CreateSessionRequestSessionContextCookiesItemSameSite`), so it just gets wrapped, not converted. `LocalStorage` and `SessionStorage` are the same map type on each side and pass through `steel.F` unchanged. If you only need cookies for your target site, you can skip storage entirely.
+`restoreContext` does that bridge. It rebuilds each cookie into a `steel.SessionNewParamsSessionContextCookie`, wrapping `Name`, `Value`, `Domain`, `Path`, `Expires`, `HTTPOnly`, and `Secure` with `steel.F`. The `SameSite` enum is a different named type on each side (`SessionContextCookieSameSite` on the read, `SessionNewParamsSessionContextCookieSameSite` on the write), so it gets a type conversion before `steel.F` wraps it. `LocalStorage` and `SessionStorage` are the same map type on each side and pass through `steel.F` unchanged. If you only need cookies for your target site, you can skip storage entirely.
 
 ## Run it
 
