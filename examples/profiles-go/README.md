@@ -2,11 +2,11 @@
 
 A Steel profile is a named, long-lived browser identity. It carries everything a real Chrome user profile accumulates: cookies, localStorage, IndexedDB, history, installed extensions, autofill, site permissions. Attach a session to a profile and the browser opens where the last one left off; on release, Steel writes the user data directory back to the profile.
 
-Two fields on `Sessions.Create` wire it up, both through the `steel.F(...)` field wrapper. To mint a fresh profile, pass `PersistProfile: steel.F(true)` and leave `ProfileID` unset. The created `*steel.Session` exposes `.ProfileID`. Store it. Every later run passes it back as `ProfileID: steel.F(profileID)` alongside `PersistProfile`, and the browser opens as that identity.
+Two fields on `Sessions.New` wire it up, both through the `steel.F(...)` field wrapper. To mint a fresh profile, pass `PersistProfile: steel.F(true)` and leave `ProfileID` unset. The created `*steel.Session` exposes `.ProfileID`. Store it. Every later run passes it back as `ProfileID: steel.F(profileID)` alongside `PersistProfile`, and the browser opens as that identity.
 
 ## Non-interactive by design
 
-The TypeScript sibling opens an `inquirer` menu so you can pick an existing profile or create a new one. This Go port drops the picker and runs the full round-trip end to end in one invocation: `seedCart` mints a profile and adds an item, the program sleeps about three seconds so the snapshot settles, then `verifyCart` opens a second session from the same `ProfileID` and counts the cart rows. Nothing to click. To reuse a profile from a previous run, read the printed `Profile ID` and feed it into `Sessions.Create` yourself.
+The TypeScript sibling opens an `inquirer` menu so you can pick an existing profile or create a new one. This Go port drops the picker and runs the full round-trip end to end in one invocation: `seedCart` mints a profile and adds an item, the program sleeps about three seconds so the snapshot settles, then `verifyCart` opens a second session from the same `ProfileID` and counts the cart rows. Nothing to click. To reuse a profile from a previous run, read the printed `Profile ID` and feed it into `Sessions.New` yourself.
 
 chromedp talks CDP directly: `chromedp.Evaluate` runs the cart logic in the page (`document.querySelector(".product-box-add-to-cart-button")` with an `input[value='Add to cart']` fallback, then `.cart-qty` for the header count and `.cart tbody tr` for the row count). `chromedp.NewRemoteAllocator` with `chromedp.NoModifyURL` attaches to the Steel browser over the websocket URL, the same idiom as the [chromedp](../chromedp) recipe.
 
@@ -46,7 +46,7 @@ Session #2 viewer: https://app.steel.dev/sessions/ef56gh78...
 Found 1 item(s) in the cart. Profile persistence works.
 ```
 
-Both sessions release through the `release` helper deferred right after each `Sessions.Create`. Skipping release keeps browsers running until the default timeout and delays the profile snapshot.
+Both sessions release through the `release` helper deferred right after each `Sessions.New`. Skipping release keeps browsers running until the default timeout and delays the profile snapshot.
 
 ## Make it yours
 

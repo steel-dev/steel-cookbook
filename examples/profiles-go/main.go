@@ -11,7 +11,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -56,7 +57,7 @@ func main() {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Steel Profiles Demo")
 	fmt.Println("============================================================")
@@ -89,7 +90,7 @@ func run(apiKey string) error {
 }
 
 func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string, string, error) {
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		PersistProfile: steel.F(true),
 	})
 	if err != nil {
@@ -130,7 +131,7 @@ func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string,
 }
 
 func verifyCart(ctx context.Context, client *steel.Client, apiKey, profileID string) (int, string, error) {
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		PersistProfile: steel.F(true),
 		ProfileID:      steel.F(profileID),
 	})
@@ -174,7 +175,7 @@ func connect(ctx context.Context, websocketURL, apiKey string) (context.Context,
 
 func release(ctx context.Context, client *steel.Client, id, label string) {
 	fmt.Printf("Releasing session %s...\n", label)
-	if _, err := client.Sessions.Release(ctx, id, steel.SessionReleaseParams{}); err != nil {
+	if _, err := client.Sessions.Release(ctx, id); err != nil {
 		fmt.Printf("Release of %s failed: %v\n", label, err)
 	}
 }
