@@ -19,7 +19,8 @@ import (
 	"github.com/joho/godotenv"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/server"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -235,10 +236,10 @@ func observationDigest(observations []Observation) string {
 }
 
 func scrapeURL(ctx context.Context, targetURL string) (Observation, error) {
-	client := steel.NewClient(envOr("STEEL_API_KEY", ""))
-	scraped, err := client.Scrape(ctx, steel.ClientScrapeParams{
+	client := steel.NewClient(option.WithSteelAPIKey(envOr("STEEL_API_KEY", "")))
+	scraped, err := client.Scrape(ctx, steel.ScrapeParams{
 		URL:    steel.F(targetURL),
-		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+		Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 	})
 	if err != nil {
 		return Observation{}, err
