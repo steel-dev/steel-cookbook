@@ -25,7 +25,7 @@ client.Sessions.New(ctx, steel.SessionNewParams{
 
 After navigating to `/login.jsp`, the script polls the username field (`#uid`) until Steel injects the vaulted value, then reports success. With the default `AutoSubmit`, Steel also presses submit, so the filled field is only briefly visible, and polling catches it as soon as it lands. The demo site currently serves an expired certificate, so the run first sends `Security.setIgnoreCertificateErrors`; drop that for a site with a valid certificate.
 
-Re-running `Credentials.New` for an origin that already has a stored credential returns an error whose message contains `already exists`. The script checks for that string and continues, so repeat runs are idempotent.
+Before storing, the script calls `Credentials.List` filtered by the same `Origin` and skips `Credentials.New` when the vault already holds a credential for it. Repeat runs are idempotent, and they do not depend on the error the API returns for a duplicate.
 
 ## Run it
 
@@ -56,7 +56,7 @@ On a second run the credential is already in the vault, so the first lines read 
 
 - **Target another site.** Change `origin` and the `Value` map, then point the navigation and the polled field selector at the new login form. Steel handles detection for any standard username/password form.
 - **Tune the fill.** Set `AutoSubmit`, `BlurFields`, or `ExactOrigin` on `SessionNewParamsCredentials` to control submit behavior, value masking, and origin matching.
-- **Manage creds out of band.** `Credentials.List`, `Credentials.Update`, and `Credentials.Delete` let a setup script rotate or audit stored values while `main.go` stays focused on the workflow.
+- **Manage creds out of band.** `Credentials.List`, `Credentials.Update`, and `Credentials.Delete` let a setup script audit, rotate, or remove stored values while `main.go` stays focused on the workflow. Rotation has to happen there: `main.go` only stores a credential when its origin has none, so editing the `Value` map alone does not change what the vault holds.
 
 ## Related
 

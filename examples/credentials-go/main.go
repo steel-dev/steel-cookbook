@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/security"
@@ -68,17 +67,22 @@ func run(apiKey string) error {
 	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Storing credential...")
-	_, err := client.Credentials.New(ctx, steel.CredentialNewParams{
+	existing, err := client.Credentials.List(ctx, steel.CredentialListParams{
 		Origin: steel.F(origin),
-		Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
 	})
-	switch {
-	case err == nil:
-		fmt.Println("Credential stored.")
-	case strings.Contains(err.Error(), "already exists"):
+	if err != nil {
+		return fmt.Errorf("list credentials: %w", err)
+	}
+	if len(existing.Credentials) > 0 {
 		fmt.Println("Credential already exists, moving on.")
-	default:
-		return fmt.Errorf("create credential: %w", err)
+	} else {
+		if _, err := client.Credentials.New(ctx, steel.CredentialNewParams{
+			Origin: steel.F(origin),
+			Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
+		}); err != nil {
+			return fmt.Errorf("create credential: %w", err)
+		}
+		fmt.Println("Credential stored.")
 	}
 
 	fmt.Println("Creating Steel session with credentials enabled...")
