@@ -17,7 +17,8 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -52,7 +53,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := steel.NewClient(steelKey)
+	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
 	agent, err := buildAgent(ctx, client, anthropicKey)
 	if err != nil {
@@ -116,9 +117,9 @@ func buildAgent(ctx context.Context, client *steel.Client, anthropicKey string) 
 func scrapePage(client *steel.Client) func(context.Context, scrapePageArgs) (string, error) {
 	return func(ctx context.Context, args scrapePageArgs) (string, error) {
 		t0 := time.Now()
-		res, err := client.Scrape(ctx, steel.ClientScrapeParams{
+		res, err := client.Scrape(ctx, steel.ScrapeParams{
 			URL:    steel.F(args.URL),
-			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+			Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 		})
 		if err != nil {
 			return "", fmt.Errorf("scrape %s: %w", args.URL, err)
@@ -144,9 +145,9 @@ func extractLinks(client *steel.Client) func(context.Context, extractLinksArgs) 
 			limit = 40
 		}
 		t0 := time.Now()
-		res, err := client.Scrape(ctx, steel.ClientScrapeParams{
+		res, err := client.Scrape(ctx, steel.ScrapeParams{
 			URL:    steel.F(args.URL),
-			Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+			Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 		})
 		if err != nil {
 			return "", fmt.Errorf("scrape %s: %w", args.URL, err)
