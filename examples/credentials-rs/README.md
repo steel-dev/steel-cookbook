@@ -4,7 +4,7 @@ This recipe wires it up with two SDK calls, then connects [chromiumoxide](https:
 
 ## How it fits together
 
-`main` stores the credential once with `client.credentials().create(...)`. Credentials are per-origin, so a re-run hits "Credential already exists"; the recipe matches that text on the returned `steel::Error` and continues, which keeps the script idempotent:
+`main` stores the credential once with `client.credentials().create(...)`. Credentials are per-origin, so a re-run hits "Credential already exists"; the recipe matches that text on the returned `steel_rs::Error` and continues, which keeps the script idempotent:
 
 ```rust
 match create {
@@ -20,12 +20,12 @@ The opt-in is a default `SessionCreateParamsCredentials` on session create. Pres
 
 ```rust
 client.sessions().create(SessionCreateParams {
-    credentials: Some(Box::new(SessionCreateParamsCredentials::default())),
+    credentials: Some(SessionCreateParamsCredentials::default()),
     ..Default::default()
 }).await?
 ```
 
-From there it is ordinary chromiumoxide: open the Altoro Mutual login page and poll the username field (`#uid`) until Steel injects the vaulted value, which is the proof the fill landed. With the default `auto_submit` Steel also submits the form, so the filled field is only briefly visible — polling catches it as soon as it appears. The test site currently serves an expired certificate, so the page first sends `SetIgnoreCertificateErrorsParams`; drop that for a site with a valid certificate.
+From there it is ordinary chromiumoxide: open the Altoro Mutual login page and poll the username field (`#uid`) until Steel injects the vaulted value, which is the proof the fill landed. With the default `auto_submit` Steel also submits the form, so the filled field is only briefly visible. Polling catches it as soon as it appears. The test site currently serves an expired certificate, so the page first sends `SetIgnoreCertificateErrorsParams`; drop that for a site with a valid certificate.
 
 ## Run it
 

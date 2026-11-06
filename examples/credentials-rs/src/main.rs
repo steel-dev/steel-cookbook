@@ -8,7 +8,7 @@ use std::time::Duration;
 use chromiumoxide::cdp::browser_protocol::security::SetIgnoreCertificateErrorsParams;
 use chromiumoxide::Browser;
 use futures::StreamExt;
-use steel::{CredentialCreateParams, SessionCreateParams, SessionCreateParamsCredentials, Steel};
+use steel_rs::{Client, CredentialCreateParams, SessionCreateParams, SessionCreateParamsCredentials};
 
 const ORIGIN: &str = "https://demo.testfire.net";
 
@@ -19,20 +19,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     println!("Storing credential for {ORIGIN}...");
     let create = client
         .credentials()
         .create(CredentialCreateParams {
-            label: None,
-            namespace: None,
             origin: Some(ORIGIN.into()),
-            project_id: None,
-            value: HashMap::from([
+            ..CredentialCreateParams::new(HashMap::from([
                 ("username".into(), "admin".into()),
                 ("password".into(), "admin".into()),
-            ]),
+            ]))
         })
         .await;
 
@@ -48,7 +45,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let session = client
         .sessions()
         .create(SessionCreateParams {
-            credentials: Some(Box::new(SessionCreateParamsCredentials::default())),
+            credentials: Some(SessionCreateParamsCredentials::default()),
             ..Default::default()
         })
         .await?;
@@ -58,10 +55,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let result = run(&session.websocket_url, &api_key).await;
 
     println!("Releasing session...");
-    client
-        .sessions()
-        .release(&session.id, steel::SessionReleaseParams::new())
-        .await?;
+    client.sessions().release(&session.id).await?;
     println!("Session released");
 
     result
