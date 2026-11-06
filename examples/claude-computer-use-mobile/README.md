@@ -8,7 +8,7 @@ Mobile-emulated Chrome, driven by Claude's computer-use tool. The agent loop is 
 
 ```typescript
 this.session = await this.client.sessions.create({
-  apiTimeout: 900000,
+  timeout: 900000,
   solveCaptcha: false,
   deviceConfig: { device: "mobile" },
 });
