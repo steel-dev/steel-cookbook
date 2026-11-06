@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/go-rod/rod v0.116.2
+	github.com/gorilla/websocket v1.5.3
 	github.com/steel-dev/sdk/go v0.21.0
 )
 

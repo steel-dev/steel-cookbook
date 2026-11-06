@@ -15,9 +15,9 @@ page := browser.MustPage("https://quotes.toscrape.com").MustWaitStable()
 
 ## The connect URL
 
-`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. Rod connects to exactly the URL you give it and does not rewrite the address, so the key has to be in the string before `connectCDP` dials it. If you forget it, the websocket handshake is rejected and `connectCDP` returns an error before the first page loads.
+`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. `connectCDP` dials exactly the URL you give it and does not rewrite the address, so the key has to be in the string before the dial. If you forget it, the websocket handshake is rejected and `connectCDP` returns an error before the first page loads.
 
-`connectCDP` exists because of the handshake itself. Rod's built-in dialer, the one `ControlURL` uses, sends the literal header `Sec-WebSocket-Key: nil`, and Steel's endpoint answers it with `400 Bad request`. `connectCDP` dials with Rod's `cdp.WebSocket` instead, passes a random base64 key in that header, and returns the started `cdp.Client` for `rod.New().Client`.
+`connectCDP` exists because Rod's built-in websocket client is too minimal for Steel. Its handshake, the one `ControlURL` uses, sends the literal header `Sec-WebSocket-Key: nil`, which Steel answers with `400 Bad request`. Its reader also ignores frame types, so the close frame Steel sends when the browser or session ends lands in Rod's JSON decoder and crashes the process from a background goroutine, before the deferred `Release` can run. `connectCDP` dials with `github.com/gorilla/websocket` instead and wraps the connection in `cdpSocket`, a small adapter for Rod's two-method `cdp.WebSocketable` interface. A close frame then comes back from `Read` as an ordinary error (`websocket: close 1000 (normal)`), Rod returns it to any CDP call still waiting, and a normal shutdown exits cleanly.
 
 The session itself comes from the Steel SDK. `client.Sessions.New` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the websocket URL to connect, the viewer URL to print, and the ID to release at the end.
 
@@ -88,10 +88,10 @@ Found 10 quotes on the page:
 ...
 
 Saved screenshot to quotes.png
+Done!
 
 Releasing session...
 Session released
-Done!
 ```
 
 A run takes a few seconds and costs a few cents of browser time. Steel bills per session-minute, so the `defer client.Sessions.Release(...)` call is not optional: skip it and the browser stays live until the default five-minute timeout, billing the whole time. `browser.MustClose()` closes the CDP connection; `Release` ends the Steel session. You want both, and you want them deferred so a panic from a `Must` call still triggers them on the way out.
