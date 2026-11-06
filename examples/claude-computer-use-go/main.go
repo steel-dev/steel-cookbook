@@ -13,7 +13,8 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/joho/godotenv"
-	"github.com/steel-dev/steel-go"
+	"github.com/steel-dev/sdk/go"
+	steeloption "github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -86,7 +87,7 @@ type Agent struct {
 
 func NewAgent(steelKey, anthropicKey string) *Agent {
 	return &Agent{
-		steelClient:     steel.NewClient(steelKey),
+		steelClient:     steel.NewClient(steeloption.WithSteelAPIKey(steelKey)),
 		anthropicClient: anthropic.NewClient(option.WithAPIKey(anthropicKey)),
 		model:           anthropic.ModelClaudeOpus4_7,
 		tools: []anthropic.BetaToolUnionParam{
@@ -148,8 +149,8 @@ func normalizeKeys(keys []string) []string {
 }
 
 func (a *Agent) initialize(ctx context.Context) error {
-	sess, err := a.steelClient.Sessions.Create(ctx, steel.SessionCreateParams{
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{
+	sess, err := a.steelClient.Sessions.New(ctx, steel.SessionNewParams{
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{
 			Width:  steel.F(int64(viewportWidth)),
 			Height: steel.F(int64(viewportHeight)),
 		}),
@@ -170,7 +171,7 @@ func (a *Agent) cleanup(ctx context.Context) {
 		return
 	}
 	fmt.Println("Releasing Steel session...")
-	if _, err := a.steelClient.Sessions.Release(ctx, a.session.ID, steel.SessionReleaseParams{}); err != nil {
+	if _, err := a.steelClient.Sessions.Release(ctx, a.session.ID); err != nil {
 		fmt.Printf("Error releasing session: %v\n", err)
 		return
 	}
@@ -190,8 +191,7 @@ func (a *Agent) computer(ctx context.Context, body steel.SessionComputerParams) 
 
 func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
 	resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action:                              "take_screenshot",
-		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestTakeScreenshotActionTakeScreenshot)},
+		Body: steel.SessionComputerParamsBodyTakeScreenshot{Action: steel.F(steel.SessionComputerParamsBodyTakeScreenshotActionTakeScreenshot)},
 	})
 	if err != nil {
 		return "", err
@@ -211,24 +211,24 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 
 	switch act.Action {
 	case "mouse_move":
-		req := &steel.ComputerActionRequestMoveMouse{
-			Action:      steel.F(steel.ComputerActionRequestMoveMouseActionMoveMouse),
+		req := steel.SessionComputerParamsBodyMoveMouse{
+			Action:      steel.F(steel.SessionComputerParamsBodyMoveMouseActionMoveMouse),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
 		}
 		if hk := splitKeys(act.Key); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "move_mouse", ComputerActionRequestMoveMouse: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "left_mouse_down", "left_mouse_up":
-		clickType := steel.ComputerActionRequestClickMouseClickTypeDown
+		clickType := steel.SessionComputerParamsBodyClickMouseClickTypeDown
 		if act.Action == "left_mouse_up" {
-			clickType = steel.ComputerActionRequestClickMouseClickTypeUp
+			clickType = steel.SessionComputerParamsBodyClickMouseClickTypeUp
 		}
-		req := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
-			Button:      steel.F(steel.ComputerActionRequestClickMouseButtonLeft),
+		req := steel.SessionComputerParamsBodyClickMouse{
+			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+			Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
 			ClickType:   steel.F(clickType),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
@@ -236,18 +236,18 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		if hk := splitKeys(act.Key); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "left_click", "right_click", "middle_click", "double_click", "triple_click":
-		button := steel.ComputerActionRequestClickMouseButtonLeft
+		button := steel.SessionComputerParamsBodyClickMouseButtonLeft
 		switch act.Action {
 		case "right_click":
-			button = steel.ComputerActionRequestClickMouseButtonRight
+			button = steel.SessionComputerParamsBodyClickMouseButtonRight
 		case "middle_click":
-			button = steel.ComputerActionRequestClickMouseButtonMiddle
+			button = steel.SessionComputerParamsBodyClickMouseButtonMiddle
 		}
-		req := &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
+		req := steel.SessionComputerParamsBodyClickMouse{
+			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
 			Button:      steel.F(button),
 			Coordinates: steel.F(coords),
 			Screenshot:  steel.F(true),
@@ -261,20 +261,20 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		if hk := splitKeys(act.Key); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "left_click_drag":
 		sx, sy := a.center()
 		path := [][]float64{{float64(sx), float64(sy)}, coords}
-		req := &steel.ComputerActionRequestDragMouse{
-			Action:     steel.F(steel.ComputerActionRequestDragMouseActionDragMouse),
+		req := steel.SessionComputerParamsBodyDragMouse{
+			Action:     steel.F(steel.SessionComputerParamsBodyDragMouseActionDragMouse),
 			Path:       steel.F(path),
 			Screenshot: steel.F(true),
 		}
 		if hk := splitKeys(act.Key); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "drag_mouse", ComputerActionRequestDragMouse: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "scroll":
 		const step = 100
@@ -290,8 +290,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		default:
 			dy = float64(step * amount)
 		}
-		req := &steel.ComputerActionRequestScroll{
-			Action:      steel.F(steel.ComputerActionRequestScrollActionScroll),
+		req := steel.SessionComputerParamsBodyScroll{
+			Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
 			Coordinates: steel.F(coords),
 			DeltaX:      steel.F(dx),
 			DeltaY:      steel.F(dy),
@@ -300,53 +300,52 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		if hk := splitKeys(act.Text); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "scroll", ComputerActionRequestScroll: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "key", "hold_key":
 		keys := normalizeKeys(splitKeys(act.Text))
 		if keys == nil {
 			keys = []string{}
 		}
-		req := &steel.ComputerActionRequestPressKey{
-			Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+		req := steel.SessionComputerParamsBodyPressKey{
+			Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 			Keys:       steel.F(keys),
 			Screenshot: steel.F(true),
 		}
 		if act.Action == "hold_key" && act.Duration != nil {
 			req.Duration = steel.F(*act.Duration)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "press_key", ComputerActionRequestPressKey: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "type":
-		req := &steel.ComputerActionRequestTypeText{
-			Action:     steel.F(steel.ComputerActionRequestTypeTextActionTypeText),
+		req := steel.SessionComputerParamsBodyTypeText{
+			Action:     steel.F(steel.SessionComputerParamsBodyTypeTextActionTypeText),
 			Text:       steel.F(act.Text),
 			Screenshot: steel.F(true),
 		}
 		if hk := splitKeys(act.Key); len(hk) > 0 {
 			req.HoldKeys = steel.F(hk)
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "type_text", ComputerActionRequestTypeText: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "wait":
 		var d float64
 		if act.Duration != nil {
 			d = *act.Duration
 		}
-		req := &steel.ComputerActionRequestWait{
-			Action:     steel.F(steel.ComputerActionRequestWaitActionWait),
+		req := steel.SessionComputerParamsBodyWait{
+			Action:     steel.F(steel.SessionComputerParamsBodyWaitActionWait),
 			Duration:   steel.F(d),
 			Screenshot: steel.F(true),
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Action: "wait", ComputerActionRequestWait: req})
+		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
 	case "screenshot":
 		return a.takeScreenshot(ctx)
 
 	case "cursor_position":
 		if _, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-			Action:                                 "get_cursor_position",
-			ComputerActionRequestGetCursorPosition: &steel.ComputerActionRequestGetCursorPosition{Action: steel.F(steel.ComputerActionRequestGetCursorPositionActionGetCursorPosition)},
+			Body: steel.SessionComputerParamsBodyGetCursorPosition{Action: steel.F(steel.SessionComputerParamsBodyGetCursorPositionActionGetCursorPosition)},
 		}); err != nil {
 			return "", err
 		}
