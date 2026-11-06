@@ -8,7 +8,7 @@ use chromiumoxide::page::ScreenshotParams;
 use chromiumoxide::Browser;
 use futures::StreamExt;
 use serde::Deserialize;
-use steel::Steel;
+use steel_rs::Client;
 
 #[derive(Debug, Deserialize)]
 struct Story {
@@ -25,12 +25,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     println!("Creating Steel session...");
     let session = client
         .sessions()
-        .create(steel::SessionCreateParams::default())
+        .create(steel_rs::SessionCreateParams::default())
         .await?;
 
     println!("Session live at {}", session.session_viewer_url);
@@ -38,10 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let result = run(&session.websocket_url, &api_key).await;
 
     println!("Releasing session...");
-    client
-        .sessions()
-        .release(&session.id, steel::SessionReleaseParams::new())
-        .await?;
+    client.sessions().release(&session.id).await?;
     println!("Session released");
 
     result
@@ -58,7 +55,7 @@ async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
 
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
 
-    let handle = tokio::spawn(async move { while let Some(_) = handler.next().await {} });
+    let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 
     println!("Connected over CDP, opening page...");
     let page = browser.new_page("https://news.ycombinator.com").await?;
