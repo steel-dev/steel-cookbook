@@ -65,7 +65,7 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 - **Swap the target.** Change the `page.Goto` URL and the `extractTopStories` script. The JSON-string bridge works for any shape: define a matching Go struct and unmarshal. Session setup and cleanup stay identical.
 - **Skip the JS.** `page.QuerySelectorAll("tr.athing")` returns `ElementHandle` values with `TextContent` and `GetAttribute`, if you would rather query node by node than evaluate a script. It is more round-trips and easier to debug one selector at a time.
-- **Turn on stealth.** `SessionCreateParams` carries `UseProxy`, `SolveCaptcha`, and `Timeout` for sites with anti-bot defenses. Set them on the struct you pass to `Sessions.Create`.
+- **Turn on stealth.** `SessionNewParams` carries `UseProxy`, `SolveCaptcha`, and `Timeout` for sites with anti-bot defenses. Set them on the struct you pass to `Sessions.New`.
 - **Add steps.** Playwright auto-waits on actionability, so `page.Click`, `page.Fill`, and `page.WaitForSelector` are reliable without manual sleeps when you fill forms or paginate before extracting.
 
 ## Related
