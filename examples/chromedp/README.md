@@ -65,7 +65,7 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 - **Swap the target.** Change the `chromedp.Navigate` URL, the `WaitVisible` selector, and the `extractTopStories` script. Session setup and cleanup stay identical. The JSON-string bridge works for any shape: define a matching Go struct and unmarshal.
 - **Add steps.** chromedp tasks compose, so append `chromedp.Click`, `chromedp.SendKeys`, or `chromedp.SetValue` to the `Run` list to fill forms or paginate before you extract.
-- **Turn on stealth.** `SessionCreateParams` takes pointers like `BlockAds`, `SolveCaptcha`, and `UseProxy` for sites with anti-bot, plus `Timeout` to extend the session past five minutes. Set the field to the address of a value (`v := true; params.BlockAds = &v`) since they are all optional.
+- **Turn on stealth.** `SessionNewParams` takes fields like `BlockAds`, `SolveCaptcha`, and `UseProxy` for sites with anti-bot, plus `Timeout` to extend the session past five minutes. They are all optional, so wrap each value with `steel.F` (`BlockAds: steel.F(true)`). `UseProxy` is typed `any`, so it takes `steel.F[any](true)`.
 - **Tune the screenshot.** `FullScreenshot` captures the whole scroll height at the given JPEG quality (0 to 100). Swap it for `chromedp.CaptureScreenshot` to grab only the viewport.
 
 ## Related
