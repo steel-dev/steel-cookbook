@@ -7,7 +7,7 @@ require (
 	github.com/chromedp/chromedp v0.13.6
 	github.com/firebase/genkit/go v1.9.0
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.3
+	github.com/steel-dev/sdk/go v0.21.0
 )
 
 require (
