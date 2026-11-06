@@ -13,7 +13,8 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/cdp"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 func connectCDP(ctx context.Context, wsURL string) (*cdp.Client, error) {
@@ -37,11 +38,11 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Creating Steel session...")
-	session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
+	session, err := client.Sessions.New(ctx, steel.SessionNewParams{
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -51,7 +52,7 @@ func main() {
 
 	defer func() {
 		fmt.Println("\nReleasing session...")
-		if _, err := client.Sessions.Release(ctx, session.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, session.ID); err != nil {
 			fmt.Printf("Failed to release session: %v\n", err)
 			return
 		}
