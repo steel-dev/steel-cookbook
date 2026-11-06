@@ -1,6 +1,6 @@
 # Extensions
 
-A fresh Steel session boots a stock Chrome with no extensions. The Extensions API lets you upload a Chrome extension once, keep the returned ID on your account, and attach it to any session through `ExtensionIDs` on `Sessions.Create`. Content scripts run before chromedp ever issues a `Navigate`, so by the time the page renders the extension has already rewritten the DOM.
+A fresh Steel session boots a stock Chrome with no extensions. The Extensions API lets you upload a Chrome extension once, keep the returned ID on your account, and attach it to any session through `ExtensionIDs` on `Sessions.New`. Content scripts run before chromedp ever issues a `Navigate`, so by the time the page renders the extension has already rewritten the DOM.
 
 This recipe proves that attachment happened by waiting on a selector the extension creates, nothing more. It does not scrape or pretty-print the numbers the extension renders.
 
@@ -14,12 +14,12 @@ for _, ext := range list.Extensions {
 
 if extID == "" {
 	uploaded, _ := client.Extensions.Upload(ctx, steel.ExtensionUploadParams{
-		URL: steel.Ptr("https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien"),
+		URL: steel.F("https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien"),
 	})
 	extID = uploaded.ID
 }
 
-sess, _ := client.Sessions.Create(ctx, steel.SessionCreateParams{
+sess, _ := client.Sessions.New(ctx, steel.SessionNewParams{
 	ExtensionIDs: steel.F([]string{extID}),
 })
 ```
@@ -57,7 +57,7 @@ Releasing session...
 
 - **Upload your own extension.** `Extensions.Upload` takes any Chrome Web Store listing URL. Swap `storeURL` and update the `extensionName` that `Extensions.List` matches on, remembering the truncated, underscored form.
 - **Target a different profile.** Change `profileURL` to any public GitHub user.
-- **Stack extensions.** `ExtensionIDs` is a slice. Upload several and attach them together in one `Sessions.Create`.
+- **Stack extensions.** `ExtensionIDs` is a slice. Upload several and attach them together in one `Sessions.New`.
 - **Assert on real content.** Once the wrapper is visible, add `chromedp.Text` or `chromedp.Evaluate` steps to pull values the extension injected.
 
 ## Related
