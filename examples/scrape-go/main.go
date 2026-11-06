@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 func main() {
@@ -43,13 +44,13 @@ func main() {
 
 func run(apiKey, targetURL string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Printf("\nScraping %s to markdown...\n", targetURL)
 
-	scraped, err := client.Scrape(ctx, steel.ClientScrapeParams{
+	scraped, err := client.Scrape(ctx, steel.ScrapeParams{
 		URL:    steel.F(targetURL),
-		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+		Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 	})
 	if err != nil {
 		return fmt.Errorf("scrape: %w", err)
@@ -77,7 +78,7 @@ func run(apiKey, targetURL string) error {
 	fmt.Println("--- end preview ---")
 
 	fmt.Println("\nCapturing a full-page screenshot...")
-	shot, err := client.Screenshot(ctx, steel.ClientScreenshotParams{
+	shot, err := client.Screenshot(ctx, steel.ScreenshotParams{
 		URL:      steel.F(targetURL),
 		FullPage: steel.F(true),
 	})
@@ -87,7 +88,7 @@ func run(apiKey, targetURL string) error {
 	fmt.Printf("Screenshot hosted at: %s\n", shot.URL)
 
 	fmt.Println("\nRendering the page to PDF...")
-	pdf, err := client.Pdf(ctx, steel.ClientPdfParams{
+	pdf, err := client.Pdf(ctx, steel.PdfParams{
 		URL: steel.F(targetURL),
 	})
 	if err != nil {

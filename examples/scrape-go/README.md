@@ -5,23 +5,26 @@ Steel's direct API turns a URL into clean content with no browser library and no
 The scrape call leads:
 
 ```go
-scraped, err := client.Scrape(ctx, steel.ClientScrapeParams{
-    URL:    targetURL,
-    Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+scraped, err := client.Scrape(ctx, steel.ScrapeParams{
+    URL:    steel.F(targetURL),
+    Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 })
-markdown := deref(scraped.Content.Markdown, "")
-title := deref(scraped.Metadata.Title, "(no title)")
+markdown := scraped.Content.Markdown
+title := scraped.Metadata.Title
+if title == "" {
+    title = "(no title)"
+}
 ```
 
-Two Go specifics show up here. Optional request fields are pointers (`Format` is a `*[]ScrapeRequestFormatItem`, `FullPage` is a `*bool`), and steel-go ships no pointer constructors, so the recipe defines a one-line `ptr[T]` generic. Response fields like `Content.Markdown` and `Metadata.Title` are `*string`, so a small `deref` helper supplies a fallback. The format is a typed constant (`steel.ScrapeRequestFormatItemMarkdown`), not a bare string.
+Two Go specifics show up here. Every request field is a `param.Field` (`Format` is a `param.Field[[]ScrapeParamsFormat]`, `FullPage` is a `param.Field[bool]`), and `steel.F` wraps a value to mark it as set, so a field you leave out is never sent. Response fields are plain values: `Content.Markdown` and `Metadata.Title` are `string`, and a field the API leaves out comes back empty, so the fallback is an ordinary `title == ""` check. The format is a typed constant (`steel.ScrapeParamsFormatMarkdown`), not a bare string.
 
 Screenshot and PDF come back as hosted URLs, not bytes:
 
 ```go
-shot, _ := client.Screenshot(ctx, steel.ClientScreenshotParams{URL: targetURL, FullPage: ptr(true)})
+shot, _ := client.Screenshot(ctx, steel.ScreenshotParams{URL: steel.F(targetURL), FullPage: steel.F(true)})
 fmt.Println(shot.URL) // https://...
 
-pdf, _ := client.Pdf(ctx, steel.ClientPdfParams{URL: targetURL})
+pdf, _ := client.Pdf(ctx, steel.PdfParams{URL: steel.F(targetURL)})
 fmt.Println(pdf.URL)
 ```
 
@@ -63,9 +66,9 @@ A scrape call costs a few cents of browser time. Steel starts and tears down the
 ## Make it yours
 
 - **Change the page.** Set `TARGET_URL` in `.env`, or pass a different URL to `client.Scrape`.
-- **Ask for several formats.** `Format` takes a slice, so request more than one at once (`ScrapeRequestFormatItemMarkdown`, `...HTML`, `...Readability`, `...CleanedHTML`). Each lands under its own field on `Content`.
+- **Ask for several formats.** `Format` takes a slice, so request more than one at once (`ScrapeParamsFormatMarkdown`, `...HTML`, `...Readability`, `...CleanedHTML`). Each lands under its own field on `Content`.
 - **Save the artifacts.** Fetch `shot.URL` and `pdf.URL` with `net/http` and `os.WriteFile` to write `screenshot.png` and `page.pdf`, the way the Python recipe does.
-- **Scrape behind a proxy.** Set `UseProxy: ptr(true)` to route through a Steel residential proxy for geofenced or bot-sensitive pages.
+- **Scrape behind a proxy.** Set `UseProxy: steel.F(true)` to route through a Steel residential proxy for geofenced or bot-sensitive pages.
 
 ## Related
 
