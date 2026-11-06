@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -12,7 +13,8 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 func main() {
@@ -33,10 +35,10 @@ func main() {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Creating Steel session...")
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{})
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{})
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
 	}
@@ -44,7 +46,7 @@ func run(apiKey string) error {
 
 	defer func() {
 		fmt.Println("Releasing session...")
-		if _, err := client.Sessions.Release(ctx, sess.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, sess.ID); err != nil {
 			fmt.Println("Release failed:", err)
 		}
 	}()
@@ -56,11 +58,7 @@ func run(apiKey string) error {
 
 	fmt.Println("Uploading stock.csv to the session...")
 	uploaded, err := client.Sessions.Files.Upload(ctx, sess.ID, steel.SessionFileUploadParams{
-		File: steel.FileUpload{
-			Name:        "stock.csv",
-			Content:     csvBytes,
-			ContentType: "text/csv",
-		},
+		File: steel.FileParam(bytes.NewReader(csvBytes), "stock.csv", "text/csv"),
 	})
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)

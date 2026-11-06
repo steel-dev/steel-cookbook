@@ -2,19 +2,15 @@
 
 A Steel session carries its own filesystem inside the session VM. `client.Sessions.Files` moves bytes across the boundary between your machine and that sandbox. This recipe reads a local CSV, uploads it with `Upload`, then hands the returned server-side path to a remote `<input type="file">` so csvplot.com can render a chart against bytes that never lived on the browser host's local disk.
 
-The upload is a plain Go value, not an `io.Reader` or a multipart form you assemble yourself:
+The upload takes an `io.Reader`, and the SDK assembles the multipart form for you. `steel.FileParam` attaches the filename and content type that the form part carries:
 
 ```go
 uploaded, err := client.Sessions.Files.Upload(ctx, sess.ID, steel.SessionFileUploadParams{
-	File: steel.FileUpload{
-		Name:        "stock.csv",
-		Content:     csvBytes,
-		ContentType: "text/csv",
-	},
+	File: steel.FileParam(bytes.NewReader(csvBytes), "stock.csv", "text/csv"),
 })
 ```
 
-`Content` is the raw `[]byte` you got from `os.ReadFile`. What comes back is a `*steel.File` whose `Path` is a handle inside the session VM (typically `stock.csv` at the sandbox root). That path is meaningless on your laptop, and your laptop's paths are meaningless inside the session. Keeping that distinction straight is the whole point.
+`bytes.NewReader` wraps the raw `[]byte` you got from `os.ReadFile`. What comes back is a `*steel.File` whose `Path` is a handle inside the session VM (typically `stock.csv` at the sandbox root). That path is meaningless on your laptop, and your laptop's paths are meaningless inside the session. Keeping that distinction straight is the whole point.
 
 ## Wiring a remote file into a DOM input
 
@@ -65,9 +61,9 @@ Releasing session...
 
 ## Make it yours
 
-- **Upload from a URL.** `steel.FileUpload` carries bytes, but the underlying API also accepts a URL string for the file field. Fetch a report server-side and skip your machine entirely.
-- **Harvest generated files.** Swap the csvplot.com flow for a site that exports. After the download fires, call `client.Sessions.Files.List(ctx, sess.ID)` to discover the new path, then `client.Sessions.Files.Download(ctx, sess.ID, path)` to pull it back as an `io.ReadCloser`.
-- **Target a nested path.** `SessionFileUploadParams` has an optional `Path` field. The default is the filename at the sandbox root; set `Path` to a pointer to nest the upload, for example under `inputs/`.
+- **Upload from a URL.** `steel.FileParam` wraps bytes, but the underlying API also accepts a URL string for the file field. Pass `File: steel.Raw[io.Reader](url)` to fetch a report server-side and skip your machine entirely.
+- **Harvest generated files.** Swap the csvplot.com flow for a site that exports. After the download fires, call `client.Sessions.Files.List(ctx, sess.ID)` to discover the new path, then `client.Sessions.Files.Download(ctx, sess.ID, path)` to pull it back as an `*http.Response` whose `Body` streams the file.
+- **Target a nested path.** `SessionFileUploadParams` has an optional `Path` field. The default is the filename at the sandbox root; set `Path` with `steel.F` to nest the upload, for example under `inputs/`.
 
 ## Related
 
