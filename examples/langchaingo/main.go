@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/llms/anthropic"
@@ -34,9 +35,9 @@ func (t scrapeTool) Description() string {
 func (t scrapeTool) Call(ctx context.Context, input string) (string, error) {
 	url := strings.Trim(strings.TrimSpace(input), "\"'")
 
-	resp, err := t.client.Scrape(ctx, steel.ClientScrapeParams{
+	resp, err := t.client.Scrape(ctx, steel.ScrapeParams{
 		URL:    steel.F(url),
-		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+		Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 	})
 	if err != nil {
 		return "", err
@@ -79,7 +80,7 @@ func run(steelKey, anthropicKey string) error {
 		return fmt.Errorf("anthropic: %w", err)
 	}
 
-	client := steel.NewClient(steelKey)
+	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
 	executor, err := agents.Initialize(
 		llm,
