@@ -13,7 +13,8 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/steel-dev/steel-go"
+	"github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 // session is one live Steel browser behind one chromedp tab. The Steel session id
@@ -60,7 +61,7 @@ func (s *server) releaseAll() {
 	for _, sess := range live {
 		sess.cancelTab()
 		sess.cancelAlloc()
-		if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseParams{}); err != nil {
+		if _, err := s.steel.Sessions.Release(context.Background(), sess.id); err != nil {
 			log.Printf("release %s: %v", sess.id, err)
 		}
 	}
@@ -74,9 +75,9 @@ type createOutput struct {
 }
 
 func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ createInput) (*mcp.CallToolResult, createOutput, error) {
-	steelSession, err := s.steel.Sessions.Create(ctx, steel.SessionCreateParams{
+	steelSession, err := s.steel.Sessions.New(ctx, steel.SessionNewParams{
 		BlockAds:   steel.F(true),
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		return nil, createOutput{}, err
@@ -92,7 +93,7 @@ func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ cr
 	if err := chromedp.Run(tab); err != nil {
 		cancelTab()
 		cancelAlloc()
-		_, _ = s.steel.Sessions.Release(context.Background(), steelSession.ID, steel.SessionReleaseParams{})
+		_, _ = s.steel.Sessions.Release(context.Background(), steelSession.ID)
 		return nil, createOutput{}, err
 	}
 
@@ -230,7 +231,7 @@ func (s *server) releaseSession(_ context.Context, _ *mcp.CallToolRequest, in re
 
 	sess.cancelTab()
 	sess.cancelAlloc()
-	if _, err := s.steel.Sessions.Release(context.Background(), sess.id, steel.SessionReleaseParams{}); err != nil {
+	if _, err := s.steel.Sessions.Release(context.Background(), sess.id); err != nil {
 		return nil, releaseOutput{}, err
 	}
 	log.Printf("released session %s", sess.id)
@@ -246,7 +247,7 @@ func main() {
 	}
 
 	s := &server{
-		steel:    steel.NewClient(steelKey),
+		steel:    steel.NewClient(option.WithSteelAPIKey(steelKey)),
 		steelKey: steelKey,
 		sessions: map[string]*session{},
 	}
