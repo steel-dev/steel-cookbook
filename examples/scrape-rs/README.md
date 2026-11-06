@@ -6,10 +6,9 @@ That makes this the shortest path into Steel from Rust, and it leans on the SDK'
 
 ```rust
 let scraped = client
-    .scrape(ClientScrapeParams {
-        url: TARGET_URL.to_string(),
-        format: Some(vec![ScrapeRequestFormatItem::Markdown]),
-        // remaining options set to None; see main.rs
+    .scrape(ScrapeParams {
+        format: Some(vec![ScrapeParamsFormat::Markdown]),
+        ..ScrapeParams::new(TARGET_URL.to_string())
     })
     .await?;
 
@@ -21,7 +20,7 @@ scraped.links.len();                // Vec<ScrapeResponseLink>
 scraped.content.markdown;           // Option<String>
 ```
 
-`metadata` carries about twenty parsed fields (Open Graph tags, canonical URL, author, published time, the HTTP status code), so you get the document's shape without writing a single selector. `content` holds whichever formats you asked for in `format`: `Markdown`, `HTML`, `CleanedHTML`, or `Readability`. Request only what you need; markdown alone keeps the payload small for LLM context.
+`metadata` carries about twenty parsed fields (Open Graph tags, canonical URL, author, published time, the HTTP status code), so you get the document's shape without writing a single selector. `content` holds whichever formats you asked for in `format`: `Markdown`, `Html`, `CleanedHtml`, or `Readability`. Request only what you need; markdown alone keeps the payload small for LLM context.
 
 `main` runs all three calls against Hacker News, prints the typed metadata, and writes `page.md`, `screenshot.png`, and `page.pdf` to the working directory. Screenshot and PDF responses are a hosted URL, not bytes, so the `download` helper fetches each URL with `reqwest` and writes the file. The artifacts live on Steel for a while after the call, which is handy if you would rather hand the URL to another service than store the bytes yourself.
 
@@ -57,9 +56,9 @@ Three calls cost a few cents of browser time total. Steel bills per session-minu
 ## Make it yours
 
 - **Change the target.** Edit the `TARGET_URL` constant. Every call reads from it.
-- **Pick formats.** Pass more variants in `format`, for example `vec![ScrapeRequestFormatItem::Markdown, ScrapeRequestFormatItem::HTML]`, then read `scraped.content.html`. Each requested format comes back as its own `Option` field on `content`.
+- **Pick formats.** Pass more variants in `format`, for example `vec![ScrapeParamsFormat::Markdown, ScrapeParamsFormat::Html]`, then read `scraped.content.html`. Each requested format comes back as its own `Option` field on `content`.
 - **Get the screenshot and PDF in one call.** `scrape()` takes `pdf: Some(true)` and `screenshot: Some(true)`; the URLs come back on `scraped.pdf` and `scraped.screenshot` instead of making three round trips.
-- **Handle anti-bot pages.** Set `use_proxy: Some(true)` on any of the params to route through a Steel residential proxy. Add `delay: Some(2000)` to wait for late-loading content before capture.
+- **Handle anti-bot pages.** Set `use_proxy: Some(true)` on any of the params to route through a Steel residential proxy. Add `delay: Some(2000.0)` to wait for late-loading content before capture.
 - **Match on the status.** `meta.status_code` is an `i64`, so branch on it before trusting the content (a soft 404 still returns markdown).
 
 ## Related
