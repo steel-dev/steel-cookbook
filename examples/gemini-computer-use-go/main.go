@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/steel-dev/steel-go"
+	"github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 	"google.golang.org/genai"
 )
 
@@ -157,7 +158,7 @@ func NewAgent(ctx context.Context, steelKey, geminiKey string) (*Agent, error) {
 	}
 	return &Agent{
 		genai: gc,
-		steel: steel.NewClient(steelKey),
+		steel: steel.NewClient(option.WithSteelAPIKey(steelKey)),
 		config: &genai.GenerateContentConfig{
 			Tools: []*genai.Tool{{
 				ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser},
@@ -180,8 +181,8 @@ func (a *Agent) center() (float64, float64) {
 }
 
 func (a *Agent) initialize(ctx context.Context) error {
-	sess, err := a.steel.Sessions.Create(ctx, steel.SessionCreateParams{
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{
+	sess, err := a.steel.Sessions.New(ctx, steel.SessionNewParams{
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{
 			Width:  steel.F(int64(viewportWidth)),
 			Height: steel.F(int64(viewportHeight)),
 		}),
@@ -202,7 +203,7 @@ func (a *Agent) cleanup(ctx context.Context) {
 		return
 	}
 	fmt.Println("Releasing Steel session...")
-	if _, err := a.steel.Sessions.Release(ctx, a.session.ID, steel.SessionReleaseParams{}); err != nil {
+	if _, err := a.steel.Sessions.Release(ctx, a.session.ID); err != nil {
 		fmt.Printf("Error releasing session: %v\n", err)
 		return
 	}
@@ -222,8 +223,7 @@ func (a *Agent) run(ctx context.Context, body steel.SessionComputerParams) (stri
 
 func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
 	resp, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action:                              "take_screenshot",
-		ComputerActionRequestTakeScreenshot: &steel.ComputerActionRequestTakeScreenshot{Action: steel.F(steel.ComputerActionRequestTakeScreenshotActionTakeScreenshot)},
+		Body: steel.SessionComputerParamsBodyTakeScreenshot{Action: steel.F(steel.SessionComputerParamsBodyTakeScreenshotActionTakeScreenshot)},
 	})
 	if err != nil {
 		return "", err
@@ -236,10 +236,9 @@ func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
 
 func (a *Agent) click(ctx context.Context, x, y float64) error {
 	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action: "click_mouse",
-		ComputerActionRequestClickMouse: &steel.ComputerActionRequestClickMouse{
-			Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
-			Button:      steel.F(steel.ComputerActionRequestClickMouseButtonLeft),
+		Body: steel.SessionComputerParamsBodyClickMouse{
+			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+			Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
 			Coordinates: steel.F([]float64{x, y}),
 		},
 	})
@@ -248,9 +247,8 @@ func (a *Agent) click(ctx context.Context, x, y float64) error {
 
 func (a *Agent) pressKeys(ctx context.Context, keys ...string) error {
 	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action: "press_key",
-		ComputerActionRequestPressKey: &steel.ComputerActionRequestPressKey{
-			Action: steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+		Body: steel.SessionComputerParamsBodyPressKey{
+			Action: steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 			Keys:   steel.F(keys),
 		},
 	})
@@ -259,9 +257,8 @@ func (a *Agent) pressKeys(ctx context.Context, keys ...string) error {
 
 func (a *Agent) typeText(ctx context.Context, text string) error {
 	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action: "type_text",
-		ComputerActionRequestTypeText: &steel.ComputerActionRequestTypeText{
-			Action: steel.F(steel.ComputerActionRequestTypeTextActionTypeText),
+		Body: steel.SessionComputerParamsBodyTypeText{
+			Action: steel.F(steel.SessionComputerParamsBodyTypeTextActionTypeText),
 			Text:   steel.F(text),
 		},
 	})
@@ -270,9 +267,8 @@ func (a *Agent) typeText(ctx context.Context, text string) error {
 
 func (a *Agent) waitFor(ctx context.Context, seconds float64) error {
 	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Action: "wait",
-		ComputerActionRequestWait: &steel.ComputerActionRequestWait{
-			Action:   steel.F(steel.ComputerActionRequestWaitActionWait),
+		Body: steel.SessionComputerParamsBodyWait{
+			Action:   steel.F(steel.SessionComputerParamsBodyWaitActionWait),
 			Duration: steel.F(seconds),
 		},
 	})
@@ -295,10 +291,9 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 		x := a.denormalizeX(argInt(args, "x", 0))
 		y := a.denormalizeY(argInt(args, "y", 0))
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "click_mouse",
-			ComputerActionRequestClickMouse: &steel.ComputerActionRequestClickMouse{
-				Action:      steel.F(steel.ComputerActionRequestClickMouseActionClickMouse),
-				Button:      steel.F(steel.ComputerActionRequestClickMouseButtonLeft),
+			Body: steel.SessionComputerParamsBodyClickMouse{
+				Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+				Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
 				Coordinates: steel.F([]float64{x, y}),
 				Screenshot:  steel.F(true),
 			},
@@ -309,9 +304,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 		x := a.denormalizeX(argInt(args, "x", 0))
 		y := a.denormalizeY(argInt(args, "y", 0))
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "move_mouse",
-			ComputerActionRequestMoveMouse: &steel.ComputerActionRequestMoveMouse{
-				Action:      steel.F(steel.ComputerActionRequestMoveMouseActionMoveMouse),
+			Body: steel.SessionComputerParamsBodyMoveMouse{
+				Action:      steel.F(steel.SessionComputerParamsBodyMoveMouseActionMoveMouse),
 				Coordinates: steel.F([]float64{x, y}),
 				Screenshot:  steel.F(true),
 			},
@@ -365,9 +359,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 				delta = -400
 			}
 			shot, err := a.run(ctx, steel.SessionComputerParams{
-				Action: "scroll",
-				ComputerActionRequestScroll: &steel.ComputerActionRequestScroll{
-					Action:      steel.F(steel.ComputerActionRequestScrollActionScroll),
+				Body: steel.SessionComputerParamsBodyScroll{
+					Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
 					Coordinates: steel.F([]float64{cx, cy}),
 					DeltaX:      steel.F(delta),
 					DeltaY:      steel.F(float64(0)),
@@ -381,9 +374,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 				keys = []string{"PageUp"}
 			}
 			shot, err := a.run(ctx, steel.SessionComputerParams{
-				Action: "press_key",
-				ComputerActionRequestPressKey: &steel.ComputerActionRequestPressKey{
-					Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+				Body: steel.SessionComputerParamsBodyPressKey{
+					Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 					Keys:       steel.F(keys),
 					Screenshot: steel.F(true),
 				},
@@ -409,9 +401,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 			dy = magnitude
 		}
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "scroll",
-			ComputerActionRequestScroll: &steel.ComputerActionRequestScroll{
-				Action:      steel.F(steel.ComputerActionRequestScrollActionScroll),
+			Body: steel.SessionComputerParamsBodyScroll{
+				Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
 				Coordinates: steel.F([]float64{x, y}),
 				DeltaX:      steel.F(dx),
 				DeltaY:      steel.F(dy),
@@ -422,9 +413,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 
 	case "wait_5_seconds":
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "wait",
-			ComputerActionRequestWait: &steel.ComputerActionRequestWait{
-				Action:     steel.F(steel.ComputerActionRequestWaitActionWait),
+			Body: steel.SessionComputerParamsBodyWait{
+				Action:     steel.F(steel.SessionComputerParamsBodyWaitActionWait),
 				Duration:   steel.F(float64(5)),
 				Screenshot: steel.F(true),
 			},
@@ -433,9 +423,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 
 	case "go_back":
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "press_key",
-			ComputerActionRequestPressKey: &steel.ComputerActionRequestPressKey{
-				Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+			Body: steel.SessionComputerParamsBodyPressKey{
+				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 				Keys:       steel.F([]string{"Alt", "ArrowLeft"}),
 				Screenshot: steel.F(true),
 			},
@@ -444,9 +433,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 
 	case "go_forward":
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "press_key",
-			ComputerActionRequestPressKey: &steel.ComputerActionRequestPressKey{
-				Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+			Body: steel.SessionComputerParamsBodyPressKey{
+				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 				Keys:       steel.F([]string{"Alt", "ArrowRight"}),
 				Screenshot: steel.F(true),
 			},
@@ -471,9 +459,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 	case "key_combination":
 		keys := normalizeKeys(splitKeys(argString(args, "keys", "")))
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "press_key",
-			ComputerActionRequestPressKey: &steel.ComputerActionRequestPressKey{
-				Action:     steel.F(steel.ComputerActionRequestPressKeyActionPressKey),
+			Body: steel.SessionComputerParamsBodyPressKey{
+				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
 				Keys:       steel.F(keys),
 				Screenshot: steel.F(true),
 			},
@@ -486,9 +473,8 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 		endX := a.denormalizeX(argInt(args, "destination_x", 0))
 		endY := a.denormalizeY(argInt(args, "destination_y", 0))
 		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Action: "drag_mouse",
-			ComputerActionRequestDragMouse: &steel.ComputerActionRequestDragMouse{
-				Action:     steel.F(steel.ComputerActionRequestDragMouseActionDragMouse),
+			Body: steel.SessionComputerParamsBodyDragMouse{
+				Action:     steel.F(steel.SessionComputerParamsBodyDragMouseActionDragMouse),
 				Path:       steel.F([][]float64{{startX, startY}, {endX, endY}}),
 				Screenshot: steel.F(true),
 			},
