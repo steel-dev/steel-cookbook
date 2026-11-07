@@ -7,7 +7,7 @@ The connection is one line, but it returns a tuple, and the second half is the p
 ```rust
 let (browser, mut handler) = Browser::connect(cdp_url).await?;
 
-let handle = tokio::spawn(async move { while let Some(_) = handler.next().await {} });
+let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 ```
 
 chromiumoxide splits the API surface (`browser`, `page`) from the connection's event loop (`handler`). The `browser` handle only queues CDP commands. Nothing is sent, and no response ever comes back, until something polls `handler` to completion. If you skip the spawn, `browser.new_page(...)` does not error: it hangs forever, because the future that would resolve it is never driven. This is the single most common chromiumoxide mistake. Spawn the drain loop right after `connect`, keep the `JoinHandle`, and abort it on the way out. `run` does exactly that.

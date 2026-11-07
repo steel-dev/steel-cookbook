@@ -3,7 +3,7 @@
 
 use std::error::Error;
 
-use steel::{ClientPdfParams, ClientScrapeParams, ClientScreenshotParams, ScrapeRequestFormatItem, Steel};
+use steel_rs::{Client, PdfParams, ScrapeParams, ScrapeParamsFormat, ScreenshotParams};
 
 const TARGET_URL: &str = "https://news.ycombinator.com";
 
@@ -11,19 +11,13 @@ const TARGET_URL: &str = "https://news.ycombinator.com";
 async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
-    let client = Steel::new(api_key);
+    let client = Client::builder().api_key(api_key).build();
 
     println!("Scraping {TARGET_URL} ...");
     let scraped = client
-        .scrape(ClientScrapeParams {
-            url: TARGET_URL.to_string(),
-            format: Some(vec![ScrapeRequestFormatItem::Markdown]),
-            delay: None,
-            pdf: None,
-            project_id: None,
-            region: None,
-            screenshot: None,
-            use_proxy: None,
+        .scrape(ScrapeParams {
+            format: Some(vec![ScrapeParamsFormat::Markdown]),
+            ..ScrapeParams::new(TARGET_URL.to_string())
         })
         .await?;
 
@@ -44,28 +38,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Capturing screenshot ...");
     let shot = client
-        .screenshot(ClientScreenshotParams {
-            url: TARGET_URL.to_string(),
+        .screenshot(ScreenshotParams {
             full_page: Some(true),
-            delay: None,
-            project_id: None,
-            region: None,
-            use_proxy: None,
+            ..ScreenshotParams::new(TARGET_URL.to_string())
         })
         .await?;
     download(&shot.url, "screenshot.png").await?;
     println!("  wrote      screenshot.png");
 
     println!("Rendering PDF ...");
-    let pdf = client
-        .pdf(ClientPdfParams {
-            url: TARGET_URL.to_string(),
-            delay: None,
-            project_id: None,
-            region: None,
-            use_proxy: None,
-        })
-        .await?;
+    let pdf = client.pdf(PdfParams::new(TARGET_URL.to_string())).await?;
     download(&pdf.url, "page.pdf").await?;
     println!("  wrote      page.pdf");
 

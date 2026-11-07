@@ -1,14 +1,19 @@
 // Claude computer-use agent driving a Steel browser via the server-side Input API.
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/claude-computer-use-rs
 
-use std::collections::HashMap;
 use std::error::Error;
 
 use chrono::Local;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use steel::types::*;
-use steel::Steel;
+use steel_rs::{
+    Client, SessionComputerParams, SessionComputerParamsClickMouse,
+    SessionComputerParamsClickMouseButton, SessionComputerParamsClickMouseClickType,
+    SessionComputerParamsDragMouse, SessionComputerParamsGetCursorPosition,
+    SessionComputerParamsMoveMouse, SessionComputerParamsPressKey, SessionComputerParamsScroll,
+    SessionComputerParamsTakeScreenshot, SessionComputerParamsTypeText, SessionComputerParamsWait,
+    SessionComputerResponse, SessionCreateParams, SessionCreateParamsDimensions,
+};
 
 const ANTHROPIC_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -139,7 +144,7 @@ fn normalize_keys(keys: Vec<String>) -> Vec<String> {
 struct Agent {
     http: reqwest::Client,
     anthropic_key: String,
-    steel: Steel,
+    steel: Client,
     messages: Vec<Value>,
     session_id: Option<String>,
     session_viewer_url: Option<String>,
@@ -150,7 +155,7 @@ impl Agent {
         Self {
             http: reqwest::Client::new(),
             anthropic_key,
-            steel: Steel::new(steel_key),
+            steel: Client::builder().api_key(steel_key).build(),
             messages: Vec::new(),
             session_id: None,
             session_viewer_url: None,
@@ -176,10 +181,10 @@ impl Agent {
             .steel
             .sessions()
             .create(SessionCreateParams {
-                dimensions: Some(Box::new(SessionCreateParamsDimensions {
+                dimensions: Some(SessionCreateParamsDimensions {
                     width: VIEWPORT_WIDTH,
                     height: VIEWPORT_HEIGHT,
-                })),
+                }),
                 block_ads: Some(true),
                 timeout: Some(900_000),
                 ..Default::default()
@@ -195,7 +200,7 @@ impl Agent {
     async fn cleanup(&self) {
         if let Some(id) = &self.session_id {
             println!("Releasing Steel session...");
-            match self.steel.sessions().release(id, HashMap::new()).await {
+            match self.steel.sessions().release(id).await {
                 Ok(_) => {
                     if let Some(url) = &self.session_viewer_url {
                         println!("Session completed. View replay at {}", url);
@@ -229,7 +234,7 @@ impl Agent {
             .sessions()
             .computer(
                 id,
-                SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
+                SessionComputerParams::TakeScreenshot(SessionComputerParamsTakeScreenshot {
                 }),
             )
             .await?;
@@ -253,19 +258,19 @@ impl Agent {
         };
 
         let params = match action {
-            "mouse_move" => SessionComputerParams::MoveMouse(ComputerActionRequestMoveMouse {
+            "mouse_move" => SessionComputerParams::MoveMouse(SessionComputerParamsMoveMouse {
                 coordinates: vec![coords.0, coords.1],
                 hold_keys: opt_keys(split_keys(key)),
                 screenshot: Some(true),
             }),
 
             "left_mouse_down" | "left_mouse_up" => {
-                SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                    button: Some(ComputerActionRequestClickMouseButton::Left),
+                SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
+                    button: Some(SessionComputerParamsClickMouseButton::Left),
                     click_type: Some(if action == "left_mouse_down" {
-                        ComputerActionRequestClickMouseClickType::Down
+                        SessionComputerParamsClickMouseClickType::Down
                     } else {
-                        ComputerActionRequestClickMouseClickType::Up
+                        SessionComputerParamsClickMouseClickType::Up
                     }),
                     coordinates: Some(vec![coords.0, coords.1]),
                     hold_keys: opt_keys(split_keys(key)),
@@ -276,16 +281,16 @@ impl Agent {
 
             "left_click" | "right_click" | "middle_click" | "double_click" | "triple_click" => {
                 let button = match action {
-                    "right_click" => ComputerActionRequestClickMouseButton::Right,
-                    "middle_click" => ComputerActionRequestClickMouseButton::Middle,
-                    _ => ComputerActionRequestClickMouseButton::Left,
+                    "right_click" => SessionComputerParamsClickMouseButton::Right,
+                    "middle_click" => SessionComputerParamsClickMouseButton::Middle,
+                    _ => SessionComputerParamsClickMouseButton::Left,
                 };
                 let num_clicks = match action {
                     "double_click" => Some(2.0),
                     "triple_click" => Some(3.0),
                     _ => None,
                 };
-                SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
+                SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
                     button: Some(button),
                     click_type: None,
                     coordinates: Some(vec![coords.0, coords.1]),
@@ -297,7 +302,7 @@ impl Agent {
 
             "left_click_drag" => {
                 let (start_x, start_y) = Self::center();
-                SessionComputerParams::DragMouse(ComputerActionRequestDragMouse {
+                SessionComputerParams::DragMouse(SessionComputerParamsDragMouse {
                     hold_keys: opt_keys(split_keys(key)),
                     path: vec![vec![start_x, start_y], vec![coords.0, coords.1]],
                     screenshot: Some(true),
@@ -320,7 +325,7 @@ impl Agent {
                     "left" => (-(step * amount), 0.0),
                     _ => (0.0, step * amount),
                 };
-                SessionComputerParams::Scroll(ComputerActionRequestScroll {
+                SessionComputerParams::Scroll(SessionComputerParamsScroll {
                     coordinates: Some(vec![coords.0, coords.1]),
                     delta_x: Some(dx),
                     delta_y: Some(dy),
@@ -335,20 +340,20 @@ impl Agent {
                 } else {
                     None
                 };
-                SessionComputerParams::PressKey(ComputerActionRequestPressKey {
+                SessionComputerParams::PressKey(SessionComputerParamsPressKey {
                     duration,
                     keys: normalize_keys(split_keys(text)),
                     screenshot: Some(true),
                 })
             }
 
-            "type" => SessionComputerParams::TypeText(ComputerActionRequestTypeText {
+            "type" => SessionComputerParams::TypeText(SessionComputerParamsTypeText {
                 hold_keys: opt_keys(split_keys(key)),
                 screenshot: Some(true),
                 text: text.unwrap_or("").to_string(),
             }),
 
-            "wait" => SessionComputerParams::Wait(ComputerActionRequestWait {
+            "wait" => SessionComputerParams::Wait(SessionComputerParamsWait {
                 duration: input.get("duration").and_then(|v| v.as_f64()).unwrap_or(1.0),
                 screenshot: Some(true),
             }),
@@ -362,7 +367,7 @@ impl Agent {
                     .computer(
                         id,
                         SessionComputerParams::GetCursorPosition(
-                            ComputerActionRequestGetCursorPosition {
+                            SessionComputerParamsGetCursorPosition {
                             },
                         ),
                     )

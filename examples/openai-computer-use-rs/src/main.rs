@@ -6,8 +6,13 @@ use std::error::Error;
 use chrono::Local;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use steel::types::*;
-use steel::Steel;
+use steel_rs::{
+    Client, SessionComputerParams, SessionComputerParamsClickMouse,
+    SessionComputerParamsClickMouseButton, SessionComputerParamsDragMouse,
+    SessionComputerParamsMoveMouse, SessionComputerParamsPressKey, SessionComputerParamsScroll,
+    SessionComputerParamsTakeScreenshot, SessionComputerParamsTypeText, SessionComputerParamsWait,
+    SessionComputerResponse, SessionCreateParams, SessionCreateParamsDimensions,
+};
 
 const OPENAI_URL: &str = "https://api.openai.com/v1/responses";
 const MODEL: &str = "computer-use-preview";
@@ -159,13 +164,13 @@ fn keys_from(action: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn map_button(btn: &str) -> ComputerActionRequestClickMouseButton {
+fn map_button(btn: &str) -> SessionComputerParamsClickMouseButton {
     match btn.to_lowercase().as_str() {
-        "right" => ComputerActionRequestClickMouseButton::Right,
-        "middle" | "wheel" => ComputerActionRequestClickMouseButton::Middle,
-        "back" => ComputerActionRequestClickMouseButton::Back,
-        "forward" => ComputerActionRequestClickMouseButton::Forward,
-        _ => ComputerActionRequestClickMouseButton::Left,
+        "right" => SessionComputerParamsClickMouseButton::Right,
+        "middle" | "wheel" => SessionComputerParamsClickMouseButton::Middle,
+        "back" => SessionComputerParamsClickMouseButton::Back,
+        "forward" => SessionComputerParamsClickMouseButton::Forward,
+        _ => SessionComputerParamsClickMouseButton::Left,
     }
 }
 
@@ -185,7 +190,7 @@ fn parse_path(action: &Value) -> Option<Vec<Vec<f64>>> {
 struct Agent {
     http: reqwest::Client,
     openai_key: String,
-    steel: Steel,
+    steel: Client,
     session_id: Option<String>,
     session_viewer_url: Option<String>,
 }
@@ -195,7 +200,7 @@ impl Agent {
         Self {
             http: reqwest::Client::new(),
             openai_key,
-            steel: Steel::new(steel_key),
+            steel: Client::builder().api_key(steel_key).build(),
             session_id: None,
             session_viewer_url: None,
         }
@@ -210,10 +215,10 @@ impl Agent {
             .steel
             .sessions()
             .create(SessionCreateParams {
-                dimensions: Some(Box::new(SessionCreateParamsDimensions {
+                dimensions: Some(SessionCreateParamsDimensions {
                     width: VIEWPORT_WIDTH,
                     height: VIEWPORT_HEIGHT,
-                })),
+                }),
                 block_ads: Some(true),
                 timeout: Some(900_000),
                 ..Default::default()
@@ -229,7 +234,7 @@ impl Agent {
     async fn cleanup(&self) {
         if let Some(id) = &self.session_id {
             println!("Releasing Steel session...");
-            match self.steel.sessions().release(id, std::collections::HashMap::new()).await {
+            match self.steel.sessions().release(id).await {
                 Ok(_) => {
                     if let Some(url) = &self.session_viewer_url {
                         println!("Session completed. View replay at {}", url);
@@ -256,7 +261,7 @@ impl Agent {
             .sessions()
             .computer(
                 id,
-                SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
+                SessionComputerParams::TakeScreenshot(SessionComputerParamsTakeScreenshot {
                 }),
             )
             .await?;
@@ -272,7 +277,7 @@ impl Agent {
         let coords = vec![x, y];
 
         let params = match typ {
-            "click" => SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
+            "click" => SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
                 button: Some(map_button(
                     action.get("button").and_then(|v| v.as_str()).unwrap_or("left"),
                 )),
@@ -283,8 +288,8 @@ impl Agent {
                 screenshot: Some(true),
             }),
 
-            "double_click" => SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-                button: Some(ComputerActionRequestClickMouseButton::Left),
+            "double_click" => SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
+                button: Some(SessionComputerParamsClickMouseButton::Left),
                 click_type: None,
                 coordinates: Some(coords),
                 hold_keys: None,
@@ -292,19 +297,19 @@ impl Agent {
                 screenshot: Some(true),
             }),
 
-            "move" => SessionComputerParams::MoveMouse(ComputerActionRequestMoveMouse {
+            "move" => SessionComputerParams::MoveMouse(SessionComputerParamsMoveMouse {
                 coordinates: coords,
                 hold_keys: None,
                 screenshot: Some(true),
             }),
 
-            "drag" => SessionComputerParams::DragMouse(ComputerActionRequestDragMouse {
+            "drag" => SessionComputerParams::DragMouse(SessionComputerParamsDragMouse {
                 hold_keys: None,
                 path: parse_path(action).unwrap_or_else(|| vec![vec![cx, cy], vec![x, y]]),
                 screenshot: Some(true),
             }),
 
-            "scroll" => SessionComputerParams::Scroll(ComputerActionRequestScroll {
+            "scroll" => SessionComputerParams::Scroll(SessionComputerParamsScroll {
                 coordinates: Some(coords),
                 delta_x: Some(action.get("scroll_x").and_then(|v| v.as_f64()).unwrap_or(0.0)),
                 delta_y: Some(action.get("scroll_y").and_then(|v| v.as_f64()).unwrap_or(0.0)),
@@ -312,19 +317,19 @@ impl Agent {
                 screenshot: Some(true),
             }),
 
-            "keypress" => SessionComputerParams::PressKey(ComputerActionRequestPressKey {
+            "keypress" => SessionComputerParams::PressKey(SessionComputerParamsPressKey {
                 duration: None,
                 keys: keys_from(action),
                 screenshot: Some(true),
             }),
 
-            "type" => SessionComputerParams::TypeText(ComputerActionRequestTypeText {
+            "type" => SessionComputerParams::TypeText(SessionComputerParamsTypeText {
                 hold_keys: None,
                 screenshot: Some(true),
                 text: action.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
             }),
 
-            "wait" => SessionComputerParams::Wait(ComputerActionRequestWait {
+            "wait" => SessionComputerParams::Wait(SessionComputerParamsWait {
                 duration: 1.0,
                 screenshot: Some(true),
             }),

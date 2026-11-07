@@ -5,7 +5,7 @@ use std::error::Error;
 
 use headless_chrome::protocol::cdp::Page::CaptureScreenshotFormatOption;
 use headless_chrome::Browser;
-use steel::Steel;
+use steel_rs::Client;
 
 type BoxError = Box<dyn Error + Send + Sync>;
 
@@ -16,12 +16,12 @@ async fn main() -> Result<(), BoxError> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     println!("Creating Steel session...");
     let session = client
         .sessions()
-        .create(steel::SessionCreateParams::default())
+        .create(steel_rs::SessionCreateParams::default())
         .await?;
     println!("Session live at {}", session.session_viewer_url);
 
@@ -30,10 +30,7 @@ async fn main() -> Result<(), BoxError> {
     let result = tokio::task::spawn_blocking(move || scrape(&websocket_url, &key)).await?;
 
     println!("Releasing session...");
-    client
-        .sessions()
-        .release(&session.id, steel::SessionReleaseParams::new())
-        .await?;
+    client.sessions().release(&session.id).await?;
     println!("Session released");
 
     result

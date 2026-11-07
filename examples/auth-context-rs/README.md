@@ -12,7 +12,7 @@ One detail matters in Rust that the dynamic SDKs hide: the snapshot you read bac
 2. Read the snapshot with `client.sessions().context(&session.id)`, then release session #1.
 3. Map the read snapshot into a `SessionCreateParamsSessionContext`, create session #2 with `session_context` set, connect, and call `verify_auth` again without logging in.
 
-Each chromiumoxide connection spawns a handler task (`tokio::spawn`) to pump CDP events and `handle.abort()`s it before the session is released. The cookie map copies `name` and `value` (the required fields) plus the optional `domain`, `path`, `expires`, `http_only`, `secure`, `same_site`, `priority`, `source_scheme`, `url`, and `session` directly, since those types are shared between the read and write cookie structs; only `partition_key` is dropped. The `local_storage` and `session_storage` maps move across unchanged.
+Each chromiumoxide connection spawns a handler task (`tokio::spawn`) to pump CDP events and `handle.abort()`s it before the session is released. The cookie map copies `name` and `value` (the required fields) plus the optional `domain`, `path`, `expires`, `http_only`, `secure`, `url`, and `session` directly. `same_site`, `priority`, and `source_scheme` are separate enums on each side, so `to_write_same_site`, `to_write_priority`, and `to_write_source_scheme` map them variant by variant; only `partition_key` is dropped. The `local_storage` and `session_storage` maps move across unchanged.
 
 ## Run it
 

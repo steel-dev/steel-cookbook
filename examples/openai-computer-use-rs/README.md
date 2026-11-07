@@ -31,7 +31,7 @@ Contrast [claude-computer-use-rs](../claude-computer-use-rs), where the Anthropi
 A `computer_call` carries one `action` such as `{ "type": "click", "button": "left", "x": 412, "y": 280 }`. `execute_action` matches on `type` and builds the matching Steel `SessionComputerParams`:
 
 ```rust
-"click" => SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
+"click" => SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
     button: Some(map_button(/* left | right | middle | back | forward */)),
     coordinates: Some(vec![x, y]),
     screenshot: Some(true),

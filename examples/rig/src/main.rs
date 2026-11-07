@@ -9,7 +9,7 @@ use rig_core::providers::anthropic;
 use rig_core::tool::Tool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use steel::Steel;
+use steel_rs::Client;
 
 const TASK: &str = "Go to https://news.ycombinator.com and report the titles, \
 points, and links of the top 3 stories. Navigate first, then extract the page \
@@ -166,8 +166,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let anthropic_api_key = std::env::var("ANTHROPIC_API_KEY")
         .map_err(|_| "set ANTHROPIC_API_KEY (https://console.anthropic.com/)")?;
 
-    let steel = Steel::new(steel_api_key.clone());
-    let session = steel.sessions().create(steel::SessionCreateParams::default()).await?;
+    let steel = Client::builder().api_key(steel_api_key.clone()).build();
+    let session = steel.sessions().create(steel_rs::SessionCreateParams::default()).await?;
     println!("Session: {}", session.session_viewer_url);
 
     let raw = format!("{}&apiKey={}", session.websocket_url, steel_api_key);
@@ -183,7 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let result = run(&browser, &anthropic_api_key).await;
 
     println!("\nReleasing Steel session...");
-    if let Err(e) = steel.sessions().release(&session.id, Default::default()).await {
+    if let Err(e) = steel.sessions().release(&session.id).await {
         eprintln!("Error releasing session: {e}");
     }
     let _ = browser.close().await;
