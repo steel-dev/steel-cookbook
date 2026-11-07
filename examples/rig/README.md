@@ -60,7 +60,7 @@ cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 cargo run
 ```
 
-Get a Steel key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys) and an Anthropic key at [console.anthropic.com](https://console.anthropic.com/settings/keys). Both keys are read from the environment; the Steel key is also passed to `Steel::new` explicitly so the same value signs the CDP WebSocket URL.
+Get a Steel key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys) and an Anthropic key at [console.anthropic.com](https://console.anthropic.com/settings/keys). Both keys are read from the environment; the Steel key is also passed to `Client::builder().api_key(...)` explicitly so the same value signs the CDP WebSocket URL.
 
 The run is quiet until the answer lands, since the agent loops without streaming its intermediate turns. Your output varies. Structure looks like this:
 
