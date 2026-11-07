@@ -10,8 +10,7 @@ use chromiumoxide::cdp::browser_protocol::dom::{
 use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat;
 use chromiumoxide::Browser;
 use futures::StreamExt;
-use steel::types::{FileUpload, SessionFileUploadParams};
-use steel::Steel;
+use steel_rs::{Client, SessionFileUploadParams, Upload};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -20,12 +19,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     println!("Creating Steel session...");
     let session = client
         .sessions()
-        .create(steel::SessionCreateParams::default())
+        .create(steel_rs::SessionCreateParams::default())
         .await?;
 
     println!("Session live at {}", session.session_viewer_url);
@@ -33,17 +32,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let result = run(&client, &session.id, &session.websocket_url, &api_key).await;
 
     println!("Releasing session...");
-    client
-        .sessions()
-        .release(&session.id, steel::SessionReleaseParams::new())
-        .await?;
+    client.sessions().release(&session.id).await?;
     println!("Session released");
 
     result
 }
 
 async fn run(
-    client: &Steel,
+    client: &Client,
     session_id: &str,
     websocket_url: &str,
     api_key: &str,
@@ -56,10 +52,9 @@ async fn run(
         .files()
         .upload(
             session_id,
-            SessionFileUploadParams {
-                file: FileUpload::new("stock.csv", bytes).with_content_type("text/csv"),
-                path: None,
-            },
+            SessionFileUploadParams::new(
+                Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
+            ),
         )
         .await?;
 

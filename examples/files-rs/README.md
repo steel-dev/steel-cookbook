@@ -8,15 +8,14 @@ let uploaded = client
     .files()
     .upload(
         session_id,
-        SessionFileUploadParams {
-            file: FileUpload::new("stock.csv", bytes).with_content_type("text/csv"),
-            path: None,
-        },
+        SessionFileUploadParams::new(
+            Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
+        ),
     )
     .await?;
 ```
 
-`FileUpload::new` takes a filename and the raw bytes; `with_content_type` is the builder step for the MIME type. What comes back is a `File` whose `path` is a handle inside the session VM (for this asset, `stock.csv` at the sandbox root). That path is meaningful to the browser running on Steel, not to your laptop, and keeping those two namespaces straight is the whole point of the recipe.
+`Upload::from_bytes` takes a filename and the raw bytes; `with_content_type` is the builder step for the MIME type. What comes back is a `File` whose `path` is a handle inside the session VM (for this asset, `stock.csv` at the sandbox root). That path is meaningful to the browser running on Steel, not to your laptop, and keeping those two namespaces straight is the whole point of the recipe.
 
 ## Driving a file input over raw CDP
 
@@ -67,7 +66,7 @@ Session released
 
 ## Make it yours
 
-- **Upload from a URL.** `FileUpload` carries the bytes here, but the underlying endpoint also accepts a URL it fetches server-side, so you can skip reading the file locally for large fixtures.
+- **Upload from a URL.** `Upload` carries the bytes here, but the underlying endpoint also accepts a URL it fetches server-side, so you can skip reading the file locally for large fixtures.
 - **Harvest generated files.** Swap the csvplot flow for a site that exports. After the download fires, call `files().list(session_id)` to discover the new path, then `files().download(session_id, &path)` to pull the bytes back.
 - **Target a nested path.** Set `path: Some("inputs/stock.csv".into())` on `SessionFileUploadParams` to control where the file lands inside the sandbox instead of the default filename at root.
 
