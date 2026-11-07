@@ -1,15 +1,13 @@
 // Persist a Steel browser profile across two sessions: fill a cart in one, read it back in the next.
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/profiles-rs
 
-use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 
 use chromiumoxide::Browser;
 use chromiumoxide::Page;
 use futures::StreamExt;
-use steel::types::*;
-use steel::Steel;
+use steel_rs::{Client, SessionCreateParams};
 
 const BOOKS_URL: &str = "https://demowebshop.tricentis.com/books";
 const CART_URL: &str = "https://demowebshop.tricentis.com/cart";
@@ -58,7 +56,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     println!("Creating Steel session #1 with a fresh persisted profile...");
     let session = client
@@ -80,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Added the first book to the cart");
 
     handle.abort();
-    client.sessions().release(&session.id, HashMap::new()).await?;
+    client.sessions().release(&session.id).await?;
     println!("Session #1 released");
 
     tokio::time::sleep(Duration::from_secs(3)).await;
@@ -103,7 +101,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Found {rows} item(s) in the cart");
 
     handle.abort();
-    client.sessions().release(&session.id, HashMap::new()).await?;
+    client.sessions().release(&session.id).await?;
     println!("Session #2 released");
 
     if rows > 0 {
