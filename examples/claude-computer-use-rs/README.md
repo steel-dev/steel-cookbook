@@ -2,7 +2,7 @@
 
 There is no first-party Anthropic SDK for Rust, so the Messages API here is exactly what it is on the wire: one `POST https://api.anthropic.com/v1/messages` with `reqwest`, three headers, and a JSON body you assemble yourself. That turns out to be an advantage for computer use. The request body is dynamic (a growing transcript of text, `tool_use`, and screenshot `tool_result` blocks), so you build it with `serde_json::json!`; the response shape is fixed, so you decode it into a typed `enum`. The half that benefits from types gets them, the half that does not stays loose.
 
-The other half of the loop is the browser. A Steel session is a headful Chromium in a VM, and `client.sessions().computer(&id, action)` runs one mouse or keyboard action server-side and returns a base64 PNG in the same call. The `steel` crate models the action set as a `SessionComputerParams` enum, so the actions you send Steel are fully typed even though the actions you receive from Claude arrive as untyped JSON.
+The other half of the loop is the browser. A Steel session is a headful Chromium in a VM, and `client.sessions().computer(&id, action)` runs one mouse or keyboard action server-side and returns a base64 PNG in the same call. The `steel-rs` crate models the action set as a `SessionComputerParams` enum, so the actions you send Steel are fully typed even though the actions you receive from Claude arrive as untyped JSON.
 
 ## Two type boundaries
 
@@ -27,7 +27,7 @@ Going the other direction, `execute_computer_action` reads that loose `input` an
 
 ```rust
 "left_click" | "right_click" | "middle_click" | "double_click" | "triple_click" => {
-    SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
+    SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
         button: Some(button),
         coordinates: Some(vec![coords.0, coords.1]),
         num_clicks,
