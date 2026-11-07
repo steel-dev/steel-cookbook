@@ -4,7 +4,7 @@ Steel can solve CAPTCHAs for you in the background, or it can hand you the statu
 
 ```python
 session = client.sessions.create(
-    timeout=300000,
+    api_timeout=300000,
     solve_captcha=True,
     stealth_config={"auto_captcha_solving": False},
 )
