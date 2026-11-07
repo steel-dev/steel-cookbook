@@ -5,7 +5,7 @@ use std::{path::PathBuf, time::Duration};
 
 use prost_wkt_types::Duration as ProtoDuration;
 use serde::{Deserialize, Serialize};
-use steel::{ClientScrapeParams, ClientScreenshotParams, ScrapeRequestFormatItem, Steel};
+use steel_rs::{Client, ScrapeParams, ScrapeParamsFormat, ScreenshotParams};
 use temporalio_common::protos::temporal::api::common::v1::RetryPolicy;
 use temporalio_macros::{activities, workflow, workflow_methods};
 use temporalio_sdk::{
@@ -176,18 +176,18 @@ async fn capture_page_impl(input: CapturePageInput) -> anyhow::Result<PageCaptur
     let artifact_dir = PathBuf::from(env_or("ARTIFACT_DIR", "artifacts"));
     tokio::fs::create_dir_all(&artifact_dir).await?;
 
-    let client = Steel::new(api_key);
+    let client = Client::builder().api_key(api_key).build();
     let scraped = client
-        .scrape(
-            ClientScrapeParams::new(requested_url.clone())
-                .format(vec![ScrapeRequestFormatItem::Markdown]),
-        )
+        .scrape(ScrapeParams {
+            format: Some(vec![ScrapeParamsFormat::Markdown]),
+            ..ScrapeParams::new(requested_url.clone())
+        })
         .await?;
     let shot = client
-        .screenshot(
-            ClientScreenshotParams::new(requested_url.clone())
-                .full_page(input.full_page_screenshot),
-        )
+        .screenshot(ScreenshotParams {
+            full_page: Some(input.full_page_screenshot),
+            ..ScreenshotParams::new(requested_url.clone())
+        })
         .await?;
 
     let markdown = scraped.content.markdown.clone().unwrap_or_default();
