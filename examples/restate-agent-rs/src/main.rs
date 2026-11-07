@@ -6,7 +6,7 @@ use std::error::Error;
 use restate_sdk::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use steel::{ClientScrapeParams, ScrapeRequestFormatItem, Steel};
+use steel_rs::{Client, ScrapeParams, ScrapeParamsFormat};
 use url::Url;
 
 const DEFAULT_MODEL: &str = "gpt-5.5";
@@ -258,17 +258,11 @@ fn observation_digest(observations: &[Observation]) -> String {
 }
 
 async fn scrape_url(url: &str) -> Result<Json<Observation>, HandlerError> {
-    let client = Steel::new(env_or("STEEL_API_KEY", ""));
+    let client = Client::builder().api_key(env_or("STEEL_API_KEY", "")).build();
     let scraped = client
-        .scrape(ClientScrapeParams {
-            url: url.to_string(),
-            format: Some(vec![ScrapeRequestFormatItem::Markdown]),
-            delay: None,
-            pdf: None,
-            project_id: None,
-            region: None,
-            screenshot: None,
-            use_proxy: None,
+        .scrape(ScrapeParams {
+            format: Some(vec![ScrapeParamsFormat::Markdown]),
+            ..ScrapeParams::new(url.to_string())
         })
         .await
         .map_err(|err| HandlerError::from(anyhow::anyhow!(err.to_string())))?;
