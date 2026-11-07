@@ -6,7 +6,7 @@ Steel runs the screen. A session is a headful Chromium in a VM, and `client.Sess
 
 ## Two typed surfaces, one bytes gotcha
 
-The Steel computer endpoint accepts the action as an `any` body, so each action is a distinct struct: `steel.ClickMouse`, `steel.MoveMouse`, `steel.PressKey`, `steel.TypeText`, `steel.Scroll`, `steel.DragMouse`, `steel.Wait`, `steel.TakeScreenshot`. The agent's `switch fc.Name` builds the right one per Gemini call, and `run` reads `*resp.Base64Image` back out (pointer fields, nil-checked).
+The Steel computer endpoint takes the action as the `Body` of `SessionComputerParams`, a union interface, so each action is a distinct struct: `steel.SessionComputerParamsBodyClickMouse`, `...MoveMouse`, `...PressKey`, `...TypeText`, `...Scroll`, `...DragMouse`, `...Wait`, `...TakeScreenshot`. The agent's `switch fc.Name` builds the right one per Gemini call, and `run` reads `resp.Base64Image` back out (a plain string, empty when the action captured no screenshot).
 
 Gemini's args land in a `map[string]any` with JSON types: numbers are `float64`, so `argInt` casts before `denormalizeX` / `denormalizeY` scale 0-1000 onto the 1440x900 viewport. The one trap worth naming: `genai.Blob.Data` is `[]byte`, not a base64 string. Steel hands back base64 text, so every screenshot is run through `base64.StdEncoding.DecodeString` before it becomes an `InlineData` part.
 
@@ -83,7 +83,7 @@ A run usually takes 60-180 seconds across 10-30 iterations.
 - Swap the model. The `model` constant is the only version string.
 - Resize the viewport. `viewportWidth` / `viewportHeight` feed both the Steel `Dimensions` and the denormalize math.
 - Gate safety decisions. Replace the auto-acknowledge branch in `executeTask` with a human approval before the action fires.
-- Hand off auth. Pass `SessionContext` to `Sessions.Create` to resume with cookies and local storage. See [credentials](../credentials-ts).
+- Hand off auth. Pass `SessionContext` to `Sessions.New` to resume with cookies and local storage. See [credentials](../credentials-ts).
 
 ## Related
 

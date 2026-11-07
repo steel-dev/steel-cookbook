@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/joho/godotenv v1.5.1
 	github.com/restatedev/sdk-go v0.24.0
-	github.com/steel-dev/steel-go v0.1.3
+	github.com/steel-dev/sdk/go v0.21.0
 )
 
 require (

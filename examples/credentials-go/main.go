@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const origin = "https://demo.testfire.net"
@@ -64,25 +64,30 @@ func waitForAutofill(out *string, selector string) chromedp.Action {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Storing credential...")
-	_, err := client.Credentials.Create(ctx, steel.CredentialCreateParams{
+	existing, err := client.Credentials.List(ctx, steel.CredentialListParams{
 		Origin: steel.F(origin),
-		Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
 	})
-	switch {
-	case err == nil:
-		fmt.Println("Credential stored.")
-	case strings.Contains(err.Error(), "already exists"):
+	if err != nil {
+		return fmt.Errorf("list credentials: %w", err)
+	}
+	if len(existing.Credentials) > 0 {
 		fmt.Println("Credential already exists, moving on.")
-	default:
-		return fmt.Errorf("create credential: %w", err)
+	} else {
+		if _, err := client.Credentials.New(ctx, steel.CredentialNewParams{
+			Origin: steel.F(origin),
+			Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
+		}); err != nil {
+			return fmt.Errorf("create credential: %w", err)
+		}
+		fmt.Println("Credential stored.")
 	}
 
 	fmt.Println("Creating Steel session with credentials enabled...")
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		Credentials: steel.F(steel.SessionCreateParamsCredentials{}),
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
+		Credentials: steel.F(steel.SessionNewParamsCredentials{}),
 	})
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
@@ -91,7 +96,7 @@ func run(apiKey string) error {
 
 	defer func() {
 		fmt.Println("Releasing session...")
-		if _, err := client.Sessions.Release(ctx, sess.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, sess.ID); err != nil {
 			fmt.Println("Release failed:", err)
 		}
 	}()

@@ -12,7 +12,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -38,10 +39,10 @@ func main() {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Creating Steel session #1...")
-	first, err := client.Sessions.Create(ctx, steel.SessionCreateParams{})
+	first, err := client.Sessions.New(ctx, steel.SessionNewParams{})
 	if err != nil {
 		return fmt.Errorf("create session #1: %w", err)
 	}
@@ -53,23 +54,23 @@ func run(apiKey string) error {
 		}
 		return verifyAuth(runCtx, "session #1")
 	}); err != nil {
-		_, _ = client.Sessions.Release(ctx, first.ID, steel.SessionReleaseParams{})
+		_, _ = client.Sessions.Release(ctx, first.ID)
 		return err
 	}
 
 	captured, err := client.Sessions.Context(ctx, first.ID)
 	if err != nil {
-		_, _ = client.Sessions.Release(ctx, first.ID, steel.SessionReleaseParams{})
+		_, _ = client.Sessions.Release(ctx, first.ID)
 		return fmt.Errorf("capture context: %w", err)
 	}
 
-	if _, err := client.Sessions.Release(ctx, first.ID, steel.SessionReleaseParams{}); err != nil {
+	if _, err := client.Sessions.Release(ctx, first.ID); err != nil {
 		return fmt.Errorf("release session #1: %w", err)
 	}
 	fmt.Println("Session #1 released")
 
 	fmt.Println("\nCreating Steel session #2 from the captured context...")
-	second, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	second, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		SessionContext: steel.F(restoreContext(captured)),
 	})
 	if err != nil {
@@ -77,7 +78,7 @@ func run(apiKey string) error {
 	}
 	defer func() {
 		fmt.Println("Releasing session #2...")
-		if _, err := client.Sessions.Release(ctx, second.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, second.ID); err != nil {
 			fmt.Println("Release failed:", err)
 		}
 	}()
@@ -135,8 +136,8 @@ func verifyAuth(ctx context.Context, label string) error {
 	return nil
 }
 
-func restoreContext(src *steel.SessionContext) steel.SessionCreateParamsSessionContext {
-	out := steel.SessionCreateParamsSessionContext{}
+func restoreContext(src *steel.SessionContext) steel.SessionNewParamsSessionContext {
+	out := steel.SessionNewParamsSessionContext{}
 	if src == nil {
 		return out
 	}
@@ -149,9 +150,9 @@ func restoreContext(src *steel.SessionContext) steel.SessionCreateParamsSessionC
 	}
 
 	if len(src.Cookies) > 0 {
-		cookies := make([]steel.SessionCreateParamsSessionContextCookie, 0, len(src.Cookies))
+		cookies := make([]steel.SessionNewParamsSessionContextCookie, 0, len(src.Cookies))
 		for _, c := range src.Cookies {
-			cookie := steel.SessionCreateParamsSessionContextCookie{
+			cookie := steel.SessionNewParamsSessionContextCookie{
 				Name:     steel.F(c.Name),
 				Value:    steel.F(c.Value),
 				Domain:   steel.F(c.Domain),
@@ -164,7 +165,7 @@ func restoreContext(src *steel.SessionContext) steel.SessionCreateParamsSessionC
 				cookie.URL = steel.F(c.URL)
 			}
 			if c.SameSite != "" {
-				cookie.SameSite = steel.F(c.SameSite)
+				cookie.SameSite = steel.F(steel.SessionNewParamsSessionContextCookieSameSite(c.SameSite))
 			}
 			cookies = append(cookies, cookie)
 		}

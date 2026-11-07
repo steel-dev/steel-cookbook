@@ -10,7 +10,7 @@ A browser MCP server has to answer one question: when two tools run against "the
 
 ```go
 func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ createInput) (*mcp.CallToolResult, createOutput, error) {
-	steelSession, err := s.steel.Sessions.Create(ctx, steel.SessionCreateParams{ ... })
+	steelSession, err := s.steel.Sessions.New(ctx, steel.SessionNewParams{ ... })
 	// ... connect chromedp to steelSession.WebsocketURL ...
 	s.sessions[steelSession.ID] = sess
 	return nil, createOutput{SessionID: steelSession.ID, LiveViewURL: sess.viewerURL}, nil
@@ -49,7 +49,7 @@ One stdio rule: the JSON-RPC stream owns stdout, so the server logs only to stde
 ## Make it yours
 
 - **Add a tool.** A `click` tool is a few `chromedp.Click` lines and one more `mcp.AddTool` call. Take a `session_id`, look it up with `s.get`, act on the tab.
-- **Start authenticated.** Swap the `SessionCreateParams` in `createSession` to attach a [profile](../profiles-go) or [credentials](../credentials-go) so a session opens already logged in.
+- **Start authenticated.** Swap the `SessionNewParams` in `createSession` to attach a [profile](../profiles-go) or [credentials](../credentials-go) so a session opens already logged in.
 - **Go remote.** Replace `mcp.StdioTransport` with the SDK's streamable-HTTP handler to serve many clients from one process. The handle pattern already carries the state, so nothing else changes.
 
 ## Related

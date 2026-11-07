@@ -1,30 +1,33 @@
 # Rod on a Steel browser (Go)
 
-Rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a websocket, so `ControlURL` is the only seam you need: hand Rod the session's websocket URL with your key appended, and the rest of your code is ordinary Rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
+Rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a websocket, so the CDP connection is the only seam you need: hand Rod a client dialed to the session's websocket URL with your key appended, and the rest of your code is ordinary Rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
 
 ```go
 cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, apiKey)
-browser := rod.New().ControlURL(cdpURL).MustConnect()
+cdpClient, err := connectCDP(ctx, cdpURL)
+browser := rod.New().Client(cdpClient).MustConnect()
 defer browser.MustClose()
 
 page := browser.MustPage("https://quotes.toscrape.com").MustWaitStable()
 ```
 
-`rod.New()` returns a `*Browser` you keep configuring by chaining. `ControlURL` points it at the remote Chrome instead of launching a local one, and `MustConnect` attaches over CDP. There is no `NewContext` or `NewPage` ceremony: `MustPage` opens a tab and returns a `*Page` you query straight away.
+`rod.New()` returns a `*Browser` you keep configuring by chaining. `Client` hands it a CDP client already dialed to the remote Chrome, so Rod never launches a local one, and `MustConnect` attaches over CDP. There is no `NewContext` or `NewPage` ceremony: `MustPage` opens a tab and returns a `*Page` you query straight away.
 
 ## The connect URL
 
-`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. Rod connects to exactly the URL you give it and does not rewrite the address, so the key has to be in the string before `ControlURL` sees it. If you forget it, the websocket handshake is rejected and `MustConnect` panics before the first page loads.
+`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. `connectCDP` dials exactly the URL you give it and does not rewrite the address, so the key has to be in the string before the dial. If you forget it, the websocket handshake is rejected and `connectCDP` returns an error before the first page loads.
 
-The session itself comes from the Steel SDK. `client.Sessions.Create` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the websocket URL to connect, the viewer URL to print, and the ID to release at the end.
+`connectCDP` exists because Rod's built-in websocket client is too minimal for Steel. Its handshake, the one `ControlURL` uses, sends the literal header `Sec-WebSocket-Key: nil`, which Steel answers with `400 Bad request`. Its reader also ignores frame types, so the close frame Steel sends when the browser or session ends lands in Rod's JSON decoder and crashes the process from a background goroutine, before the deferred `Release` can run. `connectCDP` dials with `github.com/gorilla/websocket` instead and wraps the connection in `cdpSocket`, a small adapter for Rod's two-method `cdp.WebSocketable` interface. A close frame then comes back from `Read` as an ordinary error (`websocket: close 1000 (normal)`), Rod returns it to any CDP call still waiting, and a normal shutdown exits cleanly.
+
+The session itself comes from the Steel SDK. `client.Sessions.New` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the websocket URL to connect, the viewer URL to print, and the ID to release at the end.
 
 ```go
-session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-    Dimensions: &steel.SessionCreateParamsDimensions{Width: 1280, Height: 800},
+session, err := client.Sessions.New(ctx, steel.SessionNewParams{
+    Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 })
 ```
 
-Every field on `SessionCreateParams` is a pointer, so an omitted field is a real "unset" rather than a zero value the API has to guess about. The `ptr` helper at the top of `main.go` is a one-line generic that wraps a literal in a pointer, which is what lets you write `Dimensions` inline and, later, flags like `SolveCaptcha: ptr(true)`.
+Every field on `SessionNewParams` is a `param.Field`, so an omitted field is a real "unset" rather than a zero value the API has to guess about. `steel.F` wraps a value to mark it as set, which is what lets you write `Dimensions` inline and, later, flags like `SolveCaptcha: steel.F(true)`.
 
 The one field worth setting deliberately on a longer job is `Timeout`. It is the hard cap on session lifetime in milliseconds and defaults to 300000, five minutes. A scrape that needs longer has to raise it at creation time, because there is no way to extend a session once it is live: when the timeout elapses, Steel releases the browser out from under you and the next Rod call fails. For the quick scrape here the default is plenty, and the deferred `Release` ends the session in well under a second anyway.
 
@@ -50,7 +53,7 @@ The screenshot is captured on the remote browser and streamed back as bytes, so 
 
 ## Watch it run
 
-The program prints `session.SessionViewerURL` right after `Create`. Opening that link shows the live browser: the page navigating, the DOM settling, and the screenshot firing, all in real time. It is the fastest way to debug a selector that is not matching, because you can see the actual rendered page rather than guessing from a panic message. The viewer also keeps showing the last frame after the session ends, so a run that failed mid-scrape still leaves you something to inspect.
+The program prints `session.SessionViewerURL` right after `Sessions.New`. Opening that link shows the live browser: the page navigating, the DOM settling, and the screenshot firing, all in real time. It is the fastest way to debug a selector that is not matching, because you can see the actual rendered page rather than guessing from a panic message. The viewer also keeps showing the last frame after the session ends, so a run that failed mid-scrape still leaves you something to inspect.
 
 ## Run it
 
@@ -85,10 +88,10 @@ Found 10 quotes on the page:
 ...
 
 Saved screenshot to quotes.png
+Done!
 
 Releasing session...
 Session released
-Done!
 ```
 
 A run takes a few seconds and costs a few cents of browser time. Steel bills per session-minute, so the `defer client.Sessions.Release(...)` call is not optional: skip it and the browser stays live until the default five-minute timeout, billing the whole time. `browser.MustClose()` closes the CDP connection; `Release` ends the Steel session. You want both, and you want them deferred so a panic from a `Must` call still triggers them on the way out.
@@ -97,7 +100,7 @@ A run takes a few seconds and costs a few cents of browser time. Steel bills per
 
 - **Swap the target.** Change the `MustPage` URL and the selectors in the loop. The `quotes.toscrape.com` site paginates with a `.next > a` link, so you can follow it in a loop and scrape every page instead of one. Session setup and cleanup stay the same.
 - **Wait on real readiness.** `MustWaitStable` blocks until the DOM stops changing, which suits server-rendered pages. For a site that loads content with JavaScript after first paint, wait on the element you actually need with `page.MustElement(sel)`, which polls until it appears instead of guessing at a fixed delay.
-- **Turn on stealth.** `SessionCreateParams` accepts `SolveCaptcha`, `UseProxy`, and `Timeout` for sites with anti-bot defenses. Each is a pointer, so set them through the `ptr` helper: `SolveCaptcha: ptr(true)`.
+- **Turn on stealth.** `SessionNewParams` accepts `SolveCaptcha`, `UseProxy`, and `Timeout` for sites with anti-bot defenses. Wrap each value with `steel.F`: `SolveCaptcha: steel.F(true)`. `UseProxy` is typed `any`, so it takes `steel.F[any](true)`.
 - **Survive missing elements.** The `Must` methods are convenient for a script. For a long-running job, use the non-`Must` variants (`page.Element` returns `(*rod.Element, error)`) or wrap the risky section in `rod.Try`, which converts a panic into an error you can inspect and recover from rather than crashing the process.
 
 ## Related

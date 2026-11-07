@@ -4,29 +4,43 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/cdp"
-	steel "github.com/steel-dev/steel-go"
+	"github.com/gorilla/websocket"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
+type cdpSocket struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
+}
+
+func (s *cdpSocket) Send(data []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.conn.WriteMessage(websocket.TextMessage, data)
+}
+
+func (s *cdpSocket) Read() ([]byte, error) {
+	_, data, err := s.conn.ReadMessage()
+	return data, err
+}
+
 func connectCDP(ctx context.Context, wsURL string) (*cdp.Client, error) {
-	key := make([]byte, 16)
-	if _, err := rand.Read(key); err != nil {
+	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, wsURL, nil)
+	if err != nil {
+		if resp != nil {
+			return nil, fmt.Errorf("%w: %s", err, resp.Status)
+		}
 		return nil, err
 	}
-	header := http.Header{"Sec-WebSocket-Key": {base64.StdEncoding.EncodeToString(key)}}
-	ws := &cdp.WebSocket{}
-	if err := ws.Connect(ctx, wsURL, header); err != nil {
-		return nil, err
-	}
-	return cdp.New().Start(ws), nil
+	return cdp.New().Start(&cdpSocket{conn: conn}), nil
 }
 
 func main() {
@@ -37,11 +51,11 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	fmt.Println("Creating Steel session...")
-	session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
+	session, err := client.Sessions.New(ctx, steel.SessionNewParams{
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -51,7 +65,7 @@ func main() {
 
 	defer func() {
 		fmt.Println("\nReleasing session...")
-		if _, err := client.Sessions.Release(ctx, session.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, session.ID); err != nil {
 			fmt.Printf("Failed to release session: %v\n", err)
 			return
 		}

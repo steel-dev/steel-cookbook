@@ -11,7 +11,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const (
@@ -39,7 +40,7 @@ func main() {
 
 func run(apiKey string) error {
 	ctx := context.Background()
-	client := steel.NewClient(apiKey)
+	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
 	extID, err := resolveExtension(ctx, client)
 	if err != nil {
@@ -47,7 +48,7 @@ func run(apiKey string) error {
 	}
 
 	fmt.Println("Creating Steel session with the extension attached...")
-	sess, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		ExtensionIDs: steel.F([]string{extID}),
 	})
 	if err != nil {
@@ -57,7 +58,7 @@ func run(apiKey string) error {
 
 	defer func() {
 		fmt.Println("Releasing session...")
-		if _, err := client.Sessions.Release(ctx, sess.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, sess.ID); err != nil {
 			fmt.Println("Release failed:", err)
 		}
 	}()
@@ -104,7 +105,7 @@ func resolveExtension(ctx context.Context, client *steel.Client) (string, error)
 
 	fmt.Println("Not found. Uploading from the Chrome Web Store...")
 	uploaded, err := client.Extensions.Upload(ctx, steel.ExtensionUploadParams{
-		URL: steel.Ptr(storeURL),
+		URL: steel.F(storeURL),
 	})
 	if err != nil {
 		return "", fmt.Errorf("upload extension: %w", err)

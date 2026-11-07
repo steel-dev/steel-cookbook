@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/steel-go v0.1.3
+	github.com/steel-dev/sdk/go v0.21.0
 	go.temporal.io/sdk v1.45.0
 )
 

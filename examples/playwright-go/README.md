@@ -13,7 +13,7 @@ Steel returns a context with a page already open, so there is no `NewContext` / 
 
 ## The driver, not the browser
 
-playwright-go is not a pure-Go CDP client the way [chromedp](../chromedp) and [Rod](../rod) are. It drives the same Node-based Playwright driver the other language bindings use, so that driver has to exist on disk before `playwright.Run()` will start. The program installs it on the first line of `run`:
+playwright-go is not a pure-Go CDP client the way [chromedp](../chromedp) and [Rod](../rod) are. It drives the same Node-based Playwright driver the other language bindings use, so that driver has to exist on disk before `playwright.Run()` will start. The program installs it in `run`, right after the Steel session is created:
 
 ```go
 if err := playwright.Install(&playwright.RunOptions{SkipInstallBrowsers: true}); err != nil {
@@ -22,7 +22,7 @@ if err := playwright.Install(&playwright.RunOptions{SkipInstallBrowsers: true});
 pw, err := playwright.Run()
 ```
 
-`SkipInstallBrowsers: true` is the part that matters for Steel. A normal Playwright install also downloads Chromium, Firefox, and WebKit, hundreds of megabytes you never run, because the browser lives in Steel's cloud, not on your machine. The flag fetches the driver alone. Drop it and the first run still works, but it pulls three browser engines you will never launch. Calling `Install` in code is convenient for a one-file example; in a larger project you would run `go run github.com/playwright-community/playwright-go/cmd/playwright install` once at build time instead and let `Run` assume the driver is present.
+`SkipInstallBrowsers: true` is the part that matters for Steel. A normal Playwright install also downloads Chromium, Firefox, and WebKit, hundreds of megabytes you never run, because the browser lives in Steel's cloud, not on your machine. The flag fetches the driver alone. Drop it and the first run still works, but it pulls three browser engines you will never launch. Calling `Install` in code is convenient for a one-file example; in a larger project you would run `go run github.com/mxschmitt/playwright-go/cmd/playwright install` once at build time instead and let `Run` assume the driver is present.
 
 The extraction reads the way it does in [chromedp](../chromedp) for the same reason. `page.Evaluate` returns an `interface{}`, and a slice of structs does not cross that boundary cleanly, so the page-side script `JSON.stringify`s its result and the Go side `json.Unmarshal`s the string into a typed `[]story`. The `extractTopStories` constant holds that script: it pulls title, link, and points from the top five `tr.athing` rows.
 
@@ -35,7 +35,7 @@ go mod tidy
 go run .
 ```
 
-Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The first `go run` downloads the Playwright driver, which takes a moment; later runs reuse it. The program prints a session viewer URL as it starts. Open it in another tab to watch the page load live, and it writes `hackernews.png` to the working directory on the way out.
+Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The first `go run` downloads the Playwright driver (about 140 MB: the `playwright-core` npm package and a Node.js binary), which takes a moment; later runs reuse it. The program prints a session viewer URL as it starts. Open it in another tab to watch the page load live, and it writes `hackernews.png` to the working directory on the way out.
 
 Your output varies with the site. Structure looks like this:
 
@@ -65,9 +65,9 @@ A run costs a few cents of browser time. Steel bills per session-minute, so the 
 
 - **Swap the target.** Change the `page.Goto` URL and the `extractTopStories` script. The JSON-string bridge works for any shape: define a matching Go struct and unmarshal. Session setup and cleanup stay identical.
 - **Skip the JS.** `page.QuerySelectorAll("tr.athing")` returns `ElementHandle` values with `TextContent` and `GetAttribute`, if you would rather query node by node than evaluate a script. It is more round-trips and easier to debug one selector at a time.
-- **Turn on stealth.** `SessionCreateParams` carries `UseProxy`, `SolveCaptcha`, and `Timeout` for sites with anti-bot defenses. Set them on the struct you pass to `Sessions.Create`.
+- **Turn on stealth.** `SessionNewParams` carries `UseProxy`, `SolveCaptcha`, and `Timeout` for sites with anti-bot defenses. Set them on the struct you pass to `Sessions.New`.
 - **Add steps.** Playwright auto-waits on actionability, so `page.Click`, `page.Fill`, and `page.WaitForSelector` are reliable without manual sleeps when you fill forms or paginate before extracting.
 
 ## Related
 
-[chromedp](../chromedp) and [Rod](../rod) are the pure-Go options: both speak CDP directly with no Node driver to install, so compare their `main.go` against this one to decide whether the Playwright API is worth the extra dependency. The [TypeScript](../playwright-ts) and [Python](../playwright-py) starters connect to Steel the same way through the official Playwright bindings. See the [playwright-go docs](https://pkg.go.dev/github.com/playwright-community/playwright-go) for the full page, locator, and screenshot API.
+[chromedp](../chromedp) and [Rod](../rod) are the pure-Go options: both speak CDP directly with no Node driver to install, so compare their `main.go` against this one to decide whether the Playwright API is worth the extra dependency. The [TypeScript](../playwright-ts) and [Python](../playwright-py) starters connect to Steel the same way through the official Playwright bindings. See the [playwright-go docs](https://pkg.go.dev/github.com/mxschmitt/playwright-go) for the full page, locator, and screenshot API.

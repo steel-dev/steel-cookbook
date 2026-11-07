@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	steel "github.com/steel-dev/steel-go"
+	steel "github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -160,16 +161,16 @@ func CapturePage(ctx context.Context, input CapturePageInput) (PageCapture, erro
 		return PageCapture{}, err
 	}
 
-	steelClient := steel.NewClient(apiKey)
-	scraped, err := steelClient.Scrape(ctx, steel.ClientScrapeParams{
+	steelClient := steel.NewClient(option.WithSteelAPIKey(apiKey))
+	scraped, err := steelClient.Scrape(ctx, steel.ScrapeParams{
 		URL:    steel.F(requestedURL),
-		Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+		Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 	})
 	if err != nil {
 		return PageCapture{}, fmt.Errorf("scrape: %w", err)
 	}
 
-	shot, err := steelClient.Screenshot(ctx, steel.ClientScreenshotParams{
+	shot, err := steelClient.Screenshot(ctx, steel.ScreenshotParams{
 		URL:      steel.F(requestedURL),
 		FullPage: steel.F(input.FullPageScreenshot),
 	})

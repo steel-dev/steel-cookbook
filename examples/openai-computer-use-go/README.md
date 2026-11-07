@@ -2,20 +2,20 @@
 
 This recipe wires two typed Go SDKs together so OpenAI's `computer-use-preview` model can drive a Steel cloud browser. The model emits a computer action through the official `github.com/openai/openai-go/v3` Responses API. You execute that action against a Steel session with `client.Sessions.Computer`, then hand the resulting screenshot back so the next turn sees what changed. That single exchange, repeated, is the whole agent.
 
-The interesting part in Go is the seam between the two SDKs, because each models the action vocabulary differently. openai-go gives you a *flattened* union: `ResponseComputerToolCallActionUnion` carries every possible field (`X`, `Y`, `Button`, `Keys`, `ScrollX`, `Text`, `Path`) on one struct, and you read whichever ones the `Type` discriminator says are live. Steel's Go SDK takes the opposite shape: `SessionComputerParams` is a *constructed* discriminated union where you set an `Action` string and attach the one matching `ComputerActionRequest*` pointer. `executeAction` is the translation layer between the two.
+The interesting part in Go is the seam between the two SDKs, because each models the action vocabulary differently. openai-go gives you a *flattened* union: `ResponseComputerToolCallActionUnion` carries every possible field (`X`, `Y`, `Button`, `Keys`, `ScrollX`, `Text`, `Path`) on one struct, and you read whichever ones the `Type` discriminator says are live. Steel's Go SDK takes the opposite shape: `SessionComputerParams` is a *constructed* discriminated union where `Body` holds exactly one `SessionComputerParamsBody*` struct, and that struct's type decides the action. `executeAction` is the translation layer between the two.
 
 ```go
 case "click":
-    body := &steel.ComputerActionRequestClickMouse{
-        Action:      steel.ComputerActionRequestClickMouseActionClickMouse,
-        Button:      ptr(mapButton(act.Button)),
-        Coordinates: coords(),
-        Screenshot:  ptr(true),
+    body := steel.SessionComputerParamsBodyClickMouse{
+        Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+        Button:      steel.F(mapButton(act.Button)),
+        Coordinates: steel.F(coords()),
+        Screenshot:  steel.F(true),
     }
-    return a.run(ctx, steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: body})
+    return a.run(ctx, steel.SessionComputerParams{Body: body})
 ```
 
-Every branch sets `Screenshot: ptr(true)`, so the Steel call that performs the action also returns the screenshot in the same round trip. `run` reads `resp.Base64Image` and falls back to an explicit `take_screenshot` if a particular action did not capture one.
+Every branch sets `Screenshot: steel.F(true)`, so the Steel call that performs the action also returns the screenshot in the same round trip. `run` reads `resp.Base64Image` and falls back to an explicit `take_screenshot` if a particular action did not capture one.
 
 ## Responses keeps the conversation, you keep the loop
 
@@ -103,7 +103,7 @@ A run typically takes 60-180 seconds across 10-30 model turns. Each turn is one 
 - **Adjust the viewport.** `viewportWidth` and `viewportHeight` feed both the Steel session `Dimensions` and the `computer_use_preview` tool's display size. Keep the two in sync so the model's coordinates match the real screen.
 - **Raise or lower the ceiling.** `maxIterations` bounds the loop at 50 turns. Lower it to cap spend on a flaky task.
 - **Gate safety checks.** Replace the auto-acknowledge block with a prompt or an allowlist before appending to `acks`.
-- **Persist a login.** Pass `SessionContext` to `Sessions.Create` to reuse cookies across runs. See [credentials](../credentials-ts).
+- **Persist a login.** Pass `SessionContext` to `Sessions.New` to reuse cookies across runs. See [credentials](../credentials-ts).
 
 ## Notes
 

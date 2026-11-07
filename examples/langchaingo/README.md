@@ -12,9 +12,9 @@ func (t scrapeTool) Description() string { return "Fetch a web page as clean Mar
 
 func (t scrapeTool) Call(ctx context.Context, input string) (string, error) {
     url := strings.Trim(strings.TrimSpace(input), "\"'")
-    resp, err := t.client.Scrape(ctx, steel.ClientScrapeParams{
-        URL:    url,
-        Format: &[]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown},
+    resp, err := t.client.Scrape(ctx, steel.ScrapeParams{
+        URL:    steel.F(url),
+        Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
     })
     // ... return the capped resp.Content.Markdown
 }

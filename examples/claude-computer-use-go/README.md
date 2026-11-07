@@ -1,28 +1,27 @@
 # Claude Computer Use (Go)
 
-Two typed unions meet in this recipe. Claude's Beta Messages API returns a `computer` tool call (`left_click` at `[640, 412]`, `type "claude opus"`, `scroll down 3`); Steel's Sessions Computer endpoint accepts a discriminated union of actions (`click_mouse`, `type_text`, `scroll`) and returns a screenshot. `main.go` is the agent loop that translates one into the other and feeds the screenshot back, using the official `anthropic-sdk-go` and `steel-go` SDKs end to end with no hand-rolled HTTP.
+Two typed unions meet in this recipe. Claude's Beta Messages API returns a `computer` tool call (`left_click` at `[640, 412]`, `type "claude opus"`, `scroll down 3`); Steel's Sessions Computer endpoint accepts a discriminated union of actions (`click_mouse`, `type_text`, `scroll`) and returns a screenshot. `main.go` is the agent loop that translates one into the other and feeds the screenshot back, using the official `anthropic-sdk-go` and `github.com/steel-dev/sdk/go` SDKs end to end with no hand-rolled HTTP.
 
 A Steel session is a headful Chromium in a VM. The Computer endpoint (`client.Sessions.Computer`) runs a mouse or keyboard action server-side and, when you pass `Screenshot: true`, returns a base64 PNG in the same call. So one round-trip both acts and observes.
 
 ## Constructing a Steel action
 
-Steel models its action request as a tagged union. In Go that is `SessionComputerParams`: a discriminator `Action` plus one pointer field per variant, all marshaled by the SDK based on the tag. You set the string and the matching struct, and leave the rest nil:
+Steel models its action request as a tagged union. In Go that is `SessionComputerParams`, whose `Body` field takes exactly one of the `SessionComputerParamsBody*` variant structs. Each variant carries its own `Action` constant, which the SDK sends as the tag, so you build the struct and hand it over:
 
 ```go
-req := &steel.ComputerActionRequestClickMouse{
-    Action:      "click_mouse",
-    Button:      &button,
-    Coordinates: &coords,
-    Screenshot:  ptr(true),
+req := steel.SessionComputerParamsBodyClickMouse{
+    Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+    Button:      steel.F(button),
+    Coordinates: steel.F(coords),
+    Screenshot:  steel.F(true),
 }
-resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID,
-    steel.SessionComputerParams{Action: "click_mouse", ComputerActionRequestClickMouse: req})
-img := resp.Base64Image // *string, base64 PNG
+resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{Body: req})
+img := resp.Base64Image // string, base64 PNG
 ```
 
-`executeComputerAction` is one big `switch` over Claude's action names that builds the right variant for each: `left_click` and friends become a `ComputerActionRequestClickMouse` (with `NumClicks` 2 or 3 for double and triple), `type` becomes `ComputerActionRequestTypeText`, `scroll` becomes a `ComputerActionRequestScroll` with pixel deltas. Two translation details carry over from the Python and TypeScript versions: `scroll_amount` is multiplied by 100 pixels per step, and key names like `CTRL+A` run through `normalizeKey` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`) before they reach `press_key`.
+`executeComputerAction` is one big `switch` over Claude's action names that builds the right variant for each: `left_click` and friends become a `SessionComputerParamsBodyClickMouse` (with `NumClicks` 2 or 3 for double and triple), `type` becomes `SessionComputerParamsBodyTypeText`, `scroll` becomes a `SessionComputerParamsBodyScroll` with pixel deltas. Two translation details carry over from the Python and TypeScript versions: `scroll_amount` is multiplied by 100 pixels per step, and key names like `CTRL+A` run through `normalizeKey` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`) before they reach `press_key`.
 
-Most coordinate and key fields on these structs are pointers (`*[]float64`, `*bool`), so the `ptr` generic helper near the top of the file keeps the construction readable.
+Every field on these structs is a `param.Field`, so each value goes in through `steel.F`, and a field you never set, such as `HoldKeys` when Claude sends no modifier, stays out of the request.
 
 ## Reading Claude's turn
 
@@ -105,7 +104,7 @@ Expect roughly 60 to 180 seconds and 10 to 40 loop iterations for a simple brows
 - **Tune the viewport.** `viewportWidth` and `viewportHeight` set both the Steel `Dimensions` and the tool's `display_*_px`. Keep them equal.
 - **Rework the system prompt.** `browserSystemPrompt` is where the browsing conventions live: date injection, the screenshot-after-submit rule, black-screen recovery.
 - **Raise the ceiling.** `maxIterations` is the safety net for long tasks.
-- **Hand off auth.** Pass `SessionContext` to `Sessions.Create` to start authenticated. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).
+- **Hand off auth.** Pass `SessionContext` to `Sessions.New` to start authenticated. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).
 
 ## Related
 

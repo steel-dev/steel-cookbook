@@ -37,8 +37,10 @@ scrapeTool, _ := utils.InferTool(
     "scrape_page",
     "Fetch a web page through Steel and return it as clean Markdown plus title and description.",
     func(ctx context.Context, args scrapePageArgs) (string, error) {
-        format := []steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}
-        res, err := client.Scrape(ctx, steel.ClientScrapeParams{URL: args.URL, Format: &format})
+        res, err := client.Scrape(ctx, steel.ScrapeParams{
+            URL:    steel.F(args.URL),
+            Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
+        })
         // ... marshal title + markdown to a JSON string for the model
     },
 )
@@ -84,7 +86,7 @@ A run is typically 5 to 9 agent turns and ~15 to 35 seconds against Hacker News.
 
 - **Swap the task.** Change the `task` constant. The tools stay the same; the agent re-plans against the new instructions. Try a comparison ("read these two pricing pages and tabulate the differences") or a single-page extraction.
 - **Swap the model.** Eino's model components are interchangeable. Replace the `claude` import and `claude.NewChatModel` with `github.com/cloudwego/eino-ext/components/model/openai` and `openai.NewChatModel(ctx, &openai.ChatModelConfig{...})`; the tools and agent wiring do not change because tool schemas are provider-agnostic.
-- **Return richer Markdown.** Add `steel.ScrapeRequestFormatItemReadability` or `steel.ScrapeRequestFormatItemCleanedHTML` to the `Format` slice and surface those fields if you want the article body without site chrome.
+- **Return richer Markdown.** Add `steel.ScrapeParamsFormatReadability` or `steel.ScrapeParamsFormatCleanedHTML` to the `Format` slice and surface those fields if you want the article body without site chrome.
 - **Add a tool.** Write another typed function and pass it through `utils.InferTool`, then add it to the `Tools` slice. A useful third tool is a `screenshot` call backed by `client.Screenshot` when the agent needs to confirm a page rendered.
 - **Cap the loop differently.** `MaxStep` bounds how many model-plus-tool rounds run before the agent returns whatever it has. Lower it to fail fast on hard tasks, raise it for multi-page research.
 

@@ -16,7 +16,8 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/firebase/genkit/go/plugins/anthropic"
 	"github.com/joho/godotenv"
-	"github.com/steel-dev/steel-go"
+	"github.com/steel-dev/sdk/go"
+	"github.com/steel-dev/sdk/go/option"
 )
 
 const model = "anthropic/claude-haiku-4-5"
@@ -81,11 +82,11 @@ func main() {
 	fmt.Println("============================================================")
 
 	ctx := context.Background()
-	client := steel.NewClient(steelKey)
+	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
-	session, err := client.Sessions.Create(ctx, steel.SessionCreateParams{
+	session, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		BlockAds:   steel.F(true),
-		Dimensions: steel.F(steel.SessionCreateParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
+		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
 		fmt.Printf("Failed to create session: %v\n", err)
@@ -97,7 +98,7 @@ func main() {
 	// session keeps running until the default 5-minute timeout.
 	defer func() {
 		fmt.Println("\nReleasing Steel session...")
-		if _, err := client.Sessions.Release(ctx, session.ID, steel.SessionReleaseParams{}); err != nil {
+		if _, err := client.Sessions.Release(ctx, session.ID); err != nil {
 			fmt.Printf("Error releasing session: %v\n", err)
 			return
 		}
@@ -174,9 +175,9 @@ func main() {
 		func(tc *ai.ToolContext, in scrapeInput) (string, error) {
 			start := time.Now()
 			// ToolContext embeds context.Context, so it doubles as the request ctx.
-			res, err := b.client.Scrape(tc, steel.ClientScrapeParams{
+			res, err := b.client.Scrape(tc, steel.ScrapeParams{
 				URL:    steel.F(in.URL),
-				Format: steel.F([]steel.ScrapeRequestFormatItem{steel.ScrapeRequestFormatItemMarkdown}),
+				Format: steel.F([]steel.ScrapeParamsFormat{steel.ScrapeParamsFormatMarkdown}),
 			})
 			if err != nil {
 				return "", err
