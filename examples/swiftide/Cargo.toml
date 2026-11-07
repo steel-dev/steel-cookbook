@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-steel-rs = "0.1"
+steel-rs = "0.21"
 swiftide = { version = "0.32", features = ["anthropic", "swiftide-agents", "macros"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"

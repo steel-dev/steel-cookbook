@@ -4,8 +4,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use steel::types::{ClientScrapeParams, ScrapeRequestFormatItem};
-use steel::Steel;
+use steel_rs::{Client, ScrapeParams, ScrapeParamsFormat};
 use swiftide::agents::Agent;
 use swiftide::chat_completion::{errors::ToolError, ToolOutput};
 use swiftide::integrations::anthropic::Anthropic;
@@ -31,7 +30,7 @@ story's comments or article and give me a two-sentence summary of what it is abo
     param(name = "url", description = "Absolute URL of the page to read, including https://")
 )]
 struct ReadPage {
-    client: Arc<Steel>,
+    client: Arc<Client>,
 }
 
 impl ReadPage {
@@ -42,15 +41,9 @@ impl ReadPage {
     ) -> Result<ToolOutput, ToolError> {
         let response = self
             .client
-            .scrape(ClientScrapeParams {
-                url: url.to_string(),
-                format: Some(vec![ScrapeRequestFormatItem::Markdown]),
-                delay: None,
-                pdf: None,
-                project_id: None,
-                region: None,
-                screenshot: None,
-                use_proxy: None,
+            .scrape(ScrapeParams {
+                format: Some(vec![ScrapeParamsFormat::Markdown]),
+                ..ScrapeParams::new(url.to_string())
             })
             .await
             .map_err(|e| ToolError::Unknown(anyhow::anyhow!(e)))?;
@@ -84,7 +77,7 @@ async fn main() -> Result<()> {
     println!("Steel + Swiftide research agent");
     println!("============================================================");
 
-    let client = Arc::new(Steel::new(steel_api_key));
+    let client = Arc::new(Client::builder().api_key(steel_api_key).build());
 
     let anthropic = Anthropic::builder().default_prompt_model(MODEL).build()?;
 
