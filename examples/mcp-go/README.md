@@ -4,6 +4,8 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 The server exposes five tools. `create_session` starts a Steel session and returns its id; `navigate`, `extract`, and `screenshot` act on a session; `release_session` tears it down. The id Steel returns is the only thing tying the calls together.
 
+Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+
 ## The session id is the handle
 
 A browser MCP server has to answer one question: when two tools run against "the browser," which browser do they mean? Hiding a single session in a global is the trap the [MCP spec calls out](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/), because a second client on the same process would inherit the first one's cookies and page. The 2026 spec removed the transport-level session and says state should ride on an explicit handle "a `browser_id` minted from a tool and passed back as an ordinary argument." That is exactly what `create_session` does:

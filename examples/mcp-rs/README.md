@@ -4,6 +4,8 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` take that id and act on the browser; `release_session` closes it. Each tool is one `#[tool]`-annotated method on `SteelMcp`, and `#[tool_router]` plus `#[tool_handler]` turn those methods into the served schema.
 
+Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+
 ## Holding the browser open between calls
 
 The hard part of a browser MCP server is not any single tool, it is keeping one browser alive and reachable across separate calls. `create_session` does three things that have to outlive the call that made them:

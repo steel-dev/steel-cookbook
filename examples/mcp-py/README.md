@@ -4,6 +4,8 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` act on a session by id; `release_session` closes it.
 
+Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+
 ## The decorator is the schema, the id is the handle
 
 Each tool is a plain async function under `@mcp.tool()`. FastMCP reads the type hints and the docstring to build the JSON Schema the client sees, so the signature is the whole contract:
