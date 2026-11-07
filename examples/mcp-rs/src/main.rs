@@ -16,7 +16,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 use serde_json::json;
-use steel::Steel;
+use steel_rs::Client;
 use tokio::sync::Mutex;
 
 // A live Steel browser behind one chromiumoxide page. The handler task pumps the
@@ -32,7 +32,7 @@ struct SessionEntry {
 
 #[derive(Clone)]
 struct SteelMcp {
-    steel: Arc<Steel>,
+    steel: Arc<Client>,
     steel_key: String,
     sessions: Arc<Mutex<HashMap<String, SessionEntry>>>,
 }
@@ -67,7 +67,7 @@ struct SessionArg {
 impl SteelMcp {
     fn new(steel_key: String) -> Self {
         Self {
-            steel: Arc::new(Steel::new(steel_key.clone())),
+            steel: Arc::new(Client::builder().api_key(steel_key.clone()).build()),
             steel_key,
             sessions: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -89,7 +89,7 @@ impl SteelMcp {
         let session = self
             .steel
             .sessions()
-            .create(steel::SessionCreateParams::default())
+            .create(steel_rs::SessionCreateParams::default())
             .await
             .map_err(internal)?;
 
@@ -210,11 +210,7 @@ impl SteelMcp {
             ));
         };
         entry.handler.abort();
-        let _ = self
-            .steel
-            .sessions()
-            .release(&entry.steel_id, Default::default())
-            .await;
+        let _ = self.steel.sessions().release(&entry.steel_id).await;
         Ok(CallToolResult::success(vec![ContentBlock::text(
             json!({ "released": session_id }).to_string(),
         )]))
