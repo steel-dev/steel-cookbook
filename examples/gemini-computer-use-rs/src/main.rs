@@ -6,8 +6,13 @@ use std::error::Error;
 use chrono::Local;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use steel::types::*;
-use steel::Steel;
+use steel_rs::{
+    Client, SessionComputerParams, SessionComputerParamsClickMouse,
+    SessionComputerParamsClickMouseButton, SessionComputerParamsDragMouse,
+    SessionComputerParamsMoveMouse, SessionComputerParamsPressKey, SessionComputerParamsScroll,
+    SessionComputerParamsTakeScreenshot, SessionComputerParamsTypeText, SessionComputerParamsWait,
+    SessionComputerResponse, SessionCreateParams, SessionCreateParamsDimensions,
+};
 
 const GEMINI_URL: &str =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
@@ -141,7 +146,7 @@ fn arg_bool(args: &Value, key: &str, default: bool) -> bool {
 struct Agent {
     http: reqwest::Client,
     gemini_key: String,
-    steel: Steel,
+    steel: Client,
     contents: Vec<Value>,
     session_id: Option<String>,
     session_viewer_url: Option<String>,
@@ -153,7 +158,7 @@ impl Agent {
         Self {
             http: reqwest::Client::new(),
             gemini_key,
-            steel: Steel::new(steel_key),
+            steel: Client::builder().api_key(steel_key).build(),
             contents: Vec::new(),
             session_id: None,
             session_viewer_url: None,
@@ -178,10 +183,10 @@ impl Agent {
             .steel
             .sessions()
             .create(SessionCreateParams {
-                dimensions: Some(Box::new(SessionCreateParamsDimensions {
+                dimensions: Some(SessionCreateParamsDimensions {
                     width: VIEWPORT_WIDTH,
                     height: VIEWPORT_HEIGHT,
-                })),
+                }),
                 block_ads: Some(true),
                 timeout: Some(900_000),
                 ..Default::default()
@@ -197,12 +202,7 @@ impl Agent {
     async fn cleanup(&self) {
         if let Some(id) = &self.session_id {
             println!("Releasing Steel session...");
-            match self
-                .steel
-                .sessions()
-                .release(id, std::collections::HashMap::new())
-                .await
-            {
+            match self.steel.sessions().release(id).await {
                 Ok(_) => {
                     if let Some(url) = &self.session_viewer_url {
                         println!("Session completed. View replay at {}", url);
@@ -238,7 +238,7 @@ impl Agent {
             .sessions()
             .computer(
                 id,
-                SessionComputerParams::TakeScreenshot(ComputerActionRequestTakeScreenshot {
+                SessionComputerParams::TakeScreenshot(SessionComputerParamsTakeScreenshot {
                 }),
             )
             .await?;
@@ -247,8 +247,8 @@ impl Agent {
     }
 
     fn click_params(x: f64, y: f64, screenshot: bool) -> SessionComputerParams {
-        SessionComputerParams::ClickMouse(ComputerActionRequestClickMouse {
-            button: Some(ComputerActionRequestClickMouseButton::Left),
+        SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
+            button: Some(SessionComputerParamsClickMouseButton::Left),
             click_type: None,
             coordinates: Some(vec![x, y]),
             hold_keys: None,
@@ -258,7 +258,7 @@ impl Agent {
     }
 
     fn press_keys_params(keys: Vec<String>, screenshot: bool) -> SessionComputerParams {
-        SessionComputerParams::PressKey(ComputerActionRequestPressKey {
+        SessionComputerParams::PressKey(SessionComputerParamsPressKey {
             duration: None,
             keys,
             screenshot: Some(screenshot),
@@ -266,7 +266,7 @@ impl Agent {
     }
 
     fn type_text_params(text: String) -> SessionComputerParams {
-        SessionComputerParams::TypeText(ComputerActionRequestTypeText {
+        SessionComputerParams::TypeText(SessionComputerParamsTypeText {
             hold_keys: None,
             screenshot: None,
             text,
@@ -274,14 +274,14 @@ impl Agent {
     }
 
     fn wait_params(duration: f64, screenshot: bool) -> SessionComputerParams {
-        SessionComputerParams::Wait(ComputerActionRequestWait {
+        SessionComputerParams::Wait(SessionComputerParamsWait {
             duration,
             screenshot: Some(screenshot),
         })
     }
 
     fn scroll_params(x: f64, y: f64, dx: f64, dy: f64) -> SessionComputerParams {
-        SessionComputerParams::Scroll(ComputerActionRequestScroll {
+        SessionComputerParams::Scroll(SessionComputerParamsScroll {
             coordinates: Some(vec![x, y]),
             delta_x: Some(dx),
             delta_y: Some(dy),
@@ -308,7 +308,7 @@ impl Agent {
                 let x = Self::denormalize_x(arg_f64(args, "x", 0.0));
                 let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
                 self.run_action(SessionComputerParams::MoveMouse(
-                    ComputerActionRequestMoveMouse {
+                    SessionComputerParamsMoveMouse {
                         coordinates: vec![x, y],
                         hold_keys: None,
                         screenshot: Some(true),
@@ -470,7 +470,7 @@ impl Agent {
                 let end_x = Self::denormalize_x(arg_f64(args, "destination_x", 0.0));
                 let end_y = Self::denormalize_y(arg_f64(args, "destination_y", 0.0));
                 self.run_action(SessionComputerParams::DragMouse(
-                    ComputerActionRequestDragMouse {
+                    SessionComputerParamsDragMouse {
                         hold_keys: None,
                         path: vec![vec![start_x, start_y], vec![end_x, end_y]],
                         screenshot: Some(true),
