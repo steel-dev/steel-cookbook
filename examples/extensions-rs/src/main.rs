@@ -6,8 +6,7 @@ use std::time::Duration;
 
 use chromiumoxide::Browser;
 use futures::StreamExt;
-use steel::types::*;
-use steel::Steel;
+use steel_rs::{Client, ExtensionUploadParams, SessionCreateParams};
 
 const EXTENSION_NAME: &str = "Github_Isometric_Contribu";
 const EXTENSION_URL: &str = "https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien";
@@ -21,7 +20,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key = std::env::var("STEEL_API_KEY")
         .map_err(|_| "set STEEL_API_KEY (get one at https://app.steel.dev/settings/api-keys)")?;
 
-    let client = Steel::new(api_key.clone());
+    let client = Client::builder().api_key(api_key.clone()).build();
 
     let extension_id = resolve_extension(&client).await?;
     println!("Using extension {extension_id}");
@@ -40,16 +39,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let result = run(&session.websocket_url, &api_key).await;
 
     println!("Releasing session...");
-    client
-        .sessions()
-        .release(&session.id, SessionReleaseParams::new())
-        .await?;
+    client.sessions().release(&session.id).await?;
     println!("Session released");
 
     result
 }
 
-async fn resolve_extension(client: &Steel) -> Result<String, Box<dyn Error>> {
+async fn resolve_extension(client: &Client) -> Result<String, Box<dyn Error>> {
     println!("Checking for extension {EXTENSION_NAME}...");
     let existing = client
         .extensions()
@@ -86,7 +82,7 @@ async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
     };
 
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
-    let handle = tokio::spawn(async move { while let Some(_) = handler.next().await {} });
+    let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 
     println!("Connected over CDP, opening {PROFILE_URL}...");
     let page = browser.new_page(PROFILE_URL).await?;
