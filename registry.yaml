@@ -949,3 +949,13 @@
   topics: [Agents, Restate]
   created: "2026-06-29"
   updated: "2026-06-29"
+
+- title: Sign up with an emailed verification code
+  slug: pidgeon-email-verification
+  path: examples/pidgeon-email-verification
+  description: Give a Browser Use agent its own Pidgeon email address so it can sign up in a Steel session, read the verification code, and finish the sign-up.
+  authors: [patrickcneuhaus]
+  language: Python
+  topics: [Authentication, Browser Use]
+  created: "2026-10-28"
+  updated: "2026-10-28"

@@ -1,0 +1,12 @@
+[project]
+name = "pidgeon-email-verification"
+version = "0.1.0"
+description = "Steel + Browser Use + Pidgeon: sign up with an emailed verification code"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "browser-use>=0.12",
+    "pidgeon>=1.44.0",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.16.0",
+]
