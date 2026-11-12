@@ -28,7 +28,7 @@ Several Gemini actions are compound and get expanded locally. `type_text_at` fan
 - `FinishReasonMalformedFunctionCall` with nothing else: a preview-model quirk, skip to the next iteration.
 - The 50-iteration cap.
 
-`main` defers `agent.cleanup`, which releases the Steel session.
+`run` defers `agent.cleanup`, which releases the Steel session, and returns an error instead of calling `os.Exit` so that the deferred cleanup always runs.
 
 ## Run it
 

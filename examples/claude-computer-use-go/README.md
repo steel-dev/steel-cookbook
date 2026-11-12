@@ -112,7 +112,7 @@ Releasing Steel session...
 Session completed. View replay at https://app.steel.dev/sessions/0c66fda0-3f72-4557-9b3f-2ae7bfa85c36
 ```
 
-Expect one to three minutes for a simple browsing task. A run costs a few cents of browser time plus the Anthropic tokens for each screenshot. Steel bills per session-minute, so the `defer agent.cleanup(ctx)` in `main` that releases the session is not optional: skip it and the browser runs until the 900000 ms timeout set in `initialize`.
+Expect one to three minutes for a simple browsing task. A run costs a few cents of browser time plus the Anthropic tokens for each screenshot. Steel bills per session-minute, so the `defer agent.cleanup(ctx)` in `run` that releases the session is not optional: skip it and the browser runs until the 900000 ms timeout set in `initialize`.
 
 ## Make it yours
 

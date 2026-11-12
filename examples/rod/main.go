@@ -50,6 +50,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := run(apiKey); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(apiKey string) error {
 	ctx := context.Background()
 	client := steel.NewClient(option.WithSteelAPIKey(apiKey))
 
@@ -58,8 +65,7 @@ func main() {
 		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
-		fmt.Printf("Failed to create session: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create session: %w", err)
 	}
 	fmt.Printf("Session live at %s\n\n", session.SessionViewerURL)
 
@@ -75,8 +81,7 @@ func main() {
 	cdpURL := session.WebsocketURL
 	cdpClient, err := connectCDP(ctx, cdpURL)
 	if err != nil {
-		fmt.Printf("Failed to connect to browser: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to connect to browser: %w", err)
 	}
 	browser := rod.New().Client(cdpClient).MustConnect()
 	defer browser.MustClose()
@@ -111,4 +116,5 @@ func main() {
 	page.MustScreenshot("quotes.png")
 	fmt.Println("Saved screenshot to quotes.png")
 	fmt.Println("Done!")
+	return nil
 }

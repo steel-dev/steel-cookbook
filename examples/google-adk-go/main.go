@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -90,6 +91,13 @@ func main() {
 	fmt.Println("Steel + Google ADK Go Starter")
 	fmt.Println("============================================================")
 
+	if err := run(steelKey); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(steelKey string) error {
 	ctx := context.Background()
 	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
@@ -98,8 +106,7 @@ func main() {
 		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
-		fmt.Printf("Failed to create session: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create session: %w", err)
 	}
 	fmt.Printf("Session: %s\n", steelSession.SessionViewerURL)
 
@@ -128,8 +135,7 @@ func main() {
 		APIKey: os.Getenv("GOOGLE_API_KEY"),
 	})
 	if err != nil {
-		fmt.Printf("Failed to create model: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create model: %w", err)
 	}
 
 	navigate, err := functiontool.New(functiontool.Config{
@@ -149,8 +155,7 @@ func main() {
 		return navigateOutput{Title: title, URL: url}, nil
 	})
 	if err != nil {
-		fmt.Printf("Failed to create navigate tool: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create navigate tool: %w", err)
 	}
 
 	extract, err := functiontool.New(functiontool.Config{
@@ -188,8 +193,7 @@ func main() {
 		return extractOutput{Rows: rows}, nil
 	})
 	if err != nil {
-		fmt.Printf("Failed to create extract tool: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create extract tool: %w", err)
 	}
 
 	scrape, err := functiontool.New(functiontool.Config{
@@ -211,8 +215,7 @@ func main() {
 		return scrapeOutput{Markdown: "(no markdown returned)"}, nil
 	})
 	if err != nil {
-		fmt.Printf("Failed to create scrape tool: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create scrape tool: %w", err)
 	}
 
 	a, err := llmagent.New(llmagent.Config{
@@ -227,21 +230,18 @@ func main() {
 		Tools: []tool.Tool{navigate, extract, scrape},
 	})
 	if err != nil {
-		fmt.Printf("Failed to create agent: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create agent: %w", err)
 	}
 
 	sessionService := session.InMemoryService()
 	adkSession, err := sessionService.Create(ctx, &session.CreateRequest{AppName: appName, UserID: userID})
 	if err != nil {
-		fmt.Printf("Failed to create ADK session: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create ADK session: %w", err)
 	}
 
 	r, err := runner.New(runner.Config{AppName: appName, Agent: a, SessionService: sessionService})
 	if err != nil {
-		fmt.Printf("Failed to create runner: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create runner: %w", err)
 	}
 
 	task := genai.NewContentFromText(
@@ -257,8 +257,7 @@ func main() {
 		StreamingMode: agent.StreamingModeNone,
 	}) {
 		if err != nil {
-			fmt.Printf("\nAgent error: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("agent error: %w", err)
 		}
 		if event.Content == nil {
 			continue
@@ -270,8 +269,13 @@ func main() {
 		}
 	}
 
+	if final == "" {
+		return errors.New("the agent returned no answer")
+	}
+
 	fmt.Println("\nAgent finished.")
 	fmt.Println(prettyJSON(final))
+	return nil
 }
 
 // prettyJSON re-indents the agent's JSON answer. The model occasionally wraps it

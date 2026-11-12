@@ -33,7 +33,7 @@ The one field worth setting deliberately on a longer job is `Timeout`. It is the
 
 ## The Must idiom
 
-The `Must` prefix is the whole style. `MustElement`, `MustText`, and `MustElements` panic instead of returning a `(value, error)` pair, which keeps a scrape readable as a straight line of selectors rather than an error check after every call. The trade is that a missing selector aborts the program, so the cleanup that releases the session has to run no matter how the scrape exits. That is what the two deferred calls in `main` are for: one closes the CDP connection, the other ends the Steel session.
+The `Must` prefix is the whole style. `MustElement`, `MustText`, and `MustElements` panic instead of returning a `(value, error)` pair, which keeps a scrape readable as a straight line of selectors rather than an error check after every call. The trade is that a missing selector aborts the program, so the cleanup that releases the session has to run no matter how the scrape exits. That is what the two deferred calls in `run` are for: one closes the CDP connection, the other ends the Steel session.
 
 `main.go` loads `quotes.toscrape.com` and pulls the first five quote cards off the page. For each `.quote` block it reads the quote text, the author, and the tag list:
 

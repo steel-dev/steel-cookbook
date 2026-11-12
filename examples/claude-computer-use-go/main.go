@@ -538,19 +538,23 @@ func main() {
 	ctx := context.Background()
 	agent := NewAgent(steelKey, anthropicKey)
 
+	if err := run(ctx, agent, task); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, agent *Agent, task string) error {
 	fmt.Println("\nStarting Steel session...")
 	if err := agent.initialize(ctx); err != nil {
-		fmt.Printf("Failed to start Steel session: %v\n", err)
-		fmt.Println("Please check your STEEL_API_KEY and internet connection.")
-		os.Exit(1)
+		return fmt.Errorf("failed to start Steel session (check your STEEL_API_KEY and internet connection): %w", err)
 	}
 	defer agent.cleanup(ctx)
 
 	start := time.Now()
 	result, err := agent.executeTask(ctx, task)
 	if err != nil {
-		fmt.Printf("Task execution failed: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("task execution failed: %w", err)
 	}
 
 	fmt.Println("\n" + strings.Repeat("=", 60))
@@ -560,4 +564,5 @@ func main() {
 	fmt.Printf("Task: %s\n", task)
 	fmt.Printf("Result:\n%s\n", result)
 	fmt.Println(strings.Repeat("=", 60))
+	return nil
 }
