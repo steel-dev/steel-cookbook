@@ -7,7 +7,7 @@ use std::time::Duration;
 use chromiumoxide::Browser;
 use chromiumoxide::Page;
 use futures::StreamExt;
-use steel_rs::{Client, SessionCreateParams};
+use steel_rs::{Client, ProfileGetParams, ProfileGetResponseStatus, SessionCreateParams};
 
 const BOOKS_URL: &str = "https://demowebshop.tricentis.com/books";
 const CART_URL: &str = "https://demowebshop.tricentis.com/cart";
@@ -15,7 +15,9 @@ const CART_URL: &str = "https://demowebshop.tricentis.com/cart";
 const ADD_TO_CART: &str = ".product-box-add-to-cart-button";
 const ADD_TO_CART_FALLBACK: &str = "input[value=\"Add to cart\"]";
 
-const CART_QTY_JS: &str = "(() => document.querySelectorAll('.cart tbody tr').length)()";
+const CART_ROWS_JS: &str = "(() => document.querySelectorAll('.cart tbody tr').length)()";
+const CART_QTY_JS: &str =
+    "(() => { const el = document.querySelector('.cart-qty'); return el ? el.textContent.trim() : ''; })()";
 
 fn normalize_cdp_url(websocket_url: &str) -> String {
     let raw = websocket_url.to_string();
@@ -27,7 +29,9 @@ fn normalize_cdp_url(websocket_url: &str) -> String {
     }
 }
 
-async fn connect(websocket_url: &str) -> Result<(Browser, tokio::task::JoinHandle<()>), Box<dyn Error>> {
+async fn connect(
+    websocket_url: &str,
+) -> Result<(Browser, tokio::task::JoinHandle<()>), Box<dyn Error>> {
     let cdp_url = normalize_cdp_url(websocket_url);
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
@@ -40,13 +44,34 @@ async fn add_first_to_cart(page: &Page) -> Result<(), Box<dyn Error>> {
         Err(_) => page.find_element(ADD_TO_CART_FALLBACK).await?,
     };
     button.click().await?;
-    page.find_element(".cart-qty").await?;
-    Ok(())
+    for _ in 0..20 {
+        let qty: String = page.evaluate(CART_QTY_JS).await?.into_value()?;
+        if !qty.is_empty() && qty != "(0)" {
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    Err("the cart count never changed after the click".into())
 }
 
 async fn count_cart_rows(page: &Page) -> Result<u64, Box<dyn Error>> {
-    let rows: u64 = page.evaluate(CART_QTY_JS).await?.into_value()?;
+    let rows: u64 = page.evaluate(CART_ROWS_JS).await?.into_value()?;
     Ok(rows)
+}
+
+async fn wait_for_profile(client: &Client, profile_id: &str) -> Result<(), Box<dyn Error>> {
+    for _ in 0..60 {
+        let profile = client
+            .profiles()
+            .get(profile_id, ProfileGetParams::default())
+            .await?;
+        match profile.status {
+            ProfileGetResponseStatus::Ready => return Ok(()),
+            ProfileGetResponseStatus::Uploading => tokio::time::sleep(Duration::from_secs(1)).await,
+            status => return Err(format!("profile {profile_id} is {status:?}").into()),
+        }
+    }
+    Err(format!("profile {profile_id} is still uploading").into())
 }
 
 #[tokio::main]
@@ -67,7 +92,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         })
         .await?;
 
-    let profile_id = session.profile_id.clone().ok_or("session #1 returned no profile_id")?;
+    let profile_id = session
+        .profile_id
+        .clone()
+        .ok_or("session #1 returned no profile_id")?;
     println!("Profile ID: {profile_id}");
     println!("Session #1 live at {}", session.session_viewer_url);
 
@@ -81,7 +109,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     client.sessions().release(&session.id).await?;
     println!("Session #1 released");
 
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    println!("Waiting for the profile to be saved...");
+    wait_for_profile(&client, &profile_id).await?;
+    println!("Profile is READY");
 
     println!("\nCreating Steel session #2 from profile {profile_id}...");
     let session = client

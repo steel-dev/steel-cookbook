@@ -12,6 +12,7 @@ import {
   login,
   addItemsToCart,
   checkItemsInCart,
+  waitForProfile,
 } from "./utils";
 
 dotenv.config();
@@ -58,6 +59,7 @@ async function main() {
       );
 
       profileId = session.profileId;
+      if (!profileId) throw new Error("Session #1 returned no profile ID");
       console.log(`Profile ID: ${profileId}`);
 
       // Connect Playwright to Steel session
@@ -75,7 +77,7 @@ async function main() {
 
       // Verify site access and add items to cart
       if (await verifyAuth(page)) {
-        console.log("Successfully logged in");
+        console.log("Opened the demo shop");
 
         const itemsAdded = await addItemsToCart(page);
         if (itemsAdded) {
@@ -91,7 +93,9 @@ async function main() {
       await client.sessions.release(session.id);
       console.log("\nSession #1 released");
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      console.log("Waiting for the profile to be saved...");
+      await waitForProfile(client, profileId);
+      console.log("Profile is READY");
     } else {
       console.log(`\nUsing existing profile: ${profileId}`);
     }
@@ -130,7 +134,8 @@ async function main() {
       throw new Error("Failed to verify new session access");
     }
   } catch (error) {
-    console.error("\nFailed ");
+    console.error("\nFailed:", error);
+    throw error;
   } finally {
     if (session) {
       console.log("Releasing session...");

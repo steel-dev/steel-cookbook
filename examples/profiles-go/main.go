@@ -62,15 +62,18 @@ func run(apiKey string) error {
 	fmt.Println("Steel Profiles Demo")
 	fmt.Println("============================================================")
 
-	profileID, viewer1, err := seedCart(ctx, client, apiKey)
+	profileID, viewer1, err := seedCart(ctx, client)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("\nWaiting for the profile snapshot to settle...")
-	time.Sleep(3 * time.Second)
+	fmt.Println("\nWaiting for the profile to be saved...")
+	if err := waitForProfile(ctx, client, profileID); err != nil {
+		return err
+	}
+	fmt.Println("Profile is READY")
 
-	rows, viewer2, err := verifyCart(ctx, client, apiKey, profileID)
+	rows, viewer2, err := verifyCart(ctx, client, profileID)
 	if err != nil {
 		return err
 	}
@@ -89,7 +92,7 @@ func run(apiKey string) error {
 	return nil
 }
 
-func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string, string, error) {
+func seedCart(ctx context.Context, client *steel.Client) (string, string, error) {
 	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		PersistProfile: steel.F(true),
 	})
@@ -103,7 +106,7 @@ func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string,
 	fmt.Printf("View live at %s\n", sess.SessionViewerURL)
 	fmt.Printf("Profile ID: %s\n", profileID)
 
-	browserCtx, cancel := connect(ctx, sess.WebsocketURL, apiKey)
+	browserCtx, cancel := connect(ctx, sess.WebsocketURL)
 	defer cancel()
 
 	runCtx, cancelRun := context.WithTimeout(browserCtx, 60*time.Second)
@@ -116,8 +119,6 @@ func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string,
 		chromedp.Navigate(booksURL),
 		chromedp.WaitVisible(".product-grid, .item-box", chromedp.ByQuery),
 		chromedp.Evaluate(clickAddToCart, &clicked),
-		chromedp.Sleep(2*time.Second),
-		chromedp.Evaluate(cartQty, &qty),
 	)
 	if err != nil {
 		return "", "", fmt.Errorf("seed cart: %w", err)
@@ -125,12 +126,15 @@ func seedCart(ctx context.Context, client *steel.Client, apiKey string) (string,
 	if !clicked {
 		return "", "", fmt.Errorf("no add-to-cart button found on %s", booksURL)
 	}
+	if err := chromedp.Run(runCtx, waitForCartQty(&qty)); err != nil {
+		return "", "", fmt.Errorf("seed cart: %w", err)
+	}
 	fmt.Printf("Added item. Header cart count now reads %q.\n", qty)
 
 	return profileID, sess.SessionViewerURL, nil
 }
 
-func verifyCart(ctx context.Context, client *steel.Client, apiKey, profileID string) (int, string, error) {
+func verifyCart(ctx context.Context, client *steel.Client, profileID string) (int, string, error) {
 	sess, err := client.Sessions.New(ctx, steel.SessionNewParams{
 		PersistProfile: steel.F(true),
 		ProfileID:      steel.F(profileID),
@@ -143,7 +147,7 @@ func verifyCart(ctx context.Context, client *steel.Client, apiKey, profileID str
 	fmt.Printf("\nSession #2 created from profile %s.\n", profileID)
 	fmt.Printf("View live at %s\n", sess.SessionViewerURL)
 
-	browserCtx, cancel := connect(ctx, sess.WebsocketURL, apiKey)
+	browserCtx, cancel := connect(ctx, sess.WebsocketURL)
 	defer cancel()
 
 	runCtx, cancelRun := context.WithTimeout(browserCtx, 60*time.Second)
@@ -163,9 +167,8 @@ func verifyCart(ctx context.Context, client *steel.Client, apiKey, profileID str
 	return rows, sess.SessionViewerURL, nil
 }
 
-func connect(ctx context.Context, websocketURL, apiKey string) (context.Context, context.CancelFunc) {
-	cdpURL := websocketURL
-	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
+func connect(ctx context.Context, websocketURL string) (context.Context, context.CancelFunc) {
+	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, websocketURL, chromedp.NoModifyURL)
 	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
 	return browserCtx, func() {
 		cancelBrowser()
@@ -178,4 +181,39 @@ func release(ctx context.Context, client *steel.Client, id, label string) {
 	if _, err := client.Sessions.Release(ctx, id); err != nil {
 		fmt.Printf("Release of %s failed: %v\n", label, err)
 	}
+}
+
+func waitForCartQty(qty *string) chromedp.Action {
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		for i := 0; i < 20; i++ {
+			if err := chromedp.Evaluate(cartQty, qty).Do(ctx); err != nil {
+				return err
+			}
+			if *qty != "" && *qty != "(0)" {
+				return nil
+			}
+			if err := chromedp.Sleep(500 * time.Millisecond).Do(ctx); err != nil {
+				return err
+			}
+		}
+		return fmt.Errorf("the cart count still reads %q after the click", *qty)
+	})
+}
+
+func waitForProfile(ctx context.Context, client *steel.Client, id string) error {
+	for i := 0; i < 60; i++ {
+		profile, err := client.Profiles.Get(ctx, id, steel.ProfileGetParams{})
+		if err != nil {
+			return fmt.Errorf("get profile: %w", err)
+		}
+		switch profile.Status {
+		case steel.ProfileGetResponseStatusReady:
+			return nil
+		case steel.ProfileGetResponseStatusUploading:
+			time.Sleep(time.Second)
+		default:
+			return fmt.Errorf("profile %s is %s", id, profile.Status)
+		}
+	}
+	return fmt.Errorf("profile %s is still uploading", id)
 }

@@ -388,7 +388,7 @@
   language: TypeScript
   topics: [Steel APIs, Authentication]
   created: "2025-10-13"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Upload and run browser extensions
   slug: extensions
@@ -758,7 +758,7 @@
   language: Python
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -768,7 +768,7 @@
   language: Go
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -778,7 +778,7 @@
   language: Rust
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Upload and run browser extensions
   slug: extensions
