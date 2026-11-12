@@ -74,9 +74,9 @@ export async function scrapeStats(page: Page, username: string) {
     'div.ic-contributions-wrapper:has(div:has(h5:text("Streaks")))',
   );
 
-  const streakWrapper = page.locator(
-    'div.ic-contributions-wrapper:has(div:has(h5:text("Streaks")))',
-  );
+  const streakWrapper = page
+    .locator("div.ic-contributions-wrapper > div")
+    .filter({ has: page.locator("h5", { hasText: "Streaks" }) });
 
   const streakLongestText = await streakWrapper
     .locator("div.p-2")

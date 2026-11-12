@@ -398,7 +398,7 @@
   language: TypeScript
   topics: [Steel APIs, Playwright]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files

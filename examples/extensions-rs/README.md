@@ -1,6 +1,6 @@
 # extensions-rs
 
-A Steel session boots a clean Chromium with no extensions installed. The Extensions API closes that gap: upload a Chrome extension once with `client.extensions().upload(...)`, get back an `ext_...` id, and attach it to any later session by setting `extension_ids` on `SessionCreateParams`. Steel loads the content scripts and background workers before the first navigation, so by the time chromiumoxide opens the page the extension has already run.
+A Steel session boots a clean Chromium with no extensions installed. The Extensions API closes that gap: upload a Chrome extension once with `client.extensions().upload(...)`, get back its ID, and attach it to any later session by setting `extension_ids` on `SessionCreateParams`. Steel loads the content scripts and background workers before the first navigation, so by the time chromiumoxide opens the page the extension has already run.
 
 This recipe uploads [GitHub Isometric Contributions](https://chromewebstore.google.com/detail/github-isometric-contribu/mjoedlfflcchnleknnceiplgaeoegien), which replaces GitHub's flat contribution grid with a 3D isometric one wrapped in `div.ic-contributions-wrapper`. That wrapper is the proof: it does not exist on a stock GitHub profile, so finding it on the page means the session attached and ran the extension.
 
@@ -32,20 +32,21 @@ cargo run
 
 Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The first build pulls chromiumoxide and tokio and takes a minute or two. As the program starts it prints a session viewer URL; open it in a second tab to watch the isometric grid render live.
 
-Your output varies. Structure looks like this:
+Your output varies. A run that reused the uploaded extension printed:
 
 ```text
 Checking for extension Github_Isometric_Contribu...
-Not found, uploading from the Chrome Web Store...
-Uploaded Github_Isometric_Contribu (ext_ab12cd34)
-Using extension ext_ab12cd34
+Reusing uploaded extension
+Using extension eldhmbehfcpfaopdmplblfmhcaalhdjc
 Creating Steel session...
-Session live at https://app.steel.dev/sessions/ab12cd34
+Session live at https://app.steel.dev/sessions/33a95fae-4007-4915-a0b4-a9b761785c4b
 Connected over CDP, opening https://github.com/junhsss...
 Extension injected div.ic-contributions-wrapper; the contribution grid was rewritten.
 Releasing session...
 Session released
 ```
+
+On the first run, the second line reads `Not found, uploading from the Chrome Web Store...`, and the next line prints the uploaded extension's name and ID. Later runs reuse that ID.
 
 The first run uploads the extension; later runs print `Reusing uploaded extension` and skip straight to the session. `main` captures the run result, releases the session, then returns the error, so a failed check still tears the session down instead of leaving it to idle out.
 
@@ -61,4 +62,5 @@ The first run uploads the extension; later runs print `Reusing uploaded extensio
 - [extensions-ts](../extensions-ts) is the original this ports, driving Playwright and scraping the injected stats into a table.
 - [extensions-py](../extensions-py) and [extensions-go](../extensions-go) are the same upload-and-attach flow in Python and Go.
 - [profiles-rs](../profiles-rs) persists a full browser profile across sessions, the heavier sibling to attaching extensions per run.
+- [Steel extensions docs](https://steel.dev/docs/features/extensions) cover uploading and attaching extensions.
 - [chromiumoxide docs](https://docs.rs/chromiumoxide) cover `Page`, `evaluate`, and `find_element` in full.

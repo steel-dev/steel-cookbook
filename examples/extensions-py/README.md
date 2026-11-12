@@ -30,20 +30,18 @@ uv run main.py
 
 Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `uv sync` runs automatically on first `uv run`, so there is no separate install step. The script prints a session viewer URL as it starts. Open it in another tab to watch the extension render on a live GitHub profile.
 
-Your output varies. Structure looks like this:
+Your output varies. A run that reused the uploaded extension printed:
 
 ```text
 Steel + Extensions (Python)
 ============================================================
 
 Checking for an existing extension...
-No existing extension found
-Uploading extension...
-Uploaded extension: ext_...
+Reusing extension: eldhmbehfcpfaopdmplblfmhcaalhdjc
 
 Creating Steel session...
 Steel Session created!
-View session at https://app.steel.dev/sessions/ab12cd34...
+View session at https://app.steel.dev/sessions/14089e5b-1db4-4fa0-ae87-c66daf8a3e1b
 
 Connected to browser via Playwright
 Navigating to https://github.com/junhsss ...
@@ -54,7 +52,7 @@ Session released
 Done!
 ```
 
-A run takes ~20 seconds and costs a few cents of session time. The first run uploads the extension, later runs reuse the ID.
+On the first run, the script prints `Uploading extension...` and `Uploaded extension:` with the new ID instead of the `Reusing extension` line. Later runs reuse that ID. A run takes about 15 seconds.
 
 ## Make it yours
 
@@ -65,4 +63,4 @@ A run takes ~20 seconds and costs a few cents of session time. The first run upl
 
 ## Related
 
-[extensions-ts](../extensions-ts) (same recipe, plus a styled stats table) · [extensions-go](../extensions-go) · [extensions-rs](../extensions-rs) · [profiles-py](../profiles-py) (reuse a full browser profile) · [Playwright docs](https://playwright.dev/python)
+[extensions-ts](../extensions-ts) (same recipe, plus a styled stats table) · [extensions-go](../extensions-go) · [extensions-rs](../extensions-rs) · [Steel extensions docs](https://steel.dev/docs/features/extensions) · [profiles-py](../profiles-py) (reuse a full browser profile) · [Playwright docs](https://playwright.dev/python)
