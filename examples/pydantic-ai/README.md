@@ -1,6 +1,6 @@
 # Pydantic AI Starter (Python)
 
-[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. It's provider-agnostic and reuses Pydantic models for tool arguments and final outputs.
+[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. It is provider-agnostic and reuses Pydantic models for tool arguments and final outputs.
 
 This starter wires a Steel browser into Pydantic AI's dependency-injection pattern and points the agent at GitHub Trending.
 

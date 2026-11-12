@@ -86,7 +86,7 @@ A run takes about 20 to 40 seconds and 4 to 8 model turns. Cost is a few cents o
 ## Notes
 
 - **Go version.** Genkit Go 1.0 requires Go 1.25, so `go.mod` declares `go 1.25.0`. chromedp is pinned to `v0.13.6`, the last release that still builds on Go 1.23, to keep the rest of the tree from pulling the toolchain higher than Genkit needs.
-- **Session reuse.** One Steel session and one chromedp tab live in the `browser` struct shared by every tool, so `navigate` and `extract` act on the same page. `chromedp.NoModifyURL` stops chromedp rewriting Steel's websocket URL, which would drop the `apiKey` query parameter.
+- **Session reuse.** One Steel session and one chromedp tab live in the `browser` struct shared by every tool, so `navigate` and `extract` act on the same page. `chromedp.NoModifyURL` stops chromedp rewriting Steel's WebSocket URL, which would drop the token in its query string.
 
 ## Make it yours
 

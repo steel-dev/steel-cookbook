@@ -20,7 +20,7 @@ agent = Agent(
 response = agent.run(TASK)
 ```
 
-`SteelTools` subclasses `agno.tools.Toolkit` and registers four bound methods (`navigate_to`, `screenshot`, `get_page_content`, `close_session`). `_ensure_session` and `_initialize_browser` defer the Steel session and Playwright connection until the first tool call, so a task that doesn't need a browser never creates one.
+`SteelTools` subclasses `agno.tools.Toolkit` and registers four bound methods (`navigate_to`, `screenshot`, `get_page_content`, `close_session`). `_ensure_session` and `_initialize_browser` defer the Steel session and Playwright connection until the first tool call, so a task that does not need a browser never creates one.
 
 ## Run it
 

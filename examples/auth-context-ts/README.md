@@ -10,7 +10,7 @@ const sessionContext = await client.sessions.context(session.id);
 const next = await client.sessions.create({ sessionContext });
 ```
 
-The snapshot is plain JSON you can store, ship between machines, or diff. Restoring it into a fresh session means the new browser starts already signed in. No login flow, no password prompt, no captcha. Other recipes link here as the primitive for "start already authenticated."
+The snapshot is plain JSON you can store, ship between machines, or diff. Restoring it into a fresh session means the new browser starts already signed in. No login flow, no password prompt, no CAPTCHA. Other recipes link here as the primitive for "start already authenticated."
 
 ## How the demo works
 
@@ -52,21 +52,21 @@ Session #2 released
 
 A run takes ~20 seconds and costs a few cents of Steel session time. Both sessions go through `client.sessions.release()` in the `finally` block. Skipping it keeps browsers running until the 5-minute default timeout.
 
-## What's inside the snapshot
+## What is inside the snapshot
 
 The shape returned from `sessions.context()` is an object keyed by origin, with cookies and storage entries for each. Treat it as opaque JSON for transport, and treat it as sensitive: it holds session tokens. Anyone with the blob can impersonate the logged-in user until those tokens expire.
 
-Cookies expire. A snapshot captured today may not work next week, and rarely works next month. If you're persisting contexts to disk or a vault, refresh them on a schedule or re-authenticate on failure.
+Cookies expire. A snapshot captured today may not work next week, and rarely works next month. If you are persisting contexts to disk or a vault, refresh them on a schedule or re-authenticate on failure.
 
 ## When to reach for this
 
-Auth context fits one-shot flows where you already have a way to log in and just want to move the resulting state forward:
+Auth context fits one-shot flows where you already have a way to sign in and just want to move the resulting state forward:
 
-- Log in once interactively, capture the context, run headless jobs against it.
+- Sign in once interactively, capture the context, run headless jobs against it.
 - Run an agent that signs in, snapshot at the end, hand the snapshot to the next agent in the pipeline.
 - Keep a single "warm" context in memory and spawn short-lived workers from it.
 
-If you want Steel to store credentials and handle the login itself, see [credentials](../credentials-ts). If you need a long-lived named identity that accumulates state across runs (history, extensions, preferences), that's a different primitive.
+If you want Steel to store credentials and handle the login itself, see [credentials](../credentials-ts). If you need a long-lived named identity that accumulates state across runs (history, extensions, preferences), that is a different primitive.
 
 ## Make it yours
 

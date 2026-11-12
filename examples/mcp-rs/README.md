@@ -4,7 +4,7 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` take that id and act on the browser; `release_session` closes it. Each tool is one `#[tool]`-annotated method on `SteelMcp`, and `#[tool_router]` plus `#[tool_handler]` turn those methods into the served schema.
 
-Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+If you do not need your own tools, connect any MCP client to the server that Steel hosts at `https://mcp.steel.dev/mcp`. See the [Steel MCP server docs](https://steel.dev/docs/features/mcp-server).
 
 ## Holding the browser open between calls
 
@@ -16,7 +16,7 @@ let handler_task = tokio::spawn(async move { while handler.next().await.is_some(
 let page = browser.new_page("about:blank").await?;
 ```
 
-`Browser::connect` returns a command handle plus a `handler` stream that pumps the CDP websocket. Nothing polls it on its own, so the spawned task that drives it to exhaustion is mandatory: drop it and the next `goto` hangs with no error. All three, the `Browser`, the join handle, and the `Page`, go into a `SessionEntry` stored in `Arc<Mutex<HashMap<String, SessionEntry>>>`, keyed by the Steel session id. Because `Page` and the `Arc`s are cheap to clone, `get` copies a whole entry out and releases the map lock before any browser work, so two sessions never block each other.
+`Browser::connect` returns a command handle plus a `handler` stream that pumps the CDP WebSocket. Nothing polls it on its own, so the spawned task that drives it to exhaustion is mandatory: drop it and the next `goto` hangs with no error. All three, the `Browser`, the join handle, and the `Page`, go into a `SessionEntry` stored in `Arc<Mutex<HashMap<String, SessionEntry>>>`, keyed by the Steel session id. Because `Page` and the `Arc`s are cheap to clone, `get` copies a whole entry out and releases the map lock before any browser work, so two sessions never block each other.
 
 That id is the handle the model threads back on every later call, which is what keeps sessions apart. The [Go recipe](../mcp-go) covers why the explicit handle, rather than one browser hidden in server state, is what the MCP spec now asks for. The short version: each Steel session is its own isolated cloud browser, and naming it on every call means two clients holding two ids can never read each other's pages. `release_session` removes the entry, aborts the handler task, and releases the Steel session so it stops billing.
 
@@ -46,7 +46,7 @@ Restart the client and ask it to open a page and read it back. It calls `create_
 ## Make it yours
 
 - **Add a tool.** Write one more `async fn` with a `#[tool]` attribute and a `Parameters<T>` argument carrying `session_id`. A `click` tool is `entry.page.find_element(sel).await?.click().await?`.
-- **Start authenticated.** Pass a populated `SessionCreateParams` to `sessions().create` to attach a [profile](../profiles-rs) or [credentials](../credentials-rs) so the session opens already logged in.
+- **Start authenticated.** Pass a populated `SessionCreateParams` to `sessions().create` to attach a [profile](../profiles-rs) or [credentials](../credentials-rs) so the session opens already signed in.
 - **Return richer output.** Tools here return `ContentBlock::text` and `ContentBlock::image`. Swap in structured JSON content when a client wants typed fields instead of a string.
 
 ## Related

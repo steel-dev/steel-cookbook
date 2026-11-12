@@ -1,6 +1,6 @@
 # Auth Context
 
-A Steel auth context is the cookies and storage that make a browser "logged in." This recipe reads that snapshot off one session and hands it to the next, so the second browser starts already signed in. There is no login form on the second run.
+A Steel auth context is the cookies and storage that make a browser "signed in." This recipe reads that snapshot off one session and hands it to the next, so the second browser starts already signed in. There is no login form on the second run.
 
 One detail matters in Rust that the dynamic SDKs hide: the snapshot you read back is not the same type you write on create. `client.sessions().context(&id)` returns a `SessionContext` (its cookies are `Vec<SessionContextCookie>`), but `SessionCreateParams::session_context` wants a `SessionCreateParamsSessionContext` (cookies are `Vec<SessionCreateParamsSessionContextCookie>`). The two cookie structs carry the same fields under different struct names, so `to_write_context` in `main.rs` maps one into the other field by field. The compiler will not let you skip this.
 

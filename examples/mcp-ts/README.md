@@ -4,7 +4,7 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` take that id and act on the browser; `release_session` closes it.
 
-Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+If you do not need your own tools, connect any MCP client to the server that Steel hosts at `https://mcp.steel.dev/mcp`. See the [Steel MCP server docs](https://steel.dev/docs/features/mcp-server).
 
 ## Each tool declares its shape, the id ties them together
 
@@ -57,7 +57,7 @@ Restart the client and ask it to open a page and read it back. It calls `create_
 ## Make it yours
 
 - **Add a tool.** Another `server.registerTool` with a `session_id` field, resolve the page with `getPage`, and act on it. A `click` tool is `await page.click(selector)`.
-- **Start authenticated.** Pass options to `steel.sessions.create` to attach a [profile](../profiles-ts) or [credentials](../credentials-ts) so a session opens already logged in.
+- **Start authenticated.** Pass options to `steel.sessions.create` to attach a [profile](../profiles-ts) or [credentials](../credentials-ts) so a session opens already signed in.
 - **Return structured output.** Add an `outputSchema` to a tool and return `structuredContent` so the client gets typed fields instead of a JSON string.
 
 ## Related

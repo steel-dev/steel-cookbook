@@ -65,7 +65,7 @@ Profiles capture the full Chromium user data directory, not just the cart cookie
 - Installed extensions and their configuration.
 - Autofill, history, bookmarks, site permissions.
 
-Treat a profile like an account. Anyone who can call `client.sessions.create(profile_id=...)` on your workspace can drive a browser logged in as you. Delete one with `client.profiles.delete(id)` when the identity is done.
+Treat a profile like an account. Anyone who can call `client.sessions.create(profile_id=...)` on your workspace can drive a browser signed in as you. Delete one with `client.profiles.delete(id)` when the identity is done.
 
 ## Make it yours
 

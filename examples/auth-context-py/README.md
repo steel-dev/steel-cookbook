@@ -1,6 +1,6 @@
 # Auth Context (Python)
 
-Logging in is the expensive part of browser automation: forms, redirects, sometimes a captcha. Steel lets you do it once, freeze the result, and pour it into a brand new browser. `main.py` runs that whole loop with Playwright's sync API: log in on session #1, snapshot the auth state, throw session #1 away, then prove a fresh session #2 is already signed in without ever touching the login form.
+Logging in is the expensive part of browser automation: forms, redirects, sometimes a CAPTCHA. Steel lets you do it once, freeze the result, and pour it into a brand new browser. `main.py` runs that whole loop with Playwright's sync API: sign in on session #1, snapshot the auth state, throw session #1 away, then prove a fresh session #2 is already signed in without ever touching the login form.
 
 The two calls that matter are a read and a write:
 

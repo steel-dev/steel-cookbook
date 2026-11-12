@@ -2,7 +2,7 @@
 
 Notte builds its agent on top of a perception layer. Each step, `notte.Session` flattens the live DOM into a compact action space (labeled interactive elements, form fields, section headings) and hands that structured view to the reasoning model. The model picks an action by id, Notte translates it back into a browser command.
 
-This recipe points that loop at a Steel session instead of a locally-launched browser.
+This recipe points that loop at a Steel session instead of a locally launched browser.
 
 ```python
 with notte.Session(cdp_url=cdp_url) as notte_session:

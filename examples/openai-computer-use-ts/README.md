@@ -69,7 +69,7 @@ A few translation details:
 
 ## Safety checks
 
-A `computer_call` can attach `pending_safety_checks` when the planned action looks sensitive. The call won't take effect until you echo those check IDs back in `acknowledged_safety_checks`. The starter auto-acknowledges everything; for production, flip `autoAcknowledgeSafety` to `false` and gate each check on a human approval.
+A `computer_call` can attach `pending_safety_checks` when the planned action looks sensitive. The call will not take effect until you echo those check IDs back in `acknowledged_safety_checks`. The starter auto-acknowledges everything; for production, flip `autoAcknowledgeSafety` to `false` and gate each check on a human approval.
 
 ## Run it
 

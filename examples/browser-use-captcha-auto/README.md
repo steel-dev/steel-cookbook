@@ -8,7 +8,7 @@ session = client.sessions.create(solve_captcha=True)
 
 `solve_captcha=True` turns on Steel's solver in the session's browser. Steel detects reCAPTCHA, hCaptcha, and similar widgets as the page loads them, drives the challenge transparently, and exposes progress through a status endpoint. From Browser Use's side, nothing changes: it still connects via `BrowserSession(cdp_url=...)` and runs the same agent loop. The solver lives below the CDP layer, invisible to the framework.
 
-The only hand-off the agent needs is a way to wait. That's a tool registered with Browser Use's `Tools` decorator:
+The only hand-off the agent needs is a way to wait. That is a tool registered with Browser Use's `Tools` decorator:
 
 ```python
 tools = Tools()

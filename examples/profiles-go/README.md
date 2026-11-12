@@ -8,7 +8,7 @@ Two fields on `Sessions.New` wire it up, both through the `steel.F(...)` field w
 
 The TypeScript sibling opens an `inquirer` menu so you can pick an existing profile or create a new one. This Go port drops the picker and runs the full round-trip end to end in one invocation: `seedCart` mints a profile and adds an item, the program sleeps about three seconds so the snapshot settles, then `verifyCart` opens a second session from the same `ProfileID` and counts the cart rows. Nothing to click. To reuse a profile from a previous run, read the printed `Profile ID` and feed it into `Sessions.New` yourself.
 
-chromedp talks CDP directly: `chromedp.Evaluate` runs the cart logic in the page (`document.querySelector(".product-box-add-to-cart-button")` with an `input[value='Add to cart']` fallback, then `.cart-qty` for the header count and `.cart tbody tr` for the row count). `chromedp.NewRemoteAllocator` with `chromedp.NoModifyURL` attaches to the Steel browser over the websocket URL, the same idiom as the [chromedp](../chromedp) recipe.
+chromedp talks CDP directly: `chromedp.Evaluate` runs the cart logic in the page (`document.querySelector(".product-box-add-to-cart-button")` with an `input[value='Add to cart']` fallback, then `.cart-qty` for the header count and `.cart tbody tr` for the row count). `chromedp.NewRemoteAllocator` with `chromedp.NoModifyURL` attaches to the Steel browser over the WebSocket URL, the same idiom as the [chromedp](../chromedp) recipe.
 
 ## Run it
 
@@ -59,7 +59,7 @@ Both sessions release through the `release` helper deferred right after each `Se
 
 Three recipes handle "start the browser already signed in." Pick by lifetime:
 
-- [auth-context](../auth-context-go): one-shot JSON snapshot of cookies and localStorage you capture from one session and replay into the next. Good when you log in once (SSO, MFA, magic link) and want to move that state forward.
+- [auth-context](../auth-context-go): one-shot JSON snapshot of cookies and localStorage you capture from one session and replay into the next. Good when you sign in once (SSO, MFA, magic link) and want to move that state forward.
 - Profiles (this recipe): long-lived named identity that accumulates everything (history, extensions, preferences, logins) across runs. Good when the browser itself is the unit of persistence.
 - Sibling ports: [profiles-ts](../profiles-ts), [profiles-py](../profiles-py), [profiles-rs](../profiles-rs).
 

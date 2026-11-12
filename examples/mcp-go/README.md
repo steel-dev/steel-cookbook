@@ -4,7 +4,7 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 The server exposes five tools. `create_session` starts a Steel session and returns its id; `navigate`, `extract`, and `screenshot` act on a session; `release_session` tears it down. The id Steel returns is the only thing tying the calls together.
 
-Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+If you do not need your own tools, connect any MCP client to the server that Steel hosts at `https://mcp.steel.dev/mcp`. See the [Steel MCP server docs](https://steel.dev/docs/features/mcp-server).
 
 ## The session id is the handle
 
@@ -51,7 +51,7 @@ One stdio rule: the JSON-RPC stream owns stdout, so the server logs only to stde
 ## Make it yours
 
 - **Add a tool.** A `click` tool is a few `chromedp.Click` lines and one more `mcp.AddTool` call. Take a `session_id`, look it up with `s.get`, act on the tab.
-- **Start authenticated.** Swap the `SessionNewParams` in `createSession` to attach a [profile](../profiles-go) or [credentials](../credentials-go) so a session opens already logged in.
+- **Start authenticated.** Swap the `SessionNewParams` in `createSession` to attach a [profile](../profiles-go) or [credentials](../credentials-go) so a session opens already signed in.
 - **Go remote.** Replace `mcp.StdioTransport` with the SDK's streamable-HTTP handler to serve many clients from one process. The handle pattern already carries the state, so nothing else changes.
 
 ## Related

@@ -89,7 +89,7 @@ Profiles capture the full Chromium user data directory, not just cookies:
 - Installed extensions and their configuration.
 - Autofill, history, bookmarks, site permissions.
 
-Treat the profile like an account. Anyone who can call `sessions.create({ profileId })` on your workspace can drive a browser logged in as you. Rotate or delete with `client.profiles.delete(id)` when the identity is done.
+Treat the profile like an account. Anyone who can call `sessions.create({ profileId })` on your workspace can drive a browser signed in as you. Rotate or delete with `client.profiles.delete(id)` when the identity is done.
 
 ## Make it yours
 
@@ -103,7 +103,7 @@ Treat the profile like an account. Anyone who can call `sessions.create({ profil
 Three recipes handle "start the browser already signed in." Pick by lifetime:
 
 - [credentials](../credentials-ts): Steel stores a username and password per origin and fills the login form each session. No browser state persists. Good when the form is standard and you want a stable, long-lived setup.
-- [auth-context](../auth-context-ts): one-shot JSON snapshot of cookies and localStorage you capture from one session and replay into the next. Good when you log in once (SSO, MFA, magic link) and want to move the resulting state forward.
+- [auth-context](../auth-context-ts): one-shot JSON snapshot of cookies and localStorage you capture from one session and replay into the next. Good when you sign in once (SSO, MFA, magic link) and want to move the resulting state forward.
 - Profiles (this recipe): long-lived named identity that accumulates everything (history, extensions, preferences, logins) across runs. Good when the browser itself is the unit of persistence.
 
 [Playwright docs](https://playwright.dev)

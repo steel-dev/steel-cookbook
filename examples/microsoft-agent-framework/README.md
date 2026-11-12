@@ -23,7 +23,7 @@ print(result.text)
 
 `agent.run` runs the model loop until the agent stops calling tools. `result.text` aggregates every text content item across the run's messages; `result.messages` is the full transcript including `function_call` and `function_result` contents if you want to inspect what happened.
 
-Tools are plain Python functions decorated with `@tool`. The framework infers the JSON schema from the type hints (`Annotated[str, Field(description=...)]`) — or you can pass a Pydantic model via `schema=`:
+Tools are plain Python functions decorated with `@tool`. The framework infers the JSON schema from the type hints (`Annotated[str, Field(description=...)]`), or you can pass a Pydantic model via `schema=`:
 
 ```python
 @tool(
@@ -38,7 +38,7 @@ async def navigate(
     return {"url": page.url, "title": await page.title()}
 ```
 
-Tools are built inside `build_tools(page)` so each run closes over its own `Page` — no module globals, safe to run concurrently.
+Tools are built inside `build_tools(page)` so each run closes over its own `Page`. With no module globals, several runs can work at the same time.
 
 ## Run it
 
@@ -79,7 +79,7 @@ A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost i
 - **Structured output.** Pass a Pydantic model via `response_format` in `default_options` (or the per-run `options`). The agent's final message will be validated against the schema.
 - **Stream the answer.** Use `async for update in agent.run(prompt, stream=True):` to stream tokens as they arrive. Tool calls happen behind the scenes; `update.text` carries the partial answer.
 - **Run agents in parallel.** Construct a session+page+agent per task and `asyncio.gather(*[agent.run(...) for agent in agents])`. Each closure captures its own `page`; nothing is shared by accident.
-- **Approval gates.** Drop `approval_mode="never_require"` on a sensitive tool and the framework will pause for an approval response before invoking it — useful for destructive actions (form submits, purchases).
+- **Approval gates.** Drop `approval_mode="never_require"` on a sensitive tool and the framework will pause for an approval response before invoking it. This is useful for destructive actions (form submits, purchases).
 - **Multi-agent workflows.** The framework ships a `Workflow` / `GroupChat` API for graph-based multi-agent orchestration; one Steel-driven `Agent` becomes a node in a larger graph.
 
 ## Related

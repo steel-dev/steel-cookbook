@@ -23,7 +23,7 @@ The empty dict is the switch. Leave it off and the vault still holds the credent
 
 ## The two-second wait
 
-After clicking `#AccountLink` the script calls `time.sleep(2)`. That is deliberate slack: the click opens the login form, Steel detects it, fills the fields, and submits. The sleep gives that round trip room before the script reads the `h1` to confirm `"Hello Admin User"`. It is the blunt version. In a real workflow swap it for `page.wait_for_url(...)` or `page.wait_for_selector(...)` keyed to something that only exists once you are logged in, so you wait exactly as long as you need to.
+After clicking `#AccountLink` the script calls `time.sleep(2)`. That is deliberate slack: the click opens the login form, Steel detects it, fills the fields, and submits. The sleep gives that round trip room before the script reads the `h1` to confirm `"Hello Admin User"`. It is the blunt version. In a real workflow swap it for `page.wait_for_url(...)` or `page.wait_for_selector(...)` keyed to something that only exists once you are signed in, so you wait exactly as long as you need to.
 
 Credentials are scoped per origin, so create one per site. Calling `credentials.create` again for an origin that already has one raises a `steel.APIError` whose message contains `Credential already exists`. The script catches that case and keeps going, which is why a second run behaves the same as the first.
 

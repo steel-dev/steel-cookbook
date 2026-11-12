@@ -1,18 +1,18 @@
 # Puppeteer Starter (TypeScript)
 
-Puppeteer ships a `connect()` call that attaches to any Chrome exposing a DevTools websocket. Steel sessions expose one. Point Puppeteer at it and the rest of the script is plain Puppeteer: `page.goto`, `page.evaluate`, `page.waitForSelector`, the whole surface area. Stealth, proxies, and the live session viewer come from Steel without extra wiring.
+Puppeteer ships a `connect()` call that attaches to any Chrome exposing a DevTools WebSocket. Steel sessions expose one. Point Puppeteer at it and the rest of the script is plain Puppeteer: `page.goto`, `page.evaluate`, `page.waitForSelector`, the whole surface area. Stealth, proxies, and the live session viewer come from Steel without extra wiring.
 
 ```typescript
 session = await client.sessions.create();
 
 browser = await puppeteer.connect({
-  browserWSEndpoint: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+  browserWSEndpoint: session.websocketUrl,
 });
 
 const page = await browser.newPage();
 ```
 
-Two notes on the shape here. First, the package is `puppeteer-core`, not `puppeteer`. There's no Chromium to download because the browser lives on Steel. Second, `browser.newPage()` opens a fresh tab in the Steel session; the session viewer starts blank until you navigate.
+Two notes on the shape here. First, the package is `puppeteer-core`, not `puppeteer`. There is no Chromium to download because the browser lives on Steel. Second, `browser.newPage()` opens a fresh tab in the Steel session; the session viewer starts blank until you navigate.
 
 ## Run it
 
@@ -52,7 +52,7 @@ Session released
 Done!
 ```
 
-A run costs a few cents of browser time. Steel bills per session-minute, so the `finally` block that calls `client.sessions.release()` isn't optional. Forgetting it keeps the browser running until the default 5-minute timeout.
+A run costs a few cents of browser time. Steel bills per session-minute, so the `finally` block that calls `client.sessions.release()` is not optional. Forgetting it keeps the browser running until the default 5-minute timeout.
 
 ## Make it yours
 

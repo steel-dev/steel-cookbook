@@ -60,7 +60,7 @@ A full round trip takes ~30 seconds. Both sessions go through `client.sessions()
 - **Swap the target.** Change `BOOKS_URL`, `CART_URL`, and the selectors. The two-`create` profile plumbing stays the same for any site whose state lives in the browser.
 - **Resume an existing profile.** Skip session #1 and start at session #2 with a `profile_id` you saved earlier. Seed it once by hand: create a session with `persist_profile: Some(true)`, sign in through the live viewer, release, and reuse the id forever.
 - **Read without writing back.** Pass `persist_profile: Some(false)` with an existing `profile_id` to load the identity without snapshotting changes on release. Good for risky runs that might corrupt state.
-- **Manage the identity.** `client.profiles().list()`, `retrieve`, and `delete` round out the surface. Treat a profile like an account: anyone who can call `create` with its id drives a browser logged in as you.
+- **Manage the identity.** `client.profiles().list()`, `retrieve`, and `delete` round out the surface. Treat a profile like an account: anyone who can call `create` with its id drives a browser signed in as you.
 
 ## Related
 

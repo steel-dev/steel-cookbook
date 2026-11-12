@@ -1,6 +1,6 @@
 # OpenAI Agents SDK Starter (Python)
 
-The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you don't have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer.
+The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you do not have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer.
 
 This starter wraps a Steel browser as four tools and points the agent at GitHub Trending.
 

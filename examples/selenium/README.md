@@ -2,7 +2,7 @@
 
 Selenium speaks the W3C WebDriver protocol over HTTP, not CDP. Every click, navigation, and `find_element` is an HTTP round-trip to a remote endpoint that implements the spec. Steel runs one at `http://connect.steelbrowser.com/selenium`, which is where `webdriver.Remote` points.
 
-The catch: Steel identifies callers with a `steel-api-key` header and routes each command to the right browser with a `session-id` header. `webdriver.Remote` doesn't expose a direct hook for custom headers, so the starter subclasses `RemoteConnection`:
+The catch: Steel identifies callers with a `steel-api-key` header and routes each command to the right browser with a `session-id` header. `webdriver.Remote` does not expose a direct hook for custom headers, so the starter subclasses `RemoteConnection`:
 
 ```python
 class CustomRemoteConnection(RemoteConnection):
@@ -19,7 +19,7 @@ class CustomRemoteConnection(RemoteConnection):
         return headers
 ```
 
-`get_remote_connection_headers` runs on every outbound request. Selenium has no persistent connection to keep alive; the two headers ride along with each command. That's the integration. After the driver is wired, the rest is vanilla Selenium 4.
+`get_remote_connection_headers` runs on every outbound request. Selenium has no persistent connection to keep alive; the two headers ride along with each command. That is the integration. After the driver is wired, the rest is vanilla Selenium 4.
 
 One requirement: create the session with `is_selenium=True`. Steel provisions a WebDriver-compatible node for those sessions; without the flag you get a CDP browser that Selenium cannot drive.
 

@@ -13,7 +13,7 @@ this.session = await this.client.sessions.create({
   deviceConfig: { device: "mobile" },
 });
 
-const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+const cdpUrl = this.session.websocketUrl;
 this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
 this.page = this.browser.contexts()[0].pages()[0];
 ```

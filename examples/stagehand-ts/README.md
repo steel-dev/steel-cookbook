@@ -11,7 +11,7 @@ Both run against a Steel session over CDP, so Stagehand handles the reasoning an
 stagehand = new Stagehand({
   env: "LOCAL",
   localBrowserLaunchOptions: {
-    cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+    cdpUrl: session.websocketUrl,
   },
   model: { modelName: "openai/gpt-5", apiKey: OPENAI_API_KEY },
 });
@@ -19,7 +19,7 @@ stagehand = new Stagehand({
 await stagehand.init();
 ```
 
-`env: "LOCAL"` tells Stagehand "I'll hand you the browser." That browser is Steel, reached via the CDP URL. `model` is the LLM that interprets every instruction. This starter targets **Stagehand v3**.
+`env: "LOCAL"` tells Stagehand "I will hand you the browser." That browser is Steel, reached via the CDP URL. `model` is the LLM that interprets every instruction. This starter targets **Stagehand v3**.
 
 Typed extraction, an instruction paired with a Zod schema:
 
@@ -32,7 +32,7 @@ const stories = await stagehand.extract(
 );
 ```
 
-The schema isn't just documentation. Stagehand constrains the LLM's output against it and gives you a typed result at runtime. Swap the prompt and schema for any extraction problem: forms, tables, search results, prices.
+The schema is not just documentation. Stagehand constrains the LLM's output against it and gives you a typed result at runtime. Swap the prompt and schema for any extraction problem: forms, tables, search results, prices.
 
 Natural-language action, no selector required:
 
@@ -82,7 +82,7 @@ A full run takes ~30 seconds and costs a few cents of Steel session time plus Op
 
 - **Swap the schema and prompt.** `extract()` works on any data shape: forms, invoices, product grids, tables. Change the `stagehand.extract` call in `index.ts` to whatever you need to read off a page.
 - **Chain acts and extracts.** Break a task into natural-language steps: "sign in with these creds, then extract invoices from the past month." Each step is one `act()` or `extract()`.
-- **Try another model.** `gpt-5` works well out of the box; Claude and Gemini also work. Swap `modelName` and `apiKey` in the `Stagehand` config.
+- **Try another model.** `gpt-5` works well with the default settings. Claude and Gemini also work. Swap `modelName` and `apiKey` in the `Stagehand` config.
 
 ## Related
 

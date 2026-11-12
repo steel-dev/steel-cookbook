@@ -1,12 +1,12 @@
 # Playwright Starter (TypeScript)
 
-Playwright exposes `chromium.connectOverCDP()`, which attaches to any Chrome speaking the Chrome DevTools Protocol. Steel sessions expose one over a websocket. Connect them and your local code drives a remote browser with stealth, proxies, and a live viewer. No Chrome on your machine required.
+Playwright exposes `chromium.connectOverCDP()`, which attaches to any Chrome speaking the Chrome DevTools Protocol. Steel sessions expose one over a WebSocket. Connect them and your local code drives a remote browser with stealth, proxies, and a live viewer. No Chrome on your machine required.
 
 ```typescript
 session = await client.sessions.create();
 
 const browser = await chromium.connectOverCDP(
-  `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+  session.websocketUrl,
 );
 
 const page = browser.contexts()[0].pages()[0];
@@ -52,7 +52,7 @@ Session released
 Done!
 ```
 
-A run costs a few cents of browser time. Steel bills per session-minute, so the `finally` block that calls `client.sessions.release()` isn't optional. Forgetting it keeps the browser running until the default 5-minute timeout.
+A run costs a few cents of browser time. Steel bills per session-minute, so the `finally` block that calls `client.sessions.release()` is not optional. Forgetting it keeps the browser running until the default 5-minute timeout.
 
 ## Make it yours
 

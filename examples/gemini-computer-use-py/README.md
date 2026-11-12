@@ -1,6 +1,6 @@
 # Gemini Computer Use (Python)
 
-Gemini's computer use ships through `google.genai` as a single built-in tool: `Tool(computer_use=ComputerUse(environment=ENVIRONMENT_BROWSER))`. Setting `ENVIRONMENT_BROWSER` unlocks a fixed vocabulary of browser function calls (`click_at`, `type_text_at`, `scroll_document`, `scroll_at`, `navigate`, `search`, `key_combination`, `drag_and_drop`, `hover_at`, `go_back`, `go_forward`, `open_web_browser`, `wait_5_seconds`).
+Gemini's computer use ships through `google.genai` as a single built-in tool: `Tool(computer_use=ComputerUse(environment=ENVIRONMENT_BROWSER))`. Setting `ENVIRONMENT_BROWSER` turns on a fixed vocabulary of browser function calls (`click_at`, `type_text_at`, `scroll_document`, `scroll_at`, `navigate`, `search`, `key_combination`, `drag_and_drop`, `hover_at`, `go_back`, `go_forward`, `open_web_browser`, `wait_5_seconds`).
 
 Steel supplies the screen. A Steel session is a headful Chromium in a VM, and `sessions.computer(session_id, action=...)` runs mouse and keyboard actions with a base64 PNG attached to the response.
 
@@ -23,7 +23,7 @@ reasoning = self.extract_text(candidate)
 function_calls = self.extract_function_calls(candidate)
 ```
 
-Gemini doesn't keep server-side conversation state, so every turn resends the full `contents` list including every prior screenshot.
+Gemini does not keep server-side conversation state, so every turn resends the full `contents` list including every prior screenshot.
 
 ## Coordinates live in a 0-1000 canvas
 

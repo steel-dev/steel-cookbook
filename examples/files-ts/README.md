@@ -29,7 +29,7 @@ await cdpSession.send("DOM.setFileInputFiles", {
 });
 ```
 
-`DOM.setFileInputFiles` runs browser-side, so `uploadedFile.path` resolves against the session VM, which is exactly where `upload()` wrote the bytes. After that, it's plain Playwright: wait for `svg.main-svg`, scroll into view, screenshot to `stock.png` on your local disk.
+`DOM.setFileInputFiles` runs browser-side, so `uploadedFile.path` resolves against the session VM, which is exactly where `upload()` wrote the bytes. After that, it is plain Playwright: wait for `svg.main-svg`, scroll into view, screenshot to `stock.png` on your local disk.
 
 ## Run it
 
@@ -63,7 +63,7 @@ Session released
 Done!
 ```
 
-`stock.png` lands in the recipe folder. It's the rendered chart, captured server-side after the CSV was parsed remotely, then saved locally. A run takes ~15 seconds.
+`stock.png` lands in the recipe folder. It is the rendered chart, captured server-side after the CSV was parsed remotely, then saved locally. A run takes ~15 seconds.
 
 ## The rest of the surface
 
@@ -76,7 +76,7 @@ The recipe touches `upload` and nothing else, but `client.sessions.files` has mo
 
 Browser-initiated downloads (PDF exports, file-save dialogs) land in the same namespace automatically, so the inverse of this recipe is: drive the page to export, then `list()` and `download()` what showed up.
 
-There's also `client.files` (without `.sessions`), an organization-scoped store that persists across sessions. Same method shape. Useful for fixtures and assets you don't want to re-upload every run.
+There is also `client.files` (without `.sessions`), an organization-scoped store that persists across sessions. Same method shape. Useful for fixtures and assets you do not want to re-upload every run.
 
 ## Make it yours
 

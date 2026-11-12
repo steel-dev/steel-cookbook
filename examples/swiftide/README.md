@@ -43,7 +43,7 @@ let mut agent = Agent::builder()
 agent.query(TASK).await?;
 ```
 
-`query` drives the loop: Claude reads the task, calls `read_page` on Hacker News, optionally follows one or two links the scrape returned, then calls the always-present `stop` tool when it has the answer. `.limit(8)` caps the round trips so a confused model can't loop forever. The `on_new_message` hook in `main` prints each assistant turn as it lands.
+`query` drives the loop: Claude reads the task, calls `read_page` on Hacker News, optionally follows one or two links the scrape returned, then calls the always-present `stop` tool when it has the answer. `.limit(8)` caps the round trips so a confused model cannot loop forever. The `on_new_message` hook in `main` prints each assistant turn as it lands.
 
 ## Run it
 

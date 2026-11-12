@@ -1,6 +1,6 @@
 # Playwright Starter (Python)
 
-Playwright's Python API ships a CDP attach point, `chromium.connect_over_cdp()`. Point it at the websocket URL a Steel session hands back and your `Page`, `Locator`, and `expect` calls drive a remote browser instead of a local one. No `playwright install`, no headful display, no Chrome on your machine.
+Playwright's Python API ships a CDP attach point, `chromium.connect_over_cdp()`. Point it at the WebSocket URL a Steel session hands back and your `Page`, `Locator`, and `expect` calls drive a remote browser instead of a local one. No `playwright install`, no headful display, no Chrome on your machine.
 
 The whole connection is three lines inside a `with sync_playwright()` block:
 
@@ -9,7 +9,7 @@ session = client.sessions.create()
 
 playwright = sync_playwright().start()
 browser = playwright.chromium.connect_over_cdp(
-    f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+    session.websocket_url
 )
 
 page = browser.contexts[0].new_page()

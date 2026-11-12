@@ -22,7 +22,7 @@ graph.add_edge("format", END)
 app = graph.compile()
 ```
 
-If you'd rather skip the explicit construction, `langgraph.prebuilt.create_react_agent(model, tools, prompt=SYSTEM, response_format=FinalReport)` builds the same three-node graph in one call.
+If you would rather skip the explicit construction, `langgraph.prebuilt.create_react_agent(model, tools, prompt=SYSTEM, response_format=FinalReport)` builds the same three-node graph in one call.
 
 ## Run it
 
@@ -76,7 +76,7 @@ A run takes ~20 to 40 seconds and a few cents of Steel session time plus Anthrop
 
 - **Use the prebuilt.** Replace the explicit graph with `create_react_agent(model, tools, prompt=SYSTEM, response_format=FinalReport)` from `langgraph.prebuilt`. Same behavior, three lines.
 - **Add a checkpointer.** Pass `checkpointer=MemorySaver()` to `graph.compile(...)` and a `thread_id` in the run config. The graph snapshots state after every node, so a crashed run can resume from the last checkpoint. Use `SqliteSaver` (from `langgraph-checkpoint-sqlite`) for persistence across processes.
-- **Stream events.** Swap `app.ainvoke(...)` for `async for event in app.astream_events(..., version="v2")`. You'll see `on_tool_start`, `on_tool_end`, and `on_chat_model_stream` events you can pipe to a UI.
+- **Stream events.** Swap `app.ainvoke(...)` for `async for event in app.astream_events(..., version="v2")`. You will see `on_tool_start`, `on_tool_end`, and `on_chat_model_stream` events you can pipe to a UI.
 - **Trace with LangSmith.** Set `LANGSMITH_API_KEY` and `LANGSMITH_TRACING=true` in `.env`. No code changes; every node and tool call shows up at [smith.langchain.com](https://smith.langchain.com).
 - **Swap the model.** Any `langchain-*` chat model works. `ChatOpenAI(model="gpt-5-mini")` swaps Anthropic for OpenAI without touching the graph.
 

@@ -4,7 +4,7 @@ This is a [Model Context Protocol](https://modelcontextprotocol.io) server that 
 
 Five tools make up the surface. `create_session` opens a Steel session and returns its id; `navigate`, `extract`, and `screenshot` act on a session by id; `release_session` closes it.
 
-Don't need your own tools? Steel also hosts an MCP server at `https://mcp.steel.dev/mcp` that any client can connect to directly. See the [Steel MCP server docs](https://docs.steel.dev/overview/mcp).
+If you do not need your own tools, connect any MCP client to the server that Steel hosts at `https://mcp.steel.dev/mcp`. See the [Steel MCP server docs](https://steel.dev/docs/features/mcp-server).
 
 ## The decorator is the schema, the id is the handle
 
@@ -53,7 +53,7 @@ Restart the client and ask it to open a page and read it back. It calls `create_
 ## Make it yours
 
 - **Add a tool.** Write one more `async def` under `@mcp.tool()` that takes `session_id`, look the page up with `_page`, and act on it. A `click` tool is `await page.click(selector)`.
-- **Start authenticated.** Pass arguments to `steel.sessions.create` to attach a [profile](../profiles-py) or [credentials](../credentials-py) so a session opens already logged in.
+- **Start authenticated.** Pass arguments to `steel.sessions.create` to attach a [profile](../profiles-py) or [credentials](../credentials-py) so a session opens already signed in.
 - **Return typed data.** Tools here return dicts, strings, and an `Image`. Return a Pydantic model from a tool and FastMCP emits a structured-content schema the client can validate against.
 
 ## Related

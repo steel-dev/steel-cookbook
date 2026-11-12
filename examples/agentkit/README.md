@@ -18,7 +18,7 @@ const browseHackerNews = createTool({
     return await step?.run("browse-hn", async () => {
       const session = await client.sessions.create({});
       const browser = await chromium.connectOverCDP(
-        `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+        session.websocketUrl
       );
       try {
         // navigate, evaluate, filter, dedupe

@@ -19,7 +19,7 @@ stagehand_session = await stagehand.sessions.start(
     browser={
         "type": "local",
         "launchOptions": {
-            "cdpUrl": f"{session.websocket_url}&apiKey={STEEL_API_KEY}",
+            "cdpUrl": session.websocket_url,
         },
     },
 )
