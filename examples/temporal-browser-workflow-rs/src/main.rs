@@ -56,15 +56,18 @@ async fn start_workflow() -> Result<BrowserWorkflowResult, Box<dyn std::error::E
     let workflow_id = format!("steel-browser-rs-{}", unix_millis());
     let input = build_workflow_input()?;
 
+    let target_urls = input.urls.join(", ");
+
     let handle = client
         .start_workflow(
             BrowserWorkflow::run,
             input,
-            WorkflowStartOptions::new(task_queue, workflow_id).build(),
+            WorkflowStartOptions::new(task_queue, workflow_id.clone()).build(),
         )
         .await?;
 
-    println!("Started Temporal workflow, run_id: {:?}", handle.run_id());
+    println!("Started Temporal workflow: {workflow_id}");
+    println!("Target URLs: {target_urls}");
 
     let result = handle
         .get_result(WorkflowGetResultOptions::default())
