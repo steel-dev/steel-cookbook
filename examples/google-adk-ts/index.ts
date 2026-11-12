@@ -25,7 +25,7 @@ setLogLevel(LogLevel.WARN);
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "your-google-api-key-here";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.8-flash";
 
 const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
 
@@ -210,7 +210,7 @@ const agent = new LlmAgent({
 const TASK =
   "Go to https://news.ycombinator.com and return the top 5 stories with rank, title, destination URL, and points.";
 
-// gemini-2.5-flash occasionally ends a turn with MALFORMED_FUNCTION_CALL or an
+// Gemini occasionally ends a turn with MALFORMED_FUNCTION_CALL or an
 // empty answer. Each attempt runs a fresh ADK session, so a transient bad turn
 // is retried instead of sinking the run.
 async function runTask(

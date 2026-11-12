@@ -90,7 +90,7 @@ A run takes about 20 to 40 seconds and 4 to 8 model turns. Cost is a few cents o
 
 ## Make it yours
 
-- **Swap the model.** Change `WithModelName`. Any model the [Anthropic plugin](https://pkg.go.dev/github.com/firebase/genkit/go/plugins/anthropic) exposes works without code changes, for example `anthropic/claude-sonnet-5-5`. To use Gemini instead, register `&googlegenai.GoogleAI{}` in `genkit.Init`, set `GEMINI_API_KEY`, and pass `googleai/gemini-2.5-flash`.
+- **Swap the model.** Change `WithModelName`. Any model the [Anthropic plugin](https://pkg.go.dev/github.com/firebase/genkit/go/plugins/anthropic) exposes works without code changes, for example `anthropic/claude-sonnet-5-5`. To use Gemini instead, register `&googlegenai.GoogleAI{}` in `genkit.Init`, set `GEMINI_API_KEY`, and pass `googleai/gemini-3.8-flash`.
 - **Swap the task.** Change the prompt in `run` and the `Report` struct. The tools stay the same; the agent re-plans against the new output shape.
 - **Add a tool.** Write a function `func(tc *ai.ToolContext, in In) (Out, error)`, wrap it with `genkit.DefineTool`, and add it to `WithTools`. A useful fourth is `click(selector string)` that runs `chromedp.Click` and waits for navigation.
 - **Expose it as a flow.** Wrap the `Generate` call in `genkit.DefineFlow` to get tracing in the Genkit Dev UI and an HTTP handler for the same logic.

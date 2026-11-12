@@ -84,7 +84,7 @@ It serves at `http://localhost:4111` and reads the `mastra` registry exported fr
 
 ## Make it yours
 
-- **Swap the model.** Change the `model` string. `"openai/gpt-5-mini"`, `"google/gemini-2.5-flash"`, `"anthropic/claude-sonnet-5-5"` all work; set the matching API key in `.env`.
+- **Swap the model.** Change the `model` string. `"openai/gpt-5-mini"`, `"google/gemini-3.8-flash"`, `"anthropic/claude-sonnet-5-5"` all work; set the matching API key in `.env`.
 - **Swap the task.** Change the prompt and the `FinalReport` schema. The four tools are task-agnostic.
 - **Add a tool.** A `click` tool wrapping `page.click`, a `screenshot` tool returning a base64 PNG. Add to the `tools` record.
 - **Add memory.** Install `@mastra/memory` plus a storage adapter (`@mastra/libsql`), pass `memory` on the `Agent`, then call `generate(prompt, { memory: { resource, thread } })` to persist conversation across runs. See [Mastra memory docs](https://mastra.ai/docs/memory/overview).
