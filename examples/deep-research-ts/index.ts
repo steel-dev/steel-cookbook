@@ -81,7 +81,7 @@ async function ensureResearcher(researcherId: string): Promise<Researcher> {
     if (cached) return cached;
     const session = await steel.sessions.create({});
     const browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      session.websocketUrl,
     );
     const ctx = browser.contexts()[0];
     const page = ctx.pages()[0] ?? (await ctx.newPage());

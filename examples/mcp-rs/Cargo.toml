@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-steel-rs = "0.21"
+steel-rs = "0.23"
 rmcp = { version = "2", features = ["server", "macros", "transport-io", "schemars"] }
 chromiumoxide = "0.9"
 async-tungstenite = { version = "0.32", features = ["tokio-native-tls"] }

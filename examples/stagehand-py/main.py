@@ -91,7 +91,7 @@ async def main():
         print(f"\033[1;93mSteel Session created!\033[0m")
         print(f"View session at \033[1;37m{session.session_viewer_url}\033[0m")
 
-        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        cdp_url = session.websocket_url
 
         # Stagehand v3: embedded local server drives a Steel-hosted browser over CDP.
         stagehand = AsyncStagehand(

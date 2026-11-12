@@ -164,7 +164,7 @@ func verifyCart(ctx context.Context, client *steel.Client, apiKey, profileID str
 }
 
 func connect(ctx context.Context, websocketURL, apiKey string) (context.Context, context.CancelFunc) {
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", websocketURL, apiKey)
+	cdpURL := websocketURL
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
 	return browserCtx, func() {

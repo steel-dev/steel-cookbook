@@ -115,8 +115,8 @@ func main() {
 	}()
 
 	// chromedp attaches to the exact websocket URL Steel returns. NoModifyURL
-	// stops chromedp rewriting it, which would drop the apiKey query param.
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", steelSession.WebsocketURL, steelKey)
+	// stops chromedp rewriting it, which would drop the token in the query string.
+	cdpURL := steelSession.WebsocketURL
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()
 	tab, cancelTab := chromedp.NewContext(allocCtx)

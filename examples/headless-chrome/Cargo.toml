@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-steel-rs = "0.21"
+steel-rs = "0.23"
 headless_chrome = { version = "1", features = ["native-tls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 dotenvy = "0.15"

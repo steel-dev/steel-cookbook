@@ -145,8 +145,8 @@ async fn verify_auth(page: &Page) -> Result<bool, Box<dyn Error>> {
     }
 }
 
-fn normalize_cdp_url(websocket_url: &str, api_key: &str) -> String {
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+fn normalize_cdp_url(websocket_url: &str) -> String {
+    let raw = websocket_url.to_string();
     match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])
@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
     println!("Session #1 live at {}", session.session_viewer_url);
 
-    let cdp_url = normalize_cdp_url(&session.websocket_url, &api_key);
+    let cdp_url = normalize_cdp_url(&session.websocket_url);
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 
@@ -198,7 +198,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
     println!("Session #2 live at {}", session.session_viewer_url);
 
-    let cdp_url = normalize_cdp_url(&session.websocket_url, &api_key);
+    let cdp_url = normalize_cdp_url(&session.websocket_url);
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 

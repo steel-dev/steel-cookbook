@@ -65,7 +65,7 @@ class SteelTools(Toolkit):
             try:
                 self._session = self.client.sessions.create()  # type: ignore
                 if self._session:
-                    self._connect_url = f"{self._session.websocket_url}&apiKey={self.api_key}"  # type: ignore
+                    self._connect_url = self._session.websocket_url  # type: ignore
                     log_debug(f"Created new Steel session with ID: {self._session.id}")
             except Exception as e:
                 logger.error(f"Failed to create Steel session: {str(e)}")

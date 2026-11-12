@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Session live at {}", session.session_viewer_url);
 
-    let result = run(&session.websocket_url, &api_key).await;
+    let result = run(&session.websocket_url).await;
 
     println!("Releasing session...");
     client.sessions().release(&session.id).await?;
@@ -72,8 +72,8 @@ async fn resolve_extension(client: &Client) -> Result<String, Box<dyn Error>> {
     Ok(uploaded.id)
 }
 
-async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+async fn run(websocket_url: &str) -> Result<(), Box<dyn Error>> {
+    let raw = websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])

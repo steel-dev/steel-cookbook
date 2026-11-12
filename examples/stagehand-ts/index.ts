@@ -68,7 +68,7 @@ async function main() {
     stagehand = new Stagehand({
       env: "LOCAL", // Using LOCAL env to connect to Steel session
       localBrowserLaunchOptions: {
-        cdpUrl: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+        cdpUrl: session.websocketUrl,
       },
       model: {
         modelName: "openai/gpt-5",

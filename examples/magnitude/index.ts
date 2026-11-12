@@ -75,7 +75,7 @@ async function main() {
         },
       },
       browser: {
-        cdp: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+        cdp: session.websocketUrl,
       },
     });
 

@@ -62,7 +62,7 @@ async function main() {
 
       // Connect Playwright to Steel session
       browser = await chromium.connectOverCDP({
-        endpointURL: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+        endpointURL: session.websocketUrl,
       });
 
       const contexts = browser.contexts();
@@ -109,7 +109,7 @@ async function main() {
 
     // Connect Playwright to new session
     browser = await chromium.connectOverCDP({
-      endpointURL: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      endpointURL: session.websocketUrl,
     });
 
     const newContexts = browser.contexts();

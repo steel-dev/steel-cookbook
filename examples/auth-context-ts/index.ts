@@ -58,7 +58,7 @@ async function main() {
 
     // Connect Playwright to the session
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+      session.websocketUrl
     );
 
     const page = await browser.contexts()[0].pages()[0];
@@ -85,7 +85,7 @@ async function main() {
 
     // Connect to new session
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+      session.websocketUrl
     );
 
     // Verify authentication transfer

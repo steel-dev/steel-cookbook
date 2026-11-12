@@ -53,7 +53,7 @@ async function main() {
 
     // Connect Puppeteer to the Steel session
     browser = await puppeteer.connect({
-      browserWSEndpoint: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      browserWSEndpoint: session.websocketUrl,
     });
 
     console.log("Connected to browser via Puppeteer");

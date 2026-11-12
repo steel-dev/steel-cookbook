@@ -10,8 +10,8 @@ github.com/mxschmitt/playwright-go v0.6401.0 h1:PQbHqgzMQiY6pq8YsBBM5AXYnOs9Tnly
 github.com/mxschmitt/playwright-go v0.6401.0/go.mod h1:vLBP2yVO1gokUlb9ENA+YE3VQaVqf2A9BGxcb7aPjMI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/steel-dev/sdk/go v0.21.0 h1:6fNzVYJr6iz4QrykwOaFcCi3j+4kE60gjI4eOdGkxmw=
-github.com/steel-dev/sdk/go v0.21.0/go.mod h1:f2ZOfW0NJ7x6PJe9Z5qGdnh+FsK/hgBbYPukS3mUD2Y=
+github.com/steel-dev/sdk/go v0.23.0 h1:yevm2za3lU9K3l0zBKZRRo392ooAW0zTQA40gcyjyaI=
+github.com/steel-dev/sdk/go v0.23.0/go.mod h1:f2ZOfW0NJ7x6PJe9Z5qGdnh+FsK/hgBbYPukS3mUD2Y=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

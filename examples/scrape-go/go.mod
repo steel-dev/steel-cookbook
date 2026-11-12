@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/sdk/go v0.21.0
+	github.com/steel-dev/sdk/go v0.23.0
 )
 
 require (

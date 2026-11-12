@@ -31,7 +31,7 @@ const openSession = tool({
     const t0 = Date.now();
     session = await steel.sessions.create({});
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      session.websocketUrl,
     );
     const ctx = browser.contexts()[0];
     page = ctx.pages()[0] ?? (await ctx.newPage());

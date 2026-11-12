@@ -84,10 +84,10 @@ func (s *server) createSession(ctx context.Context, _ *mcp.CallToolRequest, _ cr
 	}
 
 	// chromedp attaches to the exact websocket URL Steel returns. NoModifyURL stops
-	// chromedp rewriting it, which would drop the apiKey query param. The allocator
+	// chromedp rewriting it, which would drop the token in the query string. The allocator
 	// uses context.Background(), not the request ctx: the request is cancelled when
 	// this tool call returns, but the session must outlive it for later calls.
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", steelSession.WebsocketURL, s.steelKey)
+	cdpURL := steelSession.WebsocketURL
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(context.Background(), cdpURL, chromedp.NoModifyURL)
 	tab, cancelTab := chromedp.NewContext(allocCtx)
 	if err := chromedp.Run(tab); err != nil {

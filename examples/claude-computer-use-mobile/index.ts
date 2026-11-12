@@ -247,7 +247,7 @@ class SteelBrowser {
       this.session.dimensions.height,
     ];
 
-    const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+    const cdpUrl = this.session.websocketUrl;
 
     this.browser = await chromium.connectOverCDP(cdpUrl, {
       timeout: 60000,

@@ -63,7 +63,7 @@ func run(apiKey string) error {
 		}
 	}()
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+	cdpURL := sess.WebsocketURL
 
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()

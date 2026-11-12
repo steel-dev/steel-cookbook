@@ -33,7 +33,6 @@ struct SessionEntry {
 #[derive(Clone)]
 struct SteelMcp {
     steel: Arc<Client>,
-    steel_key: String,
     sessions: Arc<Mutex<HashMap<String, SessionEntry>>>,
 }
 
@@ -67,8 +66,7 @@ struct SessionArg {
 impl SteelMcp {
     fn new(steel_key: String) -> Self {
         Self {
-            steel: Arc::new(Client::builder().api_key(steel_key.clone()).build()),
-            steel_key,
+            steel: Arc::new(Client::builder().api_key(steel_key).build()),
             sessions: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -94,8 +92,8 @@ impl SteelMcp {
             .map_err(internal)?;
 
         // Steel returns a CDP websocket URL with no path before the query string.
-        // chromiumoxide needs a "/" there, so splice one in before "?apiKey=...".
-        let raw = format!("{}&apiKey={}", session.websocket_url, self.steel_key);
+        // chromiumoxide needs a "/" there, so splice one in before "?sessionId=...".
+        let raw = session.websocket_url.to_string();
         let cdp_url = match (raw.find("://"), raw.find('?')) {
             (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
                 format!("{}/{}", &raw[..q], &raw[q..])

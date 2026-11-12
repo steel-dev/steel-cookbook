@@ -17,8 +17,8 @@ const ADD_TO_CART_FALLBACK: &str = "input[value=\"Add to cart\"]";
 
 const CART_QTY_JS: &str = "(() => document.querySelectorAll('.cart tbody tr').length)()";
 
-fn normalize_cdp_url(websocket_url: &str, api_key: &str) -> String {
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+fn normalize_cdp_url(websocket_url: &str) -> String {
+    let raw = websocket_url.to_string();
     match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])
@@ -27,8 +27,8 @@ fn normalize_cdp_url(websocket_url: &str, api_key: &str) -> String {
     }
 }
 
-async fn connect(websocket_url: &str, api_key: &str) -> Result<(Browser, tokio::task::JoinHandle<()>), Box<dyn Error>> {
-    let cdp_url = normalize_cdp_url(websocket_url, api_key);
+async fn connect(websocket_url: &str) -> Result<(Browser, tokio::task::JoinHandle<()>), Box<dyn Error>> {
+    let cdp_url = normalize_cdp_url(websocket_url);
     let (browser, mut handler) = Browser::connect(cdp_url).await?;
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
     Ok((browser, handle))
@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Profile ID: {profile_id}");
     println!("Session #1 live at {}", session.session_viewer_url);
 
-    let (browser, handle) = connect(&session.websocket_url, &api_key).await?;
+    let (browser, handle) = connect(&session.websocket_url).await?;
     let page = browser.new_page(BOOKS_URL).await?;
     page.wait_for_navigation().await?;
     add_first_to_cart(&page).await?;
@@ -94,7 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
     println!("Session #2 live at {}", session.session_viewer_url);
 
-    let (browser, handle) = connect(&session.websocket_url, &api_key).await?;
+    let (browser, handle) = connect(&session.websocket_url).await?;
     let page = browser.new_page(CART_URL).await?;
     page.wait_for_navigation().await?;
     let rows = count_cart_rows(&page).await?;

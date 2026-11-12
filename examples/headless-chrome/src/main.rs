@@ -26,8 +26,7 @@ async fn main() -> Result<(), BoxError> {
     println!("Session live at {}", session.session_viewer_url);
 
     let websocket_url = session.websocket_url.clone();
-    let key = api_key.clone();
-    let result = tokio::task::spawn_blocking(move || scrape(&websocket_url, &key)).await?;
+    let result = tokio::task::spawn_blocking(move || scrape(&websocket_url)).await?;
 
     println!("Releasing session...");
     client.sessions().release(&session.id).await?;
@@ -36,8 +35,8 @@ async fn main() -> Result<(), BoxError> {
     result
 }
 
-fn scrape(websocket_url: &str, api_key: &str) -> Result<(), BoxError> {
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+fn scrape(websocket_url: &str) -> Result<(), BoxError> {
+    let raw = websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])

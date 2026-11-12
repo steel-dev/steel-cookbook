@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = steel.sessions().create(steel_rs::SessionCreateParams::default()).await?;
     println!("Session: {}", session.session_viewer_url);
 
-    let raw = format!("{}&apiKey={}", session.websocket_url, steel_api_key);
+    let raw = session.websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])

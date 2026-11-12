@@ -65,7 +65,7 @@ func run(apiKey string) error {
 	}
 	fmt.Printf("Uploaded. Path inside the session VM: %s\n", uploaded.Path)
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+	cdpURL := sess.WebsocketURL
 
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()

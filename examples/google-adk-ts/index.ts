@@ -272,7 +272,7 @@ async function main() {
     console.log(`Live View: ${session.sessionViewerUrl}`);
 
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      session.websocketUrl,
     );
     const ctx = browser.contexts()[0];
     page = ctx.pages()[0] ?? (await ctx.newPage());

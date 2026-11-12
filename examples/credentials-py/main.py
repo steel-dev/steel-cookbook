@@ -57,7 +57,7 @@ def main():
 
         playwright = sync_playwright().start()
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
 
         print("Connected to browser via Playwright")

@@ -22,7 +22,7 @@
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "playwright": "^1.50.0",
-    "steel-sdk": "^0.21.0",
+    "steel-sdk": "^0.23.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

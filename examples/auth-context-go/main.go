@@ -95,7 +95,7 @@ func run(apiKey string) error {
 }
 
 func withBrowser(ctx context.Context, websocketURL, apiKey string, fn func(context.Context) error) error {
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", websocketURL, apiKey)
+	cdpURL := websocketURL
 
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()

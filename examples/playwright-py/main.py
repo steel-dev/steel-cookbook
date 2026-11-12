@@ -53,7 +53,7 @@ You can view the session live at \033[1;37m{session.session_viewer_url}\033[0m
         # Connect Playwright to the Steel session
         playwright = sync_playwright().start()
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
 
         print("Connected to browser via Playwright")

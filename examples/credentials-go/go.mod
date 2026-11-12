@@ -6,7 +6,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b
 	github.com/chromedp/chromedp v0.13.6
 	github.com/joho/godotenv v1.5.1
-	github.com/steel-dev/sdk/go v0.21.0
+	github.com/steel-dev/sdk/go v0.23.0
 )
 
 require (

@@ -21,7 +21,7 @@
     "@anthropic-ai/sdk": "^0.90.0",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
-    "steel-sdk": "^0.21.0",
+    "steel-sdk": "^0.23.0",
     "typescript": "^5.6.3"
   },
   "devDependencies": {

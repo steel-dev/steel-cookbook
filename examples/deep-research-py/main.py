@@ -79,7 +79,7 @@ async def _ensure_session(researcher_id: str) -> dict[str, Any]:
             return _sessions[researcher_id]
         sess = steel.sessions.create()
         browser = await _playwright.chromium.connect_over_cdp(
-            f"{sess.websocket_url}&apiKey={STEEL_API_KEY}"
+            sess.websocket_url
         )
         ctx = browser.contexts[0]
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()

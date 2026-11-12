@@ -52,7 +52,7 @@ async def main():
             f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
         )
 
-        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        cdp_url = session.websocket_url
 
         start_time = time.time()
 

@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "steel-sdk": "^0.21.0"
+    "steel-sdk": "^0.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

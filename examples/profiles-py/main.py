@@ -19,7 +19,7 @@ client = Steel(steel_api_key=STEEL_API_KEY)
 
 def connect(playwright, session):
     browser = playwright.chromium.connect_over_cdp(
-        f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        session.websocket_url
     )
     page = browser.contexts[0].pages[0]
     return browser, page

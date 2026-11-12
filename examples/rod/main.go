@@ -72,7 +72,7 @@ func main() {
 		fmt.Println("Session released")
 	}()
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, apiKey)
+	cdpURL := session.WebsocketURL
 	cdpClient, err := connectCDP(ctx, cdpURL)
 	if err != nil {
 		fmt.Printf("Failed to connect to browser: %v\n", err)
