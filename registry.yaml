@@ -498,7 +498,7 @@
   language: Go
   topics: [Browser automation]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Automate a cloud browser with chromiumoxide
   slug: chromiumoxide
@@ -558,7 +558,7 @@
   language: Go
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -648,7 +648,7 @@
   language: Go
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -658,7 +658,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -668,7 +668,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -678,7 +678,7 @@
   language: Go
   topics: [Computer use]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
