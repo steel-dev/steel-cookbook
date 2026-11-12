@@ -1,0 +1,11 @@
+[project]
+name = "browser-use-fast-typing"
+version = "0.1.0"
+description = "Fast text insertion tools for browser-use agents running on Steel"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "browser-use>=0.12",
+    "python-dotenv>=1.0.0",
+    "steel-sdk>=0.16.0",
+]
