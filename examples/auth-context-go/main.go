@@ -48,7 +48,7 @@ func run(apiKey string) error {
 	}
 	fmt.Printf("Session #1 live at %s\n", first.SessionViewerURL)
 
-	if err := withBrowser(ctx, first.WebsocketURL, apiKey, func(runCtx context.Context) error {
+	if err := withBrowser(ctx, first.WebsocketURL, func(runCtx context.Context) error {
 		if err := login(runCtx); err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func run(apiKey string) error {
 	}()
 	fmt.Printf("Session #2 live at %s\n", second.SessionViewerURL)
 
-	if err := withBrowser(ctx, second.WebsocketURL, apiKey, func(runCtx context.Context) error {
+	if err := withBrowser(ctx, second.WebsocketURL, func(runCtx context.Context) error {
 		return verifyAuth(runCtx, "session #2")
 	}); err != nil {
 		return err
@@ -94,10 +94,8 @@ func run(apiKey string) error {
 	return nil
 }
 
-func withBrowser(ctx context.Context, websocketURL, apiKey string, fn func(context.Context) error) error {
-	cdpURL := websocketURL
-
-	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
+func withBrowser(ctx context.Context, websocketURL string, fn func(context.Context) error) error {
+	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, websocketURL, chromedp.NoModifyURL)
 	defer cancelAlloc()
 
 	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
