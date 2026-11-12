@@ -81,7 +81,6 @@ result = await executor.ainvoke({"input": question})
 cd examples/you-com-search
 cp .env.example .env          # set STEEL_API_KEY, ANTHROPIC_API_KEY, YDC_API_KEY
 uv sync
-uv run playwright install chromium
 uv run main.py
 ```
 

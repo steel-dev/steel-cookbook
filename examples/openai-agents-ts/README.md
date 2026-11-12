@@ -35,7 +35,6 @@ The SDK compiles Zod to OpenAI's strict JSON Schema at registration, which tight
 cd examples/openai-agents-ts
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 

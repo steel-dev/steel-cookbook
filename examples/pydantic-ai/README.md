@@ -42,7 +42,6 @@ async def navigate(ctx: RunContext[BrowserDeps], url: str) -> dict:
 ```bash
 cd examples/pydantic-ai
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 

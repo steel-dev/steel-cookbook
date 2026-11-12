@@ -59,7 +59,6 @@ for await (const message of query({
 cd examples/claude-agent-sdk-ts
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 

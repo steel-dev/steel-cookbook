@@ -94,7 +94,6 @@ The prompt also asks the researcher to pause after ~5–6 tool calls and emit a 
 cd examples/deep-research-ts
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 

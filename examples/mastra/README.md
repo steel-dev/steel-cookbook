@@ -33,7 +33,6 @@ console.log(result.object); // typed as z.infer<typeof FinalReport>
 cd examples/mastra
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 

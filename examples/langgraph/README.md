@@ -30,7 +30,6 @@ If you would rather skip the explicit construction, `langgraph.prebuilt.create_r
 cd examples/langgraph
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 uv sync
-uv run playwright install chromium
 uv run main.py
 ```
 

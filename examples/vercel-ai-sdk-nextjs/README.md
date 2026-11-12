@@ -38,7 +38,6 @@ prepareStep: async ({ stepNumber, steps }) => {
 cd examples/vercel-ai-sdk-nextjs
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm run dev
 ```
 
@@ -58,11 +57,7 @@ A typical run takes ~20 seconds: `openSession` (~3s), `navigate` (~2s), `snapsho
 
 ## Deploying to Vercel
 
-Push to GitHub, import into Vercel, add `STEEL_API_KEY` and `ANTHROPIC_API_KEY` as environment variables. Playwright's Chromium has to be downloaded during the build, so set the Build Command to:
-
-```
-npx playwright install chromium && next build
-```
+Push to GitHub, import into Vercel, add `STEEL_API_KEY` and `ANTHROPIC_API_KEY` as environment variables, and keep the default build command. The route connects to Steel's browser over CDP, so the build doesn't need to download Chromium.
 
 The `/api/chat` route already declares `maxDuration = 120` and `runtime = "nodejs"`.
 

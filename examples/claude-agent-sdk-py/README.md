@@ -57,7 +57,6 @@ async for message in query(prompt=PROMPT, options=options):
 ```bash
 cd examples/claude-agent-sdk-py
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 

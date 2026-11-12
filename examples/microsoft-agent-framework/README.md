@@ -45,7 +45,6 @@ Tools are built inside `build_tools(page)` so each run closes over its own `Page
 ```bash
 cd examples/microsoft-agent-framework
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 

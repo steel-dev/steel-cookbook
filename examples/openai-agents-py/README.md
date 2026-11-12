@@ -26,7 +26,6 @@ Each tool is a plain async function wrapped with `@function_tool`. The SDK reads
 ```bash
 cd examples/openai-agents-py
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 

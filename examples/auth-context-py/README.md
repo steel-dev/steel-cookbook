@@ -27,7 +27,7 @@ cp .env.example .env          # set STEEL_API_KEY
 uv run main.py
 ```
 
-Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `uv sync` runs automatically on first `uv run`, so there is no separate install step. Prefer pip? `pip install -e .` then `python main.py`. Playwright needs its browser binaries once: `playwright install chromium`.
+Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `uv sync` runs automatically on first `uv run`, so there is no separate install step. Prefer pip? `pip install -e .` then `python main.py`.
 
 The script prints two session viewer URLs. Open them in other tabs to watch each browser live.
 

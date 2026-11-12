@@ -94,7 +94,6 @@ The prompt also asks the researcher to pause after ~5–6 tool calls and emit a 
 ```bash
 cd examples/deep-research-py
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 
