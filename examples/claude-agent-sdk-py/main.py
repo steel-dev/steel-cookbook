@@ -240,7 +240,7 @@ async def main() -> None:
         sys.exit(1)
 
     options = ClaudeAgentOptions(
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5-5",
         system_prompt=SYSTEM_PROMPT,
         mcp_servers={"steel": steel_server},
         allowed_tools=["mcp__steel__*"],

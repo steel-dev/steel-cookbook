@@ -33,7 +33,7 @@ const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 // Cheap, fast model for the per-page extraction step. Mirrors how Claude Code's
 // WebFetch turns "fetch this URL and answer this question" into one pass over
 // the page content with a small model.
-const EXTRACTOR_MODEL = "claude-haiku-4-5-20251001";
+const EXTRACTOR_MODEL = "claude-haiku-5-5";
 
 // Markers that flag a page as bot-blocked or JS-rendered, so read_url falls
 // back from plain fetch() to a real Steel browser.
@@ -254,6 +254,7 @@ async function extractWithHaiku(args: {
   const msg = await anthropic.messages.create({
     model: EXTRACTOR_MODEL,
     max_tokens: 600,
+    thinking: { type: "disabled" },
     system: sys,
     messages: [{ role: "user", content: usr }],
   });
@@ -443,7 +444,7 @@ async function main() {
     for await (const message of query({
       prompt: PROMPT,
       options: {
-        model: "claude-opus-4-7",
+        model: "claude-opus-5-5",
         systemPrompt: ORCHESTRATOR_PROMPT,
         mcpServers: { steel: steelServer },
         // The orchestrator only dispatches subagents.

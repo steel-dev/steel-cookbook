@@ -244,7 +244,7 @@ async function main() {
     for await (const message of query({
       prompt: PROMPT,
       options: {
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5-5",
         systemPrompt: SYSTEM_PROMPT,
         mcpServers: { steel: steelServer },
         allowedTools: ["mcp__steel__*"],

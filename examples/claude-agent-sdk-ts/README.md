@@ -28,7 +28,7 @@ const steelServer = createSdkMcpServer({
 for await (const message of query({
   prompt: PROMPT,
   options: {
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5-5",
     systemPrompt: SYSTEM_PROMPT,
     mcpServers: { steel: steelServer },
     allowedTools: ["mcp__steel__*"],
@@ -92,7 +92,7 @@ A run takes ~25 to 45 seconds and 3 to 6 turns. Cost is Steel session-minutes pl
 ## Make it yours
 
 - **Swap the task.** Change `PROMPT` and (optionally) `SYSTEM_PROMPT`. The four tools are task-agnostic.
-- **Reach for Opus 4.7.** Set `model: "claude-opus-4-7"` for harder reasoning.
+- **Reach for Opus 5.5.** Set `model: "claude-opus-5-5"` for harder reasoning.
 - **Add a tool.** Define another `tool()`, append it to the `tools` array in `createSdkMcpServer`. A `click(selector)` tool that calls `page.click` is the most common fifth one.
 - **Hook the lifecycle.** Pass a `hooks` option with callbacks for `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart` to audit, log, or block individual tool calls.
 - **Resume sessions.** Capture `session_id` from the first `system`/`init` message, pass `resume: sessionId` on the next `query()` call to keep agent memory across runs.

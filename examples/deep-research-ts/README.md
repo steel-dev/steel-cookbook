@@ -19,7 +19,7 @@ const researcher: AgentDefinition = {
 for await (const message of query({
   prompt: PROMPT,
   options: {
-    model: "claude-opus-4-7",
+    model: "claude-opus-5-5",
     systemPrompt: ORCHESTRATOR_PROMPT,
     mcpServers: { steel: steelServer },
     allowedTools: ["Agent"],
@@ -56,7 +56,7 @@ Each read is not a raw scrape. It is a focused extraction shaped like Claude Cod
 1. **`fetch()` + cheerio** for static HTML. Most primary sources resolve here in under a second.
 2. **Steel browser fallback** when the plain fetch returns non-2xx, comes back with under 500 characters of body text, or matches a list of bot-block markers (`"just a moment"`, `"verifying you are human"`, ...). The same `ensureResearcher` path opens or reuses the researcher's existing Steel browser.
 
-Either way, the extracted page text + the researcher's `prompt` go through one `claude-haiku-4-5` pass that returns the answer (or `NOT IN PAGE` if the URL turns out not to contain it). The researcher gets a compressed return that does not bloat its context. This is the same trick that makes Claude Code's `WebFetch` cheap.
+Either way, the extracted page text + the researcher's `prompt` go through one `claude-haiku-5-5` pass that returns the answer (or `NOT IN PAGE` if the URL turns out not to contain it). The researcher gets a compressed return that does not bloat its context. This is the same trick that makes Claude Code's `WebFetch` cheap.
 
 ```ts
 const readUrl = tool(

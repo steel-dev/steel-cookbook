@@ -6,7 +6,7 @@ This recipe wires that pattern to Steel. The lead "orchestrator" never touches a
 
 ```python
 options = ClaudeAgentOptions(
-    model="claude-opus-4-7",
+    model="claude-opus-5-5",
     system_prompt=ORCHESTRATOR_PROMPT,
     mcp_servers={"steel": steel_server},
     allowed_tools=["Agent"],   # the orchestrator only dispatches
@@ -62,7 +62,7 @@ Each read is not a raw scrape. It is a focused extraction shaped like Claude Cod
 1. **`httpx.AsyncClient` + BeautifulSoup** for static HTML. Most primary sources resolve here in under a second.
 2. **Steel browser fallback** when the plain fetch returns non-2xx, comes back with under 500 characters of body text, or matches a list of bot-block markers (`"just a moment"`, `"verifying you are human"`, ...). The same `_ensure_session` path opens or reuses the researcher's existing Steel browser.
 
-Either way, the extracted page text + the researcher's `prompt` go through one `claude-haiku-4-5` pass that returns the answer (or `NOT IN PAGE` if the URL turns out not to contain it). The researcher gets a compressed return that does not bloat its context. This is the same trick that makes Claude Code's `WebFetch` cheap.
+Either way, the extracted page text + the researcher's `prompt` go through one `claude-haiku-5-5` pass that returns the answer (or `NOT IN PAGE` if the URL turns out not to contain it). The researcher gets a compressed return that does not bloat its context. This is the same trick that makes Claude Code's `WebFetch` cheap.
 
 ```python
 @tool("read_url", "...", {"researcher_id": str, "url": str, "prompt": str})
