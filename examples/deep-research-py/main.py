@@ -77,7 +77,7 @@ async def _ensure_session(researcher_id: str) -> dict[str, Any]:
     async with _session_lock:
         if researcher_id in _sessions:
             return _sessions[researcher_id]
-        sess = steel.sessions.create()
+        sess = steel.sessions.create(api_timeout=600_000)
         browser = await _playwright.chromium.connect_over_cdp(
             sess.websocket_url
         )

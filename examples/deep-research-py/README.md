@@ -143,7 +143,7 @@ QuantumScape is shipping QSE-5 B-samples to OEMs ... [r1:2]
 [r3] released session. Replay: https://app.steel.dev/sessions/349ffae8-...
 ```
 
-A run takes ~4 to 6 minutes wall-clock with 3 Steel sessions running in parallel. Cost is Steel session-minutes (mostly for `web_search` and bot-blocked reads) plus Anthropic tokens. Three model tiers in play: Opus for orchestrator synthesis, Sonnet for researcher reasoning, Haiku for the per-page extraction pass.
+A run takes ~4 to 6 minutes wall-clock with 3 Steel sessions running in parallel. Each session is created with `api_timeout=600_000` (10 minutes), because the default 5-minute timeout can end a session mid-run. Cost is Steel session-minutes (mostly for `web_search` and bot-blocked reads) plus Anthropic tokens. Three model tiers in play: Opus for orchestrator synthesis, Sonnet for researcher reasoning, Haiku for the per-page extraction pass.
 
 ## Make it yours
 

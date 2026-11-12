@@ -79,7 +79,7 @@ async function ensureResearcher(researcherId: string): Promise<Researcher> {
   try {
     const cached = researchers.get(researcherId);
     if (cached) return cached;
-    const session = await steel.sessions.create({});
+    const session = await steel.sessions.create({ timeout: 600_000 });
     const browser = await chromium.connectOverCDP(
       session.websocketUrl,
     );
