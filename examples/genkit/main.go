@@ -20,7 +20,7 @@ import (
 	"github.com/steel-dev/sdk/go/option"
 )
 
-const model = "anthropic/claude-haiku-4-5"
+const model = "anthropic/claude-haiku-5-5"
 
 // browser holds the resources every tool shares. A single Steel session and one
 // chromedp tab are reused across tool calls, so the agent navigates and extracts

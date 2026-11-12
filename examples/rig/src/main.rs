@@ -198,7 +198,7 @@ async fn run(browser: &Browser, anthropic_api_key: &str) -> Result<String, Box<d
     let page = browser.new_page("about:blank").await?;
 
     let agent = anthropic::Client::new(anthropic_api_key)?
-        .agent("claude-sonnet-4-6")
+        .agent("claude-sonnet-5-5")
         .preamble(
             "You operate a Steel cloud browser through tools. Workflow: call navigate \
              to open the target URL, then extract_text to read the page, then answer \

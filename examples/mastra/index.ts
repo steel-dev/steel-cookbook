@@ -232,7 +232,7 @@ export const researchAgent = new Agent({
   ].join(" "),
   // Mastra Model Router: 'provider/model' string. No @ai-sdk/anthropic install
   // needed; the router reads ANTHROPIC_API_KEY from env.
-  model: "anthropic/claude-haiku-4-5",
+  model: "anthropic/claude-haiku-5-5",
   tools: { openSession, navigate, snapshot, extract },
 });
 
@@ -271,7 +271,7 @@ async function main() {
         // is Mastra's documented "maximum compatibility" path.
         structuredOutput: {
           schema: FinalReport,
-          model: "anthropic/claude-haiku-4-5",
+          model: "anthropic/claude-haiku-5-5",
         },
         maxSteps: 15,
         onStepFinish: async (step: any) => {

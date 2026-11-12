@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   };
 
   const result = streamText({
-    model: anthropic("claude-haiku-4-5"),
+    model: anthropic("claude-haiku-5-5"),
     system: [
       "You operate Steel cloud browsers via tools.",
       "Per-session workflow: (1) openSession (returns a sessionId),",

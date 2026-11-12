@@ -63,7 +63,7 @@ The `/api/chat` route already declares `maxDuration = 120` and `runtime = "nodej
 
 ## Make it yours
 
-- **Change the model.** Swap `anthropic("claude-haiku-4-5")` for any model in `@ai-sdk/*`. The Zod tool schemas stay the same.
+- **Change the model.** Swap `anthropic("claude-haiku-5-5")` for any model in `@ai-sdk/*`. The Zod tool schemas stay the same.
 - **Add a screenshot tool.** `await page.screenshot({ type: "png" })` returns a Buffer; return it base64-encoded and render it as an `<img>` in the tool-call panel.
 - **Stream a plan step.** Add a `plan` tool with no side effects and a string input. The model can narrate its intent before executing.
 - **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` options to `steel.sessions.create()` inside `openSession`.

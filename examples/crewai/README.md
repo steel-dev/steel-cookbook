@@ -70,7 +70,7 @@ A run takes ~60-90 seconds. `report.md` is overwritten each run.
 
 - **Change the task.** Set `TASK="Find the top 3 open-source vector databases and compare licensing"` in `.env` and rerun.
 - **Add an agent.** Slot a fact-checker between researcher and analyst with a new `@agent` and `@task`. `Process.sequential` picks them up in declaration order.
-- **Mix models.** The researcher can stay on `gpt-5-nano` while the analyst runs `gpt-5` or `claude-sonnet-4-6`. Set `llm=` independently on each `Agent`.
+- **Mix models.** The researcher can stay on `gpt-5-nano` while the analyst runs `gpt-5` or `claude-sonnet-5-5`. Set `llm=` independently on each `Agent`.
 - **Tighten the scraper.** Pass `proxy=True` to `SteelScrapeWebsiteTool()` for sites that block datacenter IPs, or `formats=["html"]` if the markdown conversion strips something you need.
 
 ## Related

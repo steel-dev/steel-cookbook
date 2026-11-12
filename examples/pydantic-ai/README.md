@@ -80,7 +80,7 @@ A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost i
 
 ## Make it yours
 
-- **Swap the model.** Change the first arg to `agent`. `'anthropic:claude-sonnet-4-6'` and `'google-gla:gemini-2.5-flash'` work without code changes; tool-arg JSON schemas are provider-agnostic. Set the matching API key in `.env`.
+- **Swap the model.** Change the first arg to `agent`. `'anthropic:claude-sonnet-5-5'` and `'google-gla:gemini-2.5-flash'` work without code changes; tool-arg JSON schemas are provider-agnostic. Set the matching API key in `.env`.
 - **Swap the task.** Change the prompt in `agent.run` and the `FinalReport` schema. Tools stay the same; the agent re-plans against the new shape.
 - **Add a tool.** Write an async function that takes `RunContext[BrowserDeps]`, add it to `tools=[...]` (or use `@agent.tool` after the agent exists). A useful fourth tool is `click(selector: str)` that calls `page.click` and waits for navigation.
 - **Stream the answer.** Use `async with agent.run_stream(prompt, deps=...)` to stream the final answer token-by-token while tool calls happen behind the scenes. Helpful for long summaries.

@@ -197,7 +197,7 @@ async def click_text(text: str) -> dict:
 
 
 tools = [youcom_search, youcom_contents, navigate, snapshot, click_text]
-model = ChatAnthropic(model="claude-haiku-4-5", api_key=ANTHROPIC_API_KEY)
+model = ChatAnthropic(model="claude-haiku-5-5", api_key=ANTHROPIC_API_KEY)
 
 SYSTEM = (
     "You answer research-style questions by combining You.com APIs with a "
