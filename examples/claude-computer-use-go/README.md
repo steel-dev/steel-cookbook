@@ -1,8 +1,8 @@
 # Claude Computer Use (Go)
 
-Two typed unions meet in this recipe. Claude's Beta Messages API returns a `computer` tool call (`left_click` at `[640, 412]`, `type "claude opus"`, `scroll down 3`); Steel's Sessions Computer endpoint accepts a discriminated union of actions (`click_mouse`, `type_text`, `scroll`) and returns a screenshot. `main.go` is the agent loop that translates one into the other and feeds the screenshot back, using the official `anthropic-sdk-go` and `github.com/steel-dev/sdk/go` SDKs end to end with no hand-rolled HTTP.
+Two typed unions meet in this recipe. Claude's Messages API returns computer tool calls (`left_click` at `[640, 412]`, `type "steel.dev"`, `scroll down 3`); Steel's Sessions Computer endpoint accepts a discriminated union of actions (`click_mouse`, `type_text`, `scroll`) and takes screenshots. `main.go` is the agent loop that translates one into the other and feeds the screenshot back, using the official `anthropic-sdk-go` and `github.com/steel-dev/sdk/go` SDKs end to end with no hand-rolled HTTP.
 
-A Steel session is a headful Chromium in a VM. The Computer endpoint (`client.Sessions.Computer`) runs a mouse or keyboard action server-side and, when you pass `Screenshot: true`, returns a base64 PNG in the same call. So one round-trip both acts and observes.
+A Steel session is a headful Chromium in a VM. The Computer endpoint (`client.Sessions.Computer`) runs a mouse or keyboard action server-side, and its `take_screenshot` action returns a base64 PNG.
 
 ## Constructing a Steel action
 
@@ -12,53 +12,56 @@ Steel models its action request as a tagged union. In Go that is `SessionCompute
 req := steel.SessionComputerParamsBodyClickMouse{
     Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
     Button:      steel.F(button),
-    Coordinates: steel.F(coords),
-    Screenshot:  steel.F(true),
+    Coordinates: steel.F(a.point(in.Coordinate)),
 }
 resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{Body: req})
-img := resp.Base64Image // string, base64 PNG
 ```
 
-`executeComputerAction` is one big `switch` over Claude's action names that builds the right variant for each: `left_click` and friends become a `SessionComputerParamsBodyClickMouse` (with `NumClicks` 2 or 3 for double and triple), `type` becomes `SessionComputerParamsBodyTypeText`, `scroll` becomes a `SessionComputerParamsBodyScroll` with pixel deltas. Two translation details carry over from the Python and TypeScript versions: `scroll_amount` is multiplied by 100 pixels per step, and key names like `CTRL+A` run through `normalizeKey` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`) before they reach `press_key`.
+`act` wraps that call and turns the response's `Error` field into a Go error, so a failed action stops the turn.
 
-Every field on these structs is a `param.Field`, so each value goes in through `steel.F`, and a field you never set, such as `HoldKeys` when Claude sends no modifier, stays out of the request.
+`runMember` is one `switch` over Claude's action names that builds the right variant for each: `left_click` and friends become a `SessionComputerParamsBodyClickMouse` (with `NumClicks` 2 for a double click), `type` becomes `SessionComputerParamsBodyTypeText`, `scroll` becomes a `SessionComputerParamsBodyScroll`. Three translation details carry over from the Python and TypeScript versions. A click or scroll without a `coordinate` uses the last cursor position, which starts at the center of the viewport. Steel scrolls one wheel step per `scroll` call, so `scroll_amount: 3` sends three. And key names like `CTRL+A` run through `normalizeKey` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`) before they reach `press_key`.
+
+Every field on these structs is a `param.Field`, so each value goes in through `steel.F`, and a field you never set, such as `NumClicks` on a single click, stays out of the request.
 
 ## Reading Claude's turn
 
-The response side is the other union. `BetaMessage.Content` is a slice of `BetaContentBlockUnion`; `block.AsAny()` returns the concrete variant for a type switch:
+The response side is the other union. `Message.Content` is a slice of `ContentBlockUnion`; `block.AsAny()` returns the concrete variant for a type switch:
 
 ```go
 for _, block := range msg.Content {
     switch v := block.AsAny().(type) {
-    case anthropic.BetaTextBlock:
-        // narration; print it and echo it back as a text block
-    case anthropic.BetaToolUseBlock:
-        // v.Input is the action; execute it, return a screenshot
+    case anthropic.TextBlock:
+        responseText += v.Text
+        fmt.Println(v.Text)
+    case anthropic.ToolUseBlock:
+        if v.ToolsetName == "computer" {
+            calls = append(calls, v)
+        }
     }
 }
 ```
 
-`BetaToolUseBlock.Input` arrives as `any`. `processResponse` marshals it to JSON and unmarshals into a small `computerAction` struct to read `action`, `coordinate`, `text`, and the rest. The same `Input` value goes straight back into `NewBetaToolUseBlock` when echoing the assistant turn, so you never reconstruct it field by field.
+Claude often asks for several actions in one turn. Each is a `ToolUseBlock` whose `Name` is the action and whose `ToolsetName` is `"computer"`. `ToolUseBlock.Input` arrives as `json.RawMessage`, and `runCall` unmarshals it into a small `computerInput` struct to read `coordinate`, `start_coordinate`, `text`, `scroll_amount` and the rest. The assistant turn goes back into the history through `msg.ToParam()`, which keeps every block as it came, thinking blocks included.
 
-Screenshots return to Claude as a `tool_result` whose content is a base64 image, built in `screenshotResult`. The `anthropic-sdk-go` ships `NewBetaToolResultBlock` for text results, but an image result needs the explicit struct: a `BetaToolResultBlockParam` whose `Content` holds a `BetaImageBlockParam` with a `BetaBase64ImageSourceParam`. The `ToolUseID` ties the screenshot back to the call that produced it.
+Each call gets a `ToolResultBlockParam` with `ToolsetName: anthropic.String("computer")`. Actions other than `screenshot` return the text `OK`. A screenshot is an `ImageBlockParam` with a `Base64ImageSourceParam`, built in `screenshot`. If an action fails, the rest of the turn is skipped, and each skipped call gets "Not executed: an earlier computer action in this turn failed." When every action succeeds and the turn didn't end with a `screenshot`, the last result also carries a fresh screenshot.
 
 ## The loop
 
-`executeTask` seeds the history with the system prompt and the task, then on each turn calls the Beta Messages API and processes the response:
+`executeTask` seeds the history with the task, then on each turn calls the Messages API and processes the response:
 
 ```go
-resp, err := a.anthropicClient.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_7,
-    MaxTokens: 4096,
+resp, err := a.anthropicClient.Messages.New(ctx, anthropic.MessageNewParams{
+    Model:     a.model,
+    MaxTokens: 16000,
+    System:    []anthropic.TextBlockParam{{Text: browserSystemPrompt()}},
     Messages:  a.messages,
     Tools:     a.tools,
-    Betas:     []string{"computer-use-2025-11-24"},
 })
 ```
 
-The tool is declared once in `NewAgent` with `anthropic.BetaToolUnionParamOfComputerUseTool20251124(viewportHeight, viewportWidth)`, which builds the `computer_20251124` definition. Keep the 1280x768 viewport in sync with the Steel session's `Dimensions` or clicks land in the wrong place. Three conditions end the loop: Claude returns only text (task done), the last assistant messages overlap more than 80% by word content (`wordOverlap`, a cheap stall detector), or the iteration count hits `maxIterations` (50).
+The tool is declared once in `NewAgent` as an `anthropic.ComputerToolset20260801Param`, the computer toolset for Claude Opus 5.5. It needs no beta header and no display size, because Claude reads the size from the screenshots. Its `Configs` turn off the actions that Steel's Input API can't do: `Zoom`, `TripleClick`, `LeftMouseDown`, `LeftMouseUp` and `HoldKey`. Four conditions end the loop: Claude returns only text (task done), Claude stops with `StopReasonRefusal`, the last assistant messages overlap more than 80% by word content (`wordOverlap`, a cheap stall detector), or the iteration count hits `maxIterations` (50).
 
-One SDK note worth its own line: `anthropic-sdk-go` v1.51.1 has no named constant for the `computer-use-2025-11-24` beta yet (its newest is `computer-use-2025-01-24`). Because `AnthropicBeta` is a string alias, the raw string in `Betas` is correct and type-checks. Swap in the constant if a later SDK release adds one.
+One SDK note: the recipe pins `anthropic-sdk-go` v1.84.0, which has the computer toolset types and `ModelClaudeOpus5_5` and sends API version `2023-06-01`. Version 2 of the SDK lives at `github.com/anthropics/anthropic-sdk-go/v2`, sends `2026-10-21` and needs Go 1.25.
 
 ## Run it
 
@@ -74,34 +77,47 @@ Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [cons
 TASK="Find the current weather in New York City" go run .
 ```
 
-Your output varies. Structure looks like this:
+Your output varies. One run printed:
 
 ```text
-Steel Session created successfully!
-View live session at: https://app.steel.dev/sessions/ab12cd34...
+Steel + Claude Computer Use Assistant
+============================================================
 
+Starting Steel session...
+Steel Session created successfully!
+View live session at: https://app.steel.dev/sessions/0c66fda0-3f72-4557-9b3f-2ae7bfa85c36
 Executing task: Go to Steel.dev and find the latest news
 ============================================================
-I'll navigate to Steel.dev and look for the latest news.
-computer({"action":"key","text":"ctrl+l"})
-computer({"action":"type","text":"https://steel.dev"})
-computer({"action":"key","text":"Return"})
-computer({"action":"screenshot"})
+key({"text":"ctrl+l"})
+type({"text":"https://steel.dev\n"})
+wait({"duration":3})
+screenshot({})
+Let me check the Resources menu for a blog/news section.
+left_click({"coordinate":[417,161]})
+wait({"duration":1})
+screenshot({})
 ...
 Task complete - no further actions requested
 
 ============================================================
 TASK EXECUTION COMPLETED
-Duration: 78.4 seconds
+============================================================
+Duration: 50.6 seconds
+Task: Go to Steel.dev and find the latest news
+Result:
+The newest item on Steel.dev is a blog post from **October 7, 2026: "Build the agent. Don't build its computer."** (19-minute read). It's about whether to build or buy the infrastructure AI agents run on. It covers deciding what computer your agent needs, testing how an agent sandbox recovers from failures, and starting with a managed setup.
+...
+============================================================
 Releasing Steel session...
+Session completed. View replay at https://app.steel.dev/sessions/0c66fda0-3f72-4557-9b3f-2ae7bfa85c36
 ```
 
-Expect roughly 60 to 180 seconds and 10 to 40 loop iterations for a simple browsing task. A run costs a few cents of browser time plus the Anthropic tokens for each screenshot. Steel bills per session-minute, so the `defer agent.cleanup(ctx)` in `main` that releases the session is not optional: skip it and the browser runs until the 900000 ms timeout set in `initialize`.
+Expect one to three minutes for a simple browsing task. A run costs a few cents of browser time plus the Anthropic tokens for each screenshot. Steel bills per session-minute, so the `defer agent.cleanup(ctx)` in `main` that releases the session is not optional: skip it and the browser runs until the 900000 ms timeout set in `initialize`.
 
 ## Make it yours
 
 - **Change the task.** Edit `TASK` in `.env` or pass it inline.
-- **Tune the viewport.** `viewportWidth` and `viewportHeight` set both the Steel `Dimensions` and the tool's `display_*_px`. Keep them equal.
+- **Tune the viewport.** `viewportWidth` and `viewportHeight` set the Steel `Dimensions`. Claude reads the size from the screenshots, so nothing else changes.
 - **Rework the system prompt.** `browserSystemPrompt` is where the browsing conventions live: date injection, the screenshot-after-submit rule, black-screen recovery.
 - **Raise the ceiling.** `maxIterations` is the safety net for long tasks.
 - **Hand off auth.** Pass `SessionContext` to `Sessions.New` to start authenticated. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).

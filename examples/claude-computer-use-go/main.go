@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,10 +19,10 @@ import (
 )
 
 const (
-	computerUseBeta = "computer-use-2025-11-24"
-	maxIterations   = 50
-	viewportWidth   = 1280
-	viewportHeight  = 768
+	maxIterations  = 50
+	viewportWidth  = 1280
+	viewportHeight = 768
+	notExecuted    = "Not executed: an earlier computer action in this turn failed."
 )
 
 func envOr(key, fallback string) string {
@@ -35,7 +36,7 @@ func browserSystemPrompt() string {
 	today := time.Now().Format("Monday, January 02, 2006")
 	return fmt.Sprintf(`<BROWSER_ENV>
   - You control a headful Chromium browser running in a VM with internet access.
-  - Chromium is already open; interact only through the "computer" tool (mouse, keyboard, scroll, screenshots).
+  - Chromium is already open; interact only through the computer tools (mouse, keyboard, scroll, screenshots).
   - Today's date is %s.
   </BROWSER_ENV>
 
@@ -44,7 +45,7 @@ func browserSystemPrompt() string {
   - When typing into any input:
     * Clear it first with Ctrl+A, then Delete.
     * After submitting (pressing Enter or clicking a button), take an extra screenshot to confirm the result and move the mouse away.
-  - Computer tool calls are slow; batch related actions into a single call whenever possible.
+  - Each turn is slow; send related actions together in one turn whenever possible.
   - You may act on the user's behalf on sites where they are already authenticated.
   - Assume any required authentication/Auth Contexts are already configured before the task starts.
   - If the first screenshot is black:
@@ -66,38 +67,45 @@ func browserSystemPrompt() string {
   </TASK_EXECUTION>`, today)
 }
 
-type computerAction struct {
-	Action          string   `json:"action"`
-	Text            string   `json:"text"`
-	Coordinate      []int    `json:"coordinate"`
-	ScrollDirection string   `json:"scroll_direction"`
-	ScrollAmount    int      `json:"scroll_amount"`
-	Duration        *float64 `json:"duration"`
-	Key             string   `json:"key"`
+type computerInput struct {
+	Coordinate      []float64 `json:"coordinate"`
+	StartCoordinate []float64 `json:"start_coordinate"`
+	Text            string    `json:"text"`
+	ScrollDirection string    `json:"scroll_direction"`
+	ScrollAmount    int       `json:"scroll_amount"`
+	Duration        *float64  `json:"duration"`
+	Repeat          int       `json:"repeat"`
 }
 
 type Agent struct {
 	steelClient     *steel.Client
 	anthropicClient anthropic.Client
 	model           anthropic.Model
-	messages        []anthropic.BetaMessageParam
-	tools           []anthropic.BetaToolUnionParam
+	messages        []anthropic.MessageParam
+	tools           []anthropic.ToolUnionParam
 	session         *steel.Session
+	cursor          []float64
 }
 
 func NewAgent(steelKey, anthropicKey string) *Agent {
+	off := anthropic.Bool(false)
 	return &Agent{
 		steelClient:     steel.NewClient(steeloption.WithSteelAPIKey(steelKey)),
 		anthropicClient: anthropic.NewClient(option.WithAPIKey(anthropicKey)),
-		model:           anthropic.ModelClaudeOpus4_7,
-		tools: []anthropic.BetaToolUnionParam{
-			anthropic.BetaToolUnionParamOfComputerUseTool20251124(viewportHeight, viewportWidth),
-		},
+		model:           anthropic.ModelClaudeOpus5_5,
+		tools: []anthropic.ToolUnionParam{{
+			OfComputerToolset20260801: &anthropic.ComputerToolset20260801Param{
+				Configs: anthropic.ComputerToolsetConfigsParam{
+					Zoom:          anthropic.ComputerZoomConfigParam{Enabled: off},
+					TripleClick:   anthropic.ComputerTripleClickConfigParam{Enabled: off},
+					LeftMouseDown: anthropic.ComputerLeftMouseDownConfigParam{Enabled: off},
+					LeftMouseUp:   anthropic.ComputerLeftMouseUpConfigParam{Enabled: off},
+					HoldKey:       anthropic.ComputerHoldKeyConfigParam{Enabled: off},
+				},
+			},
+		}},
+		cursor: []float64{viewportWidth / 2, viewportHeight / 2},
 	}
-}
-
-func (a *Agent) center() (int, int) {
-	return viewportWidth / 2, viewportHeight / 2
 }
 
 func splitKeys(s string) []string {
@@ -178,69 +186,63 @@ func (a *Agent) cleanup(ctx context.Context) {
 	fmt.Printf("Session completed. View replay at %s\n", a.session.SessionViewerURL)
 }
 
-func (a *Agent) computer(ctx context.Context, body steel.SessionComputerParams) (string, error) {
-	resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, body)
+func (a *Agent) act(ctx context.Context, body steel.SessionComputerParamsBodyUnion) (*steel.SessionComputerResponse, error) {
+	resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{Body: body})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if resp.Base64Image != "" {
-		return resp.Base64Image, nil
+	if resp.Error != "" {
+		return nil, errors.New(resp.Error)
 	}
-	return a.takeScreenshot(ctx)
+	return resp, nil
 }
 
-func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
-	resp, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Body: steel.SessionComputerParamsBodyTakeScreenshot{Action: steel.F(steel.SessionComputerParamsBodyTakeScreenshotActionTakeScreenshot)},
+func (a *Agent) screenshot(ctx context.Context) (anthropic.ToolResultBlockParamContentUnion, error) {
+	resp, err := a.act(ctx, steel.SessionComputerParamsBodyTakeScreenshot{
+		Action: steel.F(steel.SessionComputerParamsBodyTakeScreenshotActionTakeScreenshot),
 	})
 	if err != nil {
-		return "", err
+		return anthropic.ToolResultBlockParamContentUnion{}, err
 	}
 	if resp.Base64Image == "" {
-		return "", fmt.Errorf("no screenshot returned from Input API")
+		return anthropic.ToolResultBlockParamContentUnion{}, errors.New("no screenshot in the Input API response")
 	}
-	return resp.Base64Image, nil
+	return anthropic.ToolResultBlockParamContentUnion{
+		OfImage: &anthropic.ImageBlockParam{
+			Source: anthropic.ImageBlockParamSourceUnion{
+				OfBase64: &anthropic.Base64ImageSourceParam{
+					Data:      resp.Base64Image,
+					MediaType: anthropic.Base64ImageSourceMediaTypeImagePNG,
+				},
+			},
+		},
+	}, nil
 }
 
-func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (string, error) {
-	cx, cy := a.center()
-	if len(act.Coordinate) == 2 {
-		cx, cy = act.Coordinate[0], act.Coordinate[1]
+func (a *Agent) point(coordinate []float64) []float64 {
+	if len(coordinate) == 2 {
+		a.cursor = []float64{coordinate[0], coordinate[1]}
 	}
-	coords := []float64{float64(cx), float64(cy)}
+	return a.cursor
+}
 
-	switch act.Action {
+func (a *Agent) runMember(ctx context.Context, name string, in computerInput) (string, error) {
+	var body steel.SessionComputerParamsBodyUnion
+	times := 1
+
+	switch name {
 	case "mouse_move":
-		req := steel.SessionComputerParamsBodyMoveMouse{
+		body = steel.SessionComputerParamsBodyMoveMouse{
 			Action:      steel.F(steel.SessionComputerParamsBodyMoveMouseActionMoveMouse),
-			Coordinates: steel.F(coords),
-			Screenshot:  steel.F(true),
+			Coordinates: steel.F(a.point(in.Coordinate)),
 		}
-		if hk := splitKeys(act.Key); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
 
-	case "left_mouse_down", "left_mouse_up":
-		clickType := steel.SessionComputerParamsBodyClickMouseClickTypeDown
-		if act.Action == "left_mouse_up" {
-			clickType = steel.SessionComputerParamsBodyClickMouseClickTypeUp
+	case "left_click", "right_click", "middle_click", "double_click":
+		if in.Text != "" {
+			return "", errors.New("holding modifier keys during a click is not supported")
 		}
-		req := steel.SessionComputerParamsBodyClickMouse{
-			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
-			Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
-			ClickType:   steel.F(clickType),
-			Coordinates: steel.F(coords),
-			Screenshot:  steel.F(true),
-		}
-		if hk := splitKeys(act.Key); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
-
-	case "left_click", "right_click", "middle_click", "double_click", "triple_click":
 		button := steel.SessionComputerParamsBodyClickMouseButtonLeft
-		switch act.Action {
+		switch name {
 		case "right_click":
 			button = steel.SessionComputerParamsBodyClickMouseButtonRight
 		case "middle_click":
@@ -249,178 +251,175 @@ func (a *Agent) executeComputerAction(ctx context.Context, act computerAction) (
 		req := steel.SessionComputerParamsBodyClickMouse{
 			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
 			Button:      steel.F(button),
-			Coordinates: steel.F(coords),
-			Screenshot:  steel.F(true),
+			Coordinates: steel.F(a.point(in.Coordinate)),
 		}
-		switch act.Action {
-		case "double_click":
+		if name == "double_click" {
 			req.NumClicks = steel.F(float64(2))
-		case "triple_click":
-			req.NumClicks = steel.F(float64(3))
 		}
-		if hk := splitKeys(act.Key); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
+		body = req
 
 	case "left_click_drag":
-		sx, sy := a.center()
-		path := [][]float64{{float64(sx), float64(sy)}, coords}
-		req := steel.SessionComputerParamsBodyDragMouse{
-			Action:     steel.F(steel.SessionComputerParamsBodyDragMouseActionDragMouse),
-			Path:       steel.F(path),
-			Screenshot: steel.F(true),
+		if len(in.StartCoordinate) != 2 || len(in.Coordinate) != 2 {
+			return "", errors.New("left_click_drag needs start_coordinate and coordinate")
 		}
-		if hk := splitKeys(act.Key); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
+		body = steel.SessionComputerParamsBodyDragMouse{
+			Action: steel.F(steel.SessionComputerParamsBodyDragMouseActionDragMouse),
+			Path:   steel.F([][]float64{in.StartCoordinate, in.Coordinate}),
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
+		a.point(in.Coordinate)
 
 	case "scroll":
-		const step = 100
-		amount := act.ScrollAmount
-		var dx, dy float64
-		switch act.ScrollDirection {
-		case "up":
-			dy = float64(-step * amount)
-		case "right":
-			dx = float64(step * amount)
-		case "left":
-			dx = float64(-step * amount)
-		default:
-			dy = float64(step * amount)
+		if in.Text != "" {
+			return "", errors.New("holding modifier keys during a scroll is not supported")
 		}
-		req := steel.SessionComputerParamsBodyScroll{
+		var dx, dy float64
+		switch in.ScrollDirection {
+		case "up":
+			dy = -100
+		case "left":
+			dx = -100
+		case "right":
+			dx = 100
+		default:
+			dy = 100
+		}
+		body = steel.SessionComputerParamsBodyScroll{
 			Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
-			Coordinates: steel.F(coords),
+			Coordinates: steel.F(a.point(in.Coordinate)),
 			DeltaX:      steel.F(dx),
 			DeltaY:      steel.F(dy),
-			Screenshot:  steel.F(true),
 		}
-		if hk := splitKeys(act.Text); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
+		times = max(1, in.ScrollAmount)
 
-	case "key", "hold_key":
-		keys := normalizeKeys(splitKeys(act.Text))
+	case "type":
+		body = steel.SessionComputerParamsBodyTypeText{
+			Action: steel.F(steel.SessionComputerParamsBodyTypeTextActionTypeText),
+			Text:   steel.F(in.Text),
+		}
+
+	case "key":
+		keys := normalizeKeys(splitKeys(in.Text))
 		if keys == nil {
 			keys = []string{}
 		}
-		req := steel.SessionComputerParamsBodyPressKey{
-			Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
-			Keys:       steel.F(keys),
-			Screenshot: steel.F(true),
+		body = steel.SessionComputerParamsBodyPressKey{
+			Action: steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
+			Keys:   steel.F(keys),
 		}
-		if act.Action == "hold_key" && act.Duration != nil {
-			req.Duration = steel.F(*act.Duration)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
-
-	case "type":
-		req := steel.SessionComputerParamsBodyTypeText{
-			Action:     steel.F(steel.SessionComputerParamsBodyTypeTextActionTypeText),
-			Text:       steel.F(act.Text),
-			Screenshot: steel.F(true),
-		}
-		if hk := splitKeys(act.Key); len(hk) > 0 {
-			req.HoldKeys = steel.F(hk)
-		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
+		times = max(1, in.Repeat)
 
 	case "wait":
-		var d float64
-		if act.Duration != nil {
-			d = *act.Duration
+		d := 1.0
+		if in.Duration != nil {
+			d = *in.Duration
 		}
-		req := steel.SessionComputerParamsBodyWait{
-			Action:     steel.F(steel.SessionComputerParamsBodyWaitActionWait),
-			Duration:   steel.F(d),
-			Screenshot: steel.F(true),
+		body = steel.SessionComputerParamsBodyWait{
+			Action:   steel.F(steel.SessionComputerParamsBodyWaitActionWait),
+			Duration: steel.F(d),
 		}
-		return a.computer(ctx, steel.SessionComputerParams{Body: req})
-
-	case "screenshot":
-		return a.takeScreenshot(ctx)
 
 	case "cursor_position":
-		if _, err := a.steelClient.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyGetCursorPosition{Action: steel.F(steel.SessionComputerParamsBodyGetCursorPositionActionGetCursorPosition)},
-		}); err != nil {
+		resp, err := a.act(ctx, steel.SessionComputerParamsBodyGetCursorPosition{
+			Action: steel.F(steel.SessionComputerParamsBodyGetCursorPositionActionGetCursorPosition),
+		})
+		if err != nil {
 			return "", err
 		}
-		return a.takeScreenshot(ctx)
+		if resp.Output != "" {
+			return resp.Output, nil
+		}
+		return fmt.Sprintf("%.0f, %.0f", a.cursor[0], a.cursor[1]), nil
 
 	default:
-		return "", fmt.Errorf("invalid action: %s", act.Action)
+		return "", fmt.Errorf("unsupported action: %s", name)
 	}
+
+	for i := 0; i < times; i++ {
+		if _, err := a.act(ctx, body); err != nil {
+			return "", err
+		}
+	}
+	return "OK", nil
 }
 
-func (a *Agent) processResponse(ctx context.Context, msg *anthropic.BetaMessage) (string, bool) {
-	var responseText string
-	var assistantBlocks []anthropic.BetaContentBlockParamUnion
-	var toolResults []anthropic.BetaContentBlockParamUnion
+func textContent(text string) []anthropic.ToolResultBlockParamContentUnion {
+	return []anthropic.ToolResultBlockParamContentUnion{{OfText: &anthropic.TextBlockParam{Text: text}}}
+}
 
+func (a *Agent) runCall(ctx context.Context, call anthropic.ToolUseBlock) ([]anthropic.ToolResultBlockParamContentUnion, error) {
+	if call.Name == "screenshot" {
+		shot, err := a.screenshot(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return []anthropic.ToolResultBlockParamContentUnion{shot}, nil
+	}
+	var in computerInput
+	if err := json.Unmarshal(call.Input, &in); err != nil {
+		return nil, err
+	}
+	out, err := a.runMember(ctx, call.Name, in)
+	if err != nil {
+		return nil, err
+	}
+	return textContent(out), nil
+}
+
+func (a *Agent) processResponse(ctx context.Context, msg *anthropic.Message) (string, bool, error) {
+	a.messages = append(a.messages, msg.ToParam())
+
+	var responseText string
+	var calls []anthropic.ToolUseBlock
 	for _, block := range msg.Content {
 		switch v := block.AsAny().(type) {
-		case anthropic.BetaTextBlock:
+		case anthropic.TextBlock:
 			responseText += v.Text
 			fmt.Println(v.Text)
-			assistantBlocks = append(assistantBlocks, anthropic.NewBetaTextBlock(v.Text))
-
-		case anthropic.BetaToolUseBlock:
-			assistantBlocks = append(assistantBlocks, anthropic.NewBetaToolUseBlock(v.ID, v.Input, v.Name))
-			if raw, err := json.Marshal(v.Input); err == nil {
-				fmt.Printf("%s(%s)\n", v.Name, raw)
+		case anthropic.ToolUseBlock:
+			if v.ToolsetName == "computer" {
+				calls = append(calls, v)
 			}
-			if v.Name != "computer" {
-				continue
-			}
-
-			var act computerAction
-			if raw, err := json.Marshal(v.Input); err == nil {
-				_ = json.Unmarshal(raw, &act)
-			}
-
-			screenshot, err := a.executeComputerAction(ctx, act)
-			if err != nil {
-				fmt.Printf("Error executing %s: %v\n", act.Action, err)
-				toolResults = append(toolResults, anthropic.NewBetaToolResultBlock(v.ID, fmt.Sprintf("Error executing %s: %v", act.Action, err), true))
-				continue
-			}
-			toolResults = append(toolResults, screenshotResult(v.ID, screenshot))
 		}
 	}
 
-	a.messages = append(a.messages, anthropic.BetaMessageParam{
-		Role:    anthropic.BetaMessageParamRoleAssistant,
-		Content: assistantBlocks,
-	})
-	if len(toolResults) > 0 {
-		a.messages = append(a.messages, anthropic.NewBetaUserMessage(toolResults...))
+	if len(calls) == 0 {
+		return responseText, false, nil
 	}
 
-	return responseText, len(toolResults) > 0
-}
-
-func screenshotResult(toolUseID, base64PNG string) anthropic.BetaContentBlockParamUnion {
-	return anthropic.BetaContentBlockParamUnion{
-		OfToolResult: &anthropic.BetaToolResultBlockParam{
-			ToolUseID: toolUseID,
-			Content: []anthropic.BetaToolResultBlockParamContentUnion{
-				{
-					OfImage: &anthropic.BetaImageBlockParam{
-						Source: anthropic.BetaImageBlockParamSourceUnion{
-							OfBase64: &anthropic.BetaBase64ImageSourceParam{
-								Data:      base64PNG,
-								MediaType: anthropic.BetaBase64ImageSourceMediaTypeImagePNG,
-							},
-						},
-					},
-				},
-			},
-		},
+	results := make([]anthropic.ContentBlockParamUnion, 0, len(calls))
+	failed := false
+	for _, call := range calls {
+		fmt.Printf("%s(%s)\n", call.Name, call.Input)
+		result := anthropic.ToolResultBlockParam{
+			ToolUseID:   call.ID,
+			ToolsetName: anthropic.String("computer"),
+		}
+		if failed {
+			result.Content = textContent(notExecuted)
+			result.IsError = anthropic.Bool(true)
+		} else if content, err := a.runCall(ctx, call); err != nil {
+			fmt.Printf("Error executing %s: %v\n", call.Name, err)
+			result.Content = textContent("Error: " + err.Error())
+			result.IsError = anthropic.Bool(true)
+			failed = true
+		} else {
+			result.Content = content
+		}
+		results = append(results, anthropic.ContentBlockParamUnion{OfToolResult: &result})
 	}
+
+	if !failed && calls[len(calls)-1].Name != "screenshot" {
+		shot, err := a.screenshot(ctx)
+		if err != nil {
+			return "", false, err
+		}
+		last := results[len(results)-1].OfToolResult
+		last.Content = append(last.Content, shot)
+	}
+
+	a.messages = append(a.messages, anthropic.NewUserMessage(results...))
+
+	return responseText, true, nil
 }
 
 func wordOverlap(a, b string) float64 {
@@ -447,9 +446,8 @@ func wordOverlap(a, b string) float64 {
 }
 
 func (a *Agent) executeTask(ctx context.Context, task string) (string, error) {
-	a.messages = []anthropic.BetaMessageParam{
-		anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(browserSystemPrompt())),
-		anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(task)),
+	a.messages = []anthropic.MessageParam{
+		anthropic.NewUserMessage(anthropic.NewTextBlock(task)),
 	}
 
 	fmt.Printf("Executing task: %s\n", task)
@@ -470,18 +468,26 @@ func (a *Agent) executeTask(ctx context.Context, task string) (string, error) {
 
 	var finalText string
 	for iter := 0; iter < maxIterations; iter++ {
-		resp, err := a.anthropicClient.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
+		resp, err := a.anthropicClient.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     a.model,
-			MaxTokens: 4096,
+			MaxTokens: 16000,
+			System:    []anthropic.TextBlockParam{{Text: browserSystemPrompt()}},
 			Messages:  a.messages,
 			Tools:     a.tools,
-			Betas:     []string{computerUseBeta},
 		})
 		if err != nil {
 			return "", fmt.Errorf("error during task execution: %w", err)
 		}
 
-		text, hasActions := a.processResponse(ctx, resp)
+		if resp.StopReason == anthropic.StopReasonRefusal {
+			fmt.Println("Claude declined to continue this task")
+			return "Claude declined to continue this task", nil
+		}
+
+		text, hasActions, err := a.processResponse(ctx, resp)
+		if err != nil {
+			return "", fmt.Errorf("error during task execution: %w", err)
+		}
 
 		if !hasActions {
 			fmt.Println("Task complete - no further actions requested")
