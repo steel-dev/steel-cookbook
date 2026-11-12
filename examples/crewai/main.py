@@ -162,6 +162,7 @@ def main():
         print("\nReport written to report.md")
     except Exception as e:
         print(f"An error occurred while running the crew: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

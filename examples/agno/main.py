@@ -12,6 +12,7 @@ from agno.tools import Toolkit
 from agno.utils.log import log_debug, logger
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
+from agno.run.base import RunStatus
 from playwright.sync_api import sync_playwright
 from steel import Steel
 
@@ -222,10 +223,13 @@ def main():
 
     try:
         response = agent.run(TASK)
+        if response.status == RunStatus.error:
+            raise RuntimeError(response.content)
         print("\nResults:\n")
         print(response.content)
     except Exception as e:
         print(f"An error occurred: {e}")
+        sys.exit(1)
     finally:
         tools.close_session()
         print("Done!")
