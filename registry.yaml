@@ -378,7 +378,7 @@
   language: TypeScript
   topics: [Steel APIs, Authentication]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -728,7 +728,7 @@
   language: Python
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -738,7 +738,7 @@
   language: Go
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -748,7 +748,7 @@
   language: Rust
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
