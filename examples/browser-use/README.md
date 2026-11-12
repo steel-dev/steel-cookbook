@@ -10,13 +10,13 @@ model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
 agent = Agent(
     task=TASK,
     llm=model,
-    browser_session=BrowserSession(cdp_url=cdp_url),
+    browser=Browser(cdp_url=cdp_url),
 )
 
 result = await agent.run()
 ```
 
-`BrowserSession(cdp_url=...)` is the entire integration. Browser Use attaches to whatever Chrome is speaking the Chrome DevTools Protocol at that URL. No launcher, no `playwright.chromium.launch()`, no local browser binary.
+`Browser(cdp_url=...)` is the entire integration. Browser Use attaches to whatever Chrome is speaking the Chrome DevTools Protocol at that URL. No launcher, no `playwright.chromium.launch()`, no local browser binary.
 
 ## Run it
 
@@ -37,16 +37,22 @@ View session at https://app.steel.dev/sessions/ab12cd34…
 
 Executing task: Go to Wikipedia and search for machine learning
 ============================================================
- INFO     [Agent] Step 1: navigate to https://www.wikipedia.org
- INFO     [Agent] Step 2: input "machine learning" into search box
- INFO     [Agent] Step 3: click search button
- INFO     [Agent] Step 4: done
+INFO     [browser_use.agent.service] Task: Go to Wikipedia and search for machine learning (workspace …)
+INFO     [browser_use.agent.loop] step 1: goto_url("https://www.wikipedia.org")
+INFO     [browser_use.agent.loop] step 2: # Find the search input and type "machine learning"
+INFO     [browser_use.agent.service] completed in 4 steps, 31s
+
 ============================================================
 TASK EXECUTION COMPLETED
-Duration: 38.2 seconds
-
+============================================================
+Duration: 36.5 seconds
+Task: Go to Wikipedia and search for machine learning
+Result:
+I searched Wikipedia for "machine learning" and opened the Machine learning article.
+============================================================
 Releasing Steel session...
 Session completed. View replay at https://app.steel.dev/sessions/ab12cd34…
+Done!
 ```
 
 A run costs a few cents of Steel session time plus OpenAI tokens for each step the agent takes (screenshots go to the model on every iteration, so token usage scales with task length). The `finally` block that calls `client.sessions.release()` is not optional. Steel bills per session-minute and skipping release keeps the browser running until the default 5-minute timeout.
