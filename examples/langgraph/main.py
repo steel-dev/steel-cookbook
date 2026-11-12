@@ -162,7 +162,7 @@ class FinalReport(BaseModel):
 
 
 tools = [open_session, navigate, snapshot, extract]
-model = ChatAnthropic(model="claude-haiku-4-5", api_key=ANTHROPIC_API_KEY)
+model = ChatAnthropic(model="claude-haiku-5-5", api_key=ANTHROPIC_API_KEY)
 agent_model = model.bind_tools(tools)
 formatter = model.with_structured_output(FinalReport)
 
@@ -194,7 +194,10 @@ async def agent_node(state: State) -> dict:
 async def format_node(state: State) -> dict:
     # The formatter sees every message including tool results, so it has the
     # data needed to populate FinalReport without re-running anything.
-    final = await formatter.ainvoke(state["messages"])
+    final = await formatter.ainvoke(
+        state["messages"]
+        + [HumanMessage(content="Return the repos from your answer above as structured data.")]
+    )
     print("  step: format")
     return {"final_report": final}
 
