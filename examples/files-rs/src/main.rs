@@ -38,22 +38,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     result
 }
 
-async fn run(
-    client: &Client,
-    session_id: &str,
-    websocket_url: &str,
-) -> Result<(), Box<dyn Error>> {
+async fn run(client: &Client, session_id: &str, websocket_url: &str) -> Result<(), Box<dyn Error>> {
     let bytes = std::fs::read("./assets/stock.csv")?;
-    println!("Uploading stock.csv ({} bytes) to the session...", bytes.len());
+    println!(
+        "Uploading stock.csv ({} bytes) to the session...",
+        bytes.len()
+    );
 
     let uploaded = client
         .sessions()
         .files()
         .upload(
             session_id,
-            SessionFileUploadParams::new(
-                Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
-            ),
+            SessionFileUploadParams {
+                path: Some("stock.csv".into()),
+                ..SessionFileUploadParams::new(
+                    Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
+                )
+            },
         )
         .await?;
 

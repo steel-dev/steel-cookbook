@@ -408,7 +408,7 @@
   language: TypeScript
   topics: [Steel APIs, Playwright]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Run a Steel browser job with Trigger.dev
   slug: trigger-dev-browser-job
@@ -818,7 +818,7 @@
   language: Python
   topics: [Steel APIs, Playwright]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -828,7 +828,7 @@
   language: Go
   topics: [Steel APIs]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -838,7 +838,7 @@
   language: Rust
   topics: [Steel APIs]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate a cloud browser with Playwright
   slug: playwright

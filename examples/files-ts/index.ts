@@ -66,6 +66,7 @@ async function main() {
     // Upload CSV file to the Steel session.
     const uploadedFile = await client.sessions.files.upload(session.id, {
       file,
+      path: "stock.csv",
     });
 
     console.log(
