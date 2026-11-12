@@ -14,8 +14,9 @@ const agent = await startBrowserAgent({
   llm: {
     provider: "anthropic",
     options: {
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5-5",
       apiKey: ANTHROPIC_API_KEY,
+      temperature: 1,
     },
   },
   browser: {
@@ -24,7 +25,7 @@ const agent = await startBrowserAgent({
 });
 ```
 
-`browser.cdp` is the whole wiring. `narrate: true` streams a log of what the agent is doing between screenshot turns. The `url` option does the first navigation, so there is no separate `goto` call in `main()`.
+`browser.cdp` is the whole wiring. `narrate: true` streams a log of what the agent is doing between screenshot turns. The `url` option does the first navigation, so there is no separate `goto` call in `main()`. `temperature: 1` is there because Magnitude sends a temperature of 0 unless you set one, and Claude 5 models accept only the default of 1.
 
 ## What the demo does
 

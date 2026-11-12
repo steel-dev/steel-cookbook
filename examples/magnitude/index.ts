@@ -70,8 +70,9 @@ async function main() {
       llm: {
         provider: "anthropic",
         options: {
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-5-5",
           apiKey: process.env.ANTHROPIC_API_KEY,
+          temperature: 1,
         },
       },
       browser: {
