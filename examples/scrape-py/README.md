@@ -55,7 +55,7 @@ A scrape costs a few cents of browser time. You are billed per render, not per m
 
 ## How scrape differs from a browser session
 
-The other recipes in the cookbook connect a browser library (Playwright, Selenium) to a live Steel session over CDP, then drive clicks and reads themselves. That is the right tool when you need to sign in, fill forms, or step through an app. Scrape is the right tool when you just want the page as it renders: one request in, content out, nothing to keep alive. If your agent's job is "read this URL," reach for scrape first and graduate to a session only when you need interaction.
+The other recipes in the cookbook connect a browser library (Playwright, Puppeteer) to a live Steel session over CDP, then drive clicks and reads themselves. That is the right tool when you need to sign in, fill forms, or step through an app. Scrape is the right tool when you just want the page as it renders: one request in, content out, nothing to keep alive. If your agent's job is "read this URL," reach for scrape first and graduate to a session only when you need interaction.
 
 ## Related
 

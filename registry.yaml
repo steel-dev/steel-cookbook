@@ -50,16 +50,6 @@
   created: "2024-11-19"
   updated: "2026-04-24"
 
-- title: Automate a cloud browser with Selenium
-  slug: selenium
-  path: examples/selenium
-  description: Use Steel with Selenium in Python for cloud browser automation.
-  authors: [hussufo, junhsss]
-  language: Python
-  topics: [Browser automation]
-  created: "2024-11-19"
-  updated: "2026-04-24"
-
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
   path: examples/stagehand-ts
