@@ -10,12 +10,12 @@ import json
 import os
 import sys
 import time
-import urllib.request
 from contextlib import suppress
 from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
 from dotenv import load_dotenv
 from steel import Steel
 from temporalio import activity
@@ -72,8 +72,9 @@ def markdown_preview(markdown: str) -> str:
 
 
 def download(url: str, dest: Path) -> None:
-    with urllib.request.urlopen(url) as response:
-        dest.write_bytes(response.read())
+    response = httpx.get(url)
+    response.raise_for_status()
+    dest.write_bytes(response.content)
 
 
 def link_value(link: object, name: str) -> str:
