@@ -150,6 +150,11 @@ def build_agent() -> LlmAgent:
     return LlmAgent(
         name="hn_scraper",
         model=MODEL,
+        generate_content_config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            )
+        ),
         tools=[navigate, snapshot, extract],
         # output_schema enforces TopStories on the final reply; ADK keeps the
         # tools available during the thought loop and only constrains the answer.

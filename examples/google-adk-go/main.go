@@ -228,6 +228,9 @@ func run(steelKey string) error {
 			"When you have the answer, reply with ONLY a JSON object of the shape " +
 			`{"stories":[{"rank":1,"title":"...","url":"...","points":"..."}]} and no prose or code fences.`,
 		Tools: []tool.Tool{navigate, extract, scrape},
+		GenerateContentConfig: &genai.GenerateContentConfig{
+			ThinkingConfig: &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelLow},
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create agent: %w", err)

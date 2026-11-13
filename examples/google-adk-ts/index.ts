@@ -14,6 +14,7 @@ import {
   setLogLevel,
   stringifyContent,
 } from "@google/adk";
+import { ThinkingLevel } from "@google/genai";
 import { chromium, type Browser, type Page } from "playwright";
 import Steel from "steel-sdk";
 import type { Session } from "steel-sdk/resources/index";
@@ -191,6 +192,9 @@ const extract = new FunctionTool({
 const agent = new LlmAgent({
   name: "steel_research",
   model: new Gemini({ model: MODEL, apiKey: GOOGLE_API_KEY }),
+  generateContentConfig: {
+    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+  },
   description: "Operates a Steel cloud browser to scrape structured data.",
   instruction: [
     "You operate a Steel cloud browser via tools.",
