@@ -9,7 +9,7 @@ with notte.Session(cdp_url=cdp_url) as notte_session:
     agent = notte.Agent(
         session=notte_session,
         max_steps=5,
-        reasoning_model="gemini/gemini-4-hydrogen",
+        reasoning_model="gemini/gemini-3.8-flash",
     )
     response = agent.run(task=TASK)
 ```
@@ -17,6 +17,8 @@ with notte.Session(cdp_url=cdp_url) as notte_session:
 `notte.Session(cdp_url=...)` is the integration surface. The default `perception_type` is `"fast"` (heuristic parser); pass `perception_type="deep"` on pages where the fast path misses elements.
 
 `max_steps` caps iterations. The starter uses 5; sign-in / filter / extract flows typically want 15 to 30. The agent exits early when it marks the task complete.
+
+The starter stays on `gemini-3.8-flash` rather than `gemini-4-hydrogen`. Notte cuts off each model call after 60 seconds and has no option for Gemini's thinking level, and Hydrogen at its default `HIGH` level can take longer than that per call.
 
 ## Run it
 
@@ -61,7 +63,7 @@ A default run takes ~25 seconds. The `finally` block calls `client.sessions.rele
 
 - **Change the task.** Set `TASK` in `.env` or edit the default in `main.py`.
 - **Raise `max_steps`.** Bump the ceiling on `notte.Agent(...)` for multi-page flows.
-- **Swap the reasoning model.** Change `reasoning_model` on `notte.Agent`. Flash for speed, GPT-5 or Sonnet for ambiguity.
+- **Swap the reasoning model.** Change `reasoning_model` on `notte.Agent`. Flash for speed, GPT-6 or Sonnet for ambiguity.
 - **Switch to deep perception.** Pass `perception_type="deep"` to `notte.Session(...)` when the fast heuristics miss elements.
 - **Turn on stealth.** Add `use_proxy=True`, `solve_captcha=True`, or `api_timeout=900000` to `client.sessions.create()` for sites with anti-bot.
 
