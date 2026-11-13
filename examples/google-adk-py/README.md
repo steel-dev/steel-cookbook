@@ -11,7 +11,7 @@ from google.adk.sessions import InMemorySessionService
 
 agent = LlmAgent(
     name="hn_scraper",
-    model="gemini-3.8-flash",
+    model="gemini-4-hydrogen",
     tools=[navigate, snapshot, extract],
     output_schema=TopStories,
     instruction="You operate a Steel cloud browser via tools. ...",

@@ -27,7 +27,7 @@ import (
 	"google.golang.org/genai"
 )
 
-const modelName = "gemini-3.8-flash"
+const modelName = "gemini-4-hydrogen"
 
 const (
 	appName = "steel-adk-go"

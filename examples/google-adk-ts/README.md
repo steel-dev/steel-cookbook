@@ -7,7 +7,7 @@ This recipe wires that tool layer to a Steel cloud browser. Three `FunctionTool`
 ```typescript
 const agent = new LlmAgent({
   name: "steel_research",
-  model: new Gemini({ model: "gemini-3.8-flash", apiKey: GOOGLE_API_KEY }),
+  model: new Gemini({ model: "gemini-4-hydrogen", apiKey: GOOGLE_API_KEY }),
   instruction: "You operate a Steel cloud browser via tools. Workflow: navigate, snapshot, extract. ...",
   tools: [navigate, snapshot, extract],
 });
@@ -22,7 +22,7 @@ for await (const event of runner.runAsync({ userId, sessionId, newMessage })) {
 }
 ```
 
-The model is built as an explicit `Gemini` instance so the key comes from `GOOGLE_API_KEY`. ADK's bare-string model path (`model: "gemini-3.8-flash"`) only resolves `GOOGLE_GENAI_API_KEY` or `GEMINI_API_KEY` from the environment, so passing `apiKey` directly keeps the one variable name consistent with the rest of the cookbook.
+The model is built as an explicit `Gemini` instance so the key comes from `GOOGLE_API_KEY`. ADK's bare-string model path (`model: "gemini-4-hydrogen"`) only resolves `GOOGLE_GENAI_API_KEY` or `GEMINI_API_KEY` from the environment, so passing `apiKey` directly keeps the one variable name consistent with the rest of the cookbook.
 
 ## Run it
 

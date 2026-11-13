@@ -24,7 +24,7 @@ load_dotenv()
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or "your-google-api-key-here"
 
-MODEL = "gemini-3.8-flash"
+MODEL = "gemini-4-hydrogen"
 APP_NAME = "steel-google-adk"
 USER_ID = "cookbook"
 

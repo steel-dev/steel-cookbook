@@ -25,7 +25,7 @@ setLogLevel(LogLevel.WARN);
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "your-google-api-key-here";
 
-const MODEL = "gemini-3.8-flash";
+const MODEL = "gemini-4-hydrogen";
 
 const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
 

@@ -9,7 +9,7 @@ with notte.Session(cdp_url=cdp_url) as notte_session:
     agent = notte.Agent(
         session=notte_session,
         max_steps=5,
-        reasoning_model="gemini/gemini-3.8-flash",
+        reasoning_model="gemini/gemini-4-hydrogen",
     )
     response = agent.run(task=TASK)
 ```
