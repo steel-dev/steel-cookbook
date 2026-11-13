@@ -112,7 +112,7 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task.
 ## Make it yours
 
 - **Change the viewport.** `viewportWidth` and `viewportHeight` in the `Agent` constructor set the Steel session `dimensions`.
-- **Swap the model.** The default is `gpt-5.5`. Update `this.model` in the `Agent` constructor.
+- **Swap the model.** The default is `gpt-6.1-terra`. Update `this.model` in the `Agent` constructor.
 - **Tune reasoning effort.** `reasoning: { effort: "medium" }` trades latency for planning quality.
 - **Rewrite the system prompt.** `BROWSER_SYSTEM_PROMPT` holds the browsing conventions.
 - **Persist a login.** Pass `sessionContext` to `sessions.create`. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).

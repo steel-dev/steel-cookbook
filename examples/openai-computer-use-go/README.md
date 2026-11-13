@@ -1,6 +1,6 @@
 # OpenAI Computer Use (Go)
 
-This recipe wires two typed Go SDKs together so OpenAI's `computer-use-preview` model can drive a Steel cloud browser. The model emits a computer action through the official `github.com/openai/openai-go/v3` Responses API. You execute that action against a Steel session with `client.Sessions.Computer`, then hand the resulting screenshot back so the next turn sees what changed. That single exchange, repeated, is the whole agent.
+This recipe wires two typed Go SDKs together so OpenAI's `gpt-6.1-terra` can drive a Steel cloud browser through the `computer` tool. The model emits a computer action through the official `github.com/openai/openai-go/v3` Responses API. You execute that action against a Steel session with `client.Sessions.Computer`, then hand the resulting screenshot back so the next turn sees what changed. That single exchange, repeated, is the whole agent.
 
 The interesting part in Go is the seam between the two SDKs, because each models the action vocabulary differently. openai-go gives you a *flattened* union: `ResponseComputerToolCallActionUnion` carries every possible field (`X`, `Y`, `Button`, `Keys`, `ScrollX`, `Text`, `Path`) on one struct, and you read whichever ones the `Type` discriminator says are live. Steel's Go SDK takes the opposite shape: `SessionComputerParams` is a *constructed* discriminated union where `Body` holds exactly one `SessionComputerParamsBody*` struct, and that struct's type decides the action. `executeAction` is the translation layer between the two.
 
@@ -23,11 +23,11 @@ The Responses API stores conversation state server side. The first turn sends th
 
 ```go
 params := responses.ResponseNewParams{
-    Model:        shared.ResponsesModelComputerUsePreview,
+    Model:        "gpt-6.1-terra",
     Instructions: openai.String(systemPrompt()),
     Input:        responses.ResponseNewParamsInputUnion{OfInputItemList: input},
     Tools: []responses.ToolUnionParam{
-        responses.ToolParamOfComputerUsePreview(viewportHeight, viewportWidth, responses.ComputerUsePreviewToolEnvironmentBrowser),
+        {OfComputer: &responses.ComputerToolParam{}},
     },
     Reasoning:  shared.ReasoningParam{Effort: shared.ReasoningEffortMedium},
     Truncation: responses.ResponseNewParamsTruncationAuto,
@@ -100,14 +100,14 @@ A run typically takes 60-180 seconds across 10-30 model turns. Each turn is one 
 
 - **Change the task.** Edit `TASK` in `.env` or pass it inline.
 - **Tune reasoning effort.** `shared.ReasoningEffortMedium` trades latency for deeper plans. Drop to `ReasoningEffortLow` for quick lookups, raise to `ReasoningEffortHigh` for multi-step research.
-- **Adjust the viewport.** `viewportWidth` and `viewportHeight` feed both the Steel session `Dimensions` and the `computer_use_preview` tool's display size. Keep the two in sync so the model's coordinates match the real screen.
+- **Adjust the viewport.** `viewportWidth` and `viewportHeight` set the Steel session `Dimensions`. The `computer` tool takes no display size; the model reads coordinates off the screenshots you send back.
 - **Raise or lower the ceiling.** `maxIterations` bounds the loop at 50 turns. Lower it to cap spend on a flaky task.
 - **Gate safety checks.** Replace the auto-acknowledge block with a prompt or an allowlist before appending to `acks`.
 - **Persist a login.** Pass `SessionContext` to `Sessions.New` to reuse cookies across runs. See [credentials](../credentials-ts).
 
 ## Notes
 
-The published OpenAI Python and TypeScript computer-use recipes target the `{"type": "computer"}` tool on a newer general model. This Go port uses the dedicated `computer-use-preview` model and its `computer_use_preview` tool, which is the path the openai-go Responses API exposes today through `ToolParamOfComputerUsePreview`. The action vocabulary and the loop shape are identical; only the tool descriptor and model id differ.
+OpenAI retired `computer-use-preview` on July 23, 2026. This port uses the `computer` tool on `gpt-6.1-terra`, the same setup as the Python and TypeScript recipes.
 
 ## Related
 

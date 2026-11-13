@@ -1,6 +1,6 @@
 # Steel + OpenAI Computer Use (Rust)
 
-OpenAI's `computer-use-preview` model returns mouse and keyboard actions instead of text. This recipe executes those actions against a real Chromium running in Steel's cloud, feeds each resulting screenshot back, and loops until the model reports the task done. There is no official OpenAI Rust SDK, so it calls the Responses API directly with `reqwest` and drives the browser through Steel's server-side `computer` endpoint. It is the Rust counterpart to [openai-computer-use-py](../openai-computer-use-py) and the OpenAI sibling of [claude-computer-use-rs](../claude-computer-use-rs).
+With the `computer` tool, OpenAI's `gpt-6.1-terra` returns mouse and keyboard actions instead of text. This recipe executes those actions against a real Chromium running in Steel's cloud, feeds each resulting screenshot back, and loops until the model reports the task done. There is no official OpenAI Rust SDK, so it calls the Responses API directly with `reqwest` and drives the browser through Steel's server-side `computer` endpoint. It is the Rust counterpart to [openai-computer-use-py](../openai-computer-use-py) and the OpenAI sibling of [claude-computer-use-rs](../claude-computer-use-rs).
 
 ## The loop
 
@@ -17,7 +17,7 @@ for _ in 0..MAX_ITERATIONS {
     let mut next_input = Vec::new();
     for item in &response.output {
         // message -> print it, reasoning -> print it,
-        // computer_call -> run the action, screenshot, push a computer_call_output
+        // computer_call -> run its actions, screenshot, push a computer_call_output
     }
     if next_input.is_empty() { break; } // model returned only text: done
     input = Value::Array(next_input);
@@ -28,7 +28,7 @@ Contrast [claude-computer-use-rs](../claude-computer-use-rs), where the Anthropi
 
 ## From OpenAI action to Steel action
 
-A `computer_call` carries one `action` such as `{ "type": "click", "button": "left", "x": 412, "y": 280 }`. `execute_action` matches on `type` and builds the matching Steel `SessionComputerParams`:
+A `computer_call` carries an `actions` array, and the loop runs its entries in order. Each entry looks like `{ "type": "click", "button": "left", "x": 412, "y": 280 }`. `execute_action` matches on `type` and builds the matching Steel `SessionComputerParams`:
 
 ```rust
 "click" => SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
@@ -79,7 +79,7 @@ A run drives a real session and a vision model across many turns, so it costs a 
 ## Make it yours
 
 - **Change the task.** Set `TASK` in `.env`, or edit the default in `main`.
-- **Resize the viewport.** `VIEWPORT_WIDTH` and `VIEWPORT_HEIGHT` set both the Steel session dimensions and the `display_width`/`display_height` on the tool. Keep them in sync so the model's coordinates match the page.
+- **Resize the viewport.** `VIEWPORT_WIDTH` and `VIEWPORT_HEIGHT` set the Steel session dimensions. The `computer` tool takes no display size; the model reads coordinates off the screenshots you send back.
 - **Gate safety checks.** Instead of auto-acknowledging every `pending_safety_check`, prompt a human or allowlist specific codes before echoing them back.
 - **Start authenticated.** Pass a session context or credentials to `sessions().create(...)` so the agent begins on a logged-in page. See [auth-context](../auth-context-ts) and [credentials](../credentials-ts).
 

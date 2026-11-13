@@ -318,11 +318,11 @@ func (a *agent) executeTask(ctx context.Context, task string) (string, error) {
 
 	for turn := 0; turn < maxIterations; turn++ {
 		params := responses.ResponseNewParams{
-			Model:        shared.ResponsesModelComputerUsePreview,
+			Model:        "gpt-6.1-terra",
 			Instructions: openai.String(systemPrompt()),
 			Input:        responses.ResponseNewParamsInputUnion{OfInputItemList: input},
 			Tools: []responses.ToolUnionParam{
-				responses.ToolParamOfComputerUsePreview(viewportHeight, viewportWidth, responses.ComputerUsePreviewToolEnvironmentBrowser),
+				{OfComputer: &responses.ComputerToolParam{}},
 			},
 			Reasoning:  shared.ReasoningParam{Effort: shared.ReasoningEffortMedium},
 			Truncation: responses.ResponseNewParamsTruncationAuto,

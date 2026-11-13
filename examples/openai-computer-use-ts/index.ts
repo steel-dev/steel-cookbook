@@ -173,7 +173,7 @@ class Agent {
 
   constructor() {
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "gpt-5.5";
+    this.model = "gpt-6.1-terra";
     this.viewportWidth = 1440;
     this.viewportHeight = 900;
     this.systemPrompt = BROWSER_SYSTEM_PROMPT;
