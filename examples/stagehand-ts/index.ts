@@ -3,14 +3,15 @@
  * https://github.com/steel-dev/steel-cookbook/tree/main/examples/stagehand-ts
  */
 
-import { Stagehand } from "@browserbasehq/stagehand";
-import Steel from "steel-sdk";
-import { z } from "zod";
+import {
+  getExtensionArchive,
+  localBrowser,
+  Stagehand,
+  type StagehandBrowser,
+} from "@browserbasehq/stagehand";
+import Steel, { toFile } from "steel-sdk";
+import { z } from "zod/v4";
 import dotenv from "dotenv";
-
-// gpt-6.1-sol is a reasoning model and doesn't accept `temperature`; silence the
-// AI SDK warning that Stagehand triggers by passing a default temperature.
-(globalThis as any).AI_SDK_LOG_WARNINGS = false;
 
 dotenv.config();
 
@@ -21,6 +22,21 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "your-openai-api-key-here";
 const client = new Steel({
   steelAPIKey: STEEL_API_KEY,
 });
+
+async function uploadStagehandExtension(): Promise<string> {
+  const file = await toFile(
+    await getExtensionArchive(),
+    "stagehand-runtime.zip"
+  );
+  const { extensions } = await client.extensions.list();
+  const existing = extensions.find((ext) => ext.name === "Stagehand Runtime");
+  if (existing) {
+    await client.extensions.update(existing.id, { file });
+    return existing.id;
+  }
+  const uploaded = await client.extensions.upload({ file });
+  return uploaded.id;
+}
 
 async function main() {
   console.log("Steel + Stagehand Node Starter");
@@ -45,10 +61,14 @@ async function main() {
   }
 
   let session;
+  let browser: StagehandBrowser | undefined;
   let stagehand: Stagehand | undefined;
 
   try {
-    console.log("\nCreating Steel session...");
+    console.log("\nUploading the Stagehand extension...");
+    const extensionId = await uploadStagehandExtension();
+
+    console.log("Creating Steel session...");
 
     session = await client.sessions.create({
       // === Basic Options ===
@@ -58,6 +78,7 @@ async function main() {
       // timeout: 900000,                // Session timeout in ms (default: 5 mins)
       // === Browser Configuration ===
       // userAgent: 'custom-ua-string',  // Set a custom User-Agent
+      extensionIds: [extensionId],
     });
 
     console.log(
@@ -65,30 +86,26 @@ async function main() {
         `View session at \x1b[1;37m${session.sessionViewerUrl}\x1b[0m`
     );
 
-    stagehand = new Stagehand({
-      env: "LOCAL", // Using LOCAL env to connect to Steel session
-      localBrowserLaunchOptions: {
-        cdpUrl: session.websocketUrl,
-      },
+    console.log("Connecting Stagehand...");
+    browser = await localBrowser.connect({ cdpUrl: session.websocketUrl });
+    stagehand = await Stagehand.create({
+      browser,
       model: {
         modelName: "openai/gpt-6.1-sol",
         apiKey: OPENAI_API_KEY,
       },
     });
 
-    console.log("Initializing Stagehand...");
-    await stagehand.init();
-
     console.log("Connected to browser via Stagehand");
 
-    const page = await stagehand.context.awaitActivePage();
+    const [page] = await browser.context.pages();
 
     console.log("Navigating to Hacker News...");
     await page.goto("https://news.ycombinator.com");
 
     console.log("Extracting top stories using AI...");
 
-    const stories = await stagehand.extract(
+    const { data } = await stagehand.extract(
       "extract the titles and ranks of the first 5 stories on the page",
       z.object({
         stories: z.array(
@@ -97,24 +114,25 @@ async function main() {
             rank: z.number(),
           })
         ),
-      })
+      }),
+      { page }
     );
 
     console.log("\n\x1b[1;92mTop 5 Hacker News Stories:\x1b[0m");
-    stories.stories?.forEach((story) => {
+    data.stories.forEach((story) => {
       console.log(`${story.rank}. ${story.title}`);
     });
 
     console.log("\nNavigating to HN's 'new' section via a natural-language click...");
 
-    try {
-      await stagehand.act("click the 'new' link in the top navigation");
-      console.log("Navigated to new stories!");
-    } catch (error) {
-      console.log("Could not navigate to new stories:", error);
+    const { data: action } = await stagehand.act(
+      "click the 'new' link in the top navigation",
+      { page }
+    );
+    if (!action.success) {
+      throw new Error(`Could not navigate to new stories: ${action.message}`);
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log(`Navigated to ${await page.url()}`);
 
     console.log("\n\x1b[1;92mAutomation completed successfully!\x1b[0m");
   } catch (error) {
@@ -127,6 +145,14 @@ async function main() {
         await stagehand.close();
       } catch (error) {
         console.error("Error closing Stagehand:", error);
+      }
+    }
+
+    if (browser) {
+      try {
+        await browser.disconnect();
+      } catch (error) {
+        console.error("Error disconnecting from the browser:", error);
       }
     }
 
