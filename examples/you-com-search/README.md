@@ -113,7 +113,7 @@ If the agent answers from search and contents alone, the `open_session`, `naviga
 - **Add more browser actions.** `click_text` is the minimum interactive primitive. Add `fill(selector, text)`, `press(key)`, `wait_for_selector`, or `scroll` when the agent needs to operate forms or trigger lazy-loaded content.
 - **Tighten the routing.** The `verbose=False` agent re-derives the routing each turn. For repeatable production flows, replace the agent with an explicit two-step pipeline: always run `youcom_search`, always run `youcom_contents` on the top hit, only call browser tools if a heuristic flag (response too short, contains "Please enable JavaScript", etc.) trips.
 - **Trace with LangSmith.** Set `LANGSMITH_API_KEY` and `LANGSMITH_TRACING=true` in `.env`. No code changes; every tool call shows up at [smith.langchain.com](https://smith.langchain.com).
-- **Swap the model.** `ChatOpenAI(model="gpt-5-mini")` works without touching the tools. The system prompt is generic.
+- **Swap the model.** `ChatOpenAI(model="gpt-6.1-terra")` works without touching the tools. The system prompt is generic.
 - **Self-host.** Both Steel (open-source browser infra) and the cookbook are deployable; the You.com APIs are remote. For a fully self-hostable variant, replace `youcom_contents` with a local extractor (Trafilatura, Readability) and a search frontend like SearXNG, and keep Steel for the browser tier.
 
 ## Related

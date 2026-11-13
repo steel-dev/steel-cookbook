@@ -77,7 +77,7 @@ A run takes ~20 to 40 seconds and a few cents of Steel session time plus Anthrop
 - **Add a checkpointer.** Pass `checkpointer=MemorySaver()` to `graph.compile(...)` and a `thread_id` in the run config. The graph snapshots state after every node, so a crashed run can resume from the last checkpoint. Use `SqliteSaver` (from `langgraph-checkpoint-sqlite`) for persistence across processes.
 - **Stream events.** Swap `app.ainvoke(...)` for `async for event in app.astream_events(..., version="v2")`. You will see `on_tool_start`, `on_tool_end`, and `on_chat_model_stream` events you can pipe to a UI.
 - **Trace with LangSmith.** Set `LANGSMITH_API_KEY` and `LANGSMITH_TRACING=true` in `.env`. No code changes; every node and tool call shows up at [smith.langchain.com](https://smith.langchain.com).
-- **Swap the model.** Any `langchain-*` chat model works. `ChatOpenAI(model="gpt-5-mini")` swaps Anthropic for OpenAI without touching the graph.
+- **Swap the model.** Any `langchain-*` chat model works. `ChatOpenAI(model="gpt-6.1-terra")` swaps Anthropic for OpenAI without touching the graph.
 
 ## Related
 
