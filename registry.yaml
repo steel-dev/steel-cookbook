@@ -58,7 +58,7 @@
   language: TypeScript
   topics: [Browser automation]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -68,7 +68,7 @@
   language: Python
   topics: [Browser automation]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Browser Use
   slug: browser-use
@@ -98,7 +98,7 @@
   language: Python
   topics: [Agents, Browser Use, Captchas]
   created: "2026-02-10"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -138,7 +138,7 @@
   language: TypeScript
   topics: [Computer use]
   created: "2025-03-19"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -148,7 +148,7 @@
   language: Python
   topics: [Computer use]
   created: "2025-03-19"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -198,7 +198,7 @@
   language: TypeScript
   topics: [Agents, Typed output]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -208,7 +208,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with Pydantic AI
   slug: pydantic-ai
@@ -218,7 +218,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Microsoft Agent Framework
   slug: microsoft-agent-framework
@@ -298,7 +298,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2025-09-05"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with Mastra
   slug: mastra
@@ -638,7 +638,7 @@
   language: Rust
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -868,7 +868,7 @@
   language: TypeScript
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -878,7 +878,7 @@
   language: Python
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -888,7 +888,7 @@
   language: Go
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -898,4 +898,4 @@
   language: Rust
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
