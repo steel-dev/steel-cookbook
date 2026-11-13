@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use steel_rs::{Client, ScrapeParams, ScrapeParamsFormat};
 use url::Url;
 
-const DEFAULT_MODEL: &str = "gpt-5.5";
+const DEFAULT_MODEL: &str = "gpt-6.1-sol";
 const DEFAULT_QUESTION: &str = "Summarize the main stories on this page and cite the source URL.";
 const DEFAULT_SEED_URL: &str = "https://news.ycombinator.com";
 

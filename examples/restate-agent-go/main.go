@@ -26,7 +26,7 @@ import (
 const (
 	defaultQuestion = "Summarize the main stories on this page and cite the source URL."
 	defaultSeedURL  = "https://news.ycombinator.com"
-	defaultModel    = "gpt-5.5"
+	defaultModel    = "gpt-6.1-sol"
 )
 
 type ResearchSession struct{}

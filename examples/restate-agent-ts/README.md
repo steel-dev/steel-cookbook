@@ -42,7 +42,7 @@ curl localhost:8080/restate/call/ResearchSession/demo/answer \
   --json '{"question":"Summarize the main stories on this page and cite the source URL.","seedUrl":"https://news.ycombinator.com","maxSteps":2}'
 ```
 
-Get a Steel key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `OPENAI_MODEL` defaults to `gpt-5.5`; change it in `.env` if your account uses a different model.
+Get a Steel key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `OPENAI_MODEL` defaults to `gpt-6.1-sol`; change it in `.env` if your account uses a different model.
 
 Your output varies. Structure looks like this:
 

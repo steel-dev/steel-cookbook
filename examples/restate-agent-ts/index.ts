@@ -11,7 +11,7 @@ dotenv.config();
 
 const STEEL_API_KEY = env("STEEL_API_KEY", "your-steel-api-key-here");
 const OPENAI_API_KEY = env("OPENAI_API_KEY", "your-openai-api-key-here");
-const OPENAI_MODEL = env("OPENAI_MODEL", "gpt-5.5");
+const OPENAI_MODEL = env("OPENAI_MODEL", "gpt-6.1-sol");
 const DEFAULT_QUESTION = env(
   "RESEARCH_QUESTION",
   "Summarize the main stories on this page and cite the source URL."
