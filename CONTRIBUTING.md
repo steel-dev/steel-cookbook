@@ -89,6 +89,7 @@ Before opening a PR:
 - [ ] README follows the shape above
 - [ ] `npm install && npm start` (or the Python equivalent) works from a clean clone
 - [ ] `.env.example` lists every required variable
+- [ ] The code connects with the session's `websocketUrl` as it is, without adding `apiKey` to it (CI checks this)
 - [ ] Entry added to `registry.yaml` with `created` set to today (YYYY-MM-DD) and `updated` matching
 - [ ] Author entry present in `authors.yaml` (add yourself if new)
 - [ ] When editing an existing recipe meaningfully, bump that variant's `updated` (skip for typo fixes or sweep refactors)
