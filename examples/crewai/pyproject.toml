@@ -9,5 +9,5 @@ dependencies = [
     "openai>=2.0,<3",
     "pydantic>=2.11,<3",
     "python-dotenv>=1.0.0",
-    "steel-sdk>=0.16.0",
+    "steel-sdk>=0.23.0",
 ]

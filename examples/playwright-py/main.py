@@ -41,7 +41,7 @@ def main():
             # use_proxy=True,              # Use Steel's proxy network (residential IPs)
             # proxy_url='http://...',      # Use your own proxy (format: protocol://username:password@host:port)
             # solve_captcha=True,          # Enable automatic CAPTCHA solving
-            # session_timeout=1800000,     # Session timeout in ms (default: 5 mins)
+            # api_timeout=900000,          # Session timeout in ms (default: 5 mins)
             # === Browser Configuration ===
             # user_agent='custom-ua',      # Set a custom User-Agent
         )
@@ -53,7 +53,7 @@ You can view the session live at \033[1;37m{session.session_viewer_url}\033[0m
         # Connect Playwright to the Steel session
         playwright = sync_playwright().start()
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
 
         print("Connected to browser via Playwright")

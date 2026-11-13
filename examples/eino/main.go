@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	model = "claude-sonnet-4-6"
+	model = "claude-sonnet-5-5"
 	task  = "Research the front page of Hacker News (https://news.ycombinator.com). " +
 		"Open the page, pick the three most interesting links, read each one, and " +
 		"write a short briefing: for every story give its title, the URL you read, " +

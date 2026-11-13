@@ -51,7 +51,7 @@ Rendering PDF ...
 Done.
 ```
 
-Three calls cost a few cents of browser time total. Steel bills per session-minute, and these one-shot endpoints spin up and tear down their own browser, so there is nothing to leak: no cleanup call, no session left running against the default 5-minute timeout. The trade-off is that each call is independent, so you cannot log in once and scrape five pages behind the auth. For that, open a session and drive a real browser (see Related).
+Three calls cost a few cents of browser time total. Steel bills per session-minute, and these one-shot endpoints spin up and tear down their own browser, so there is nothing to leak: no cleanup call, no session left running against the default 5-minute timeout. The trade-off is that each call is independent, so you cannot sign in once and scrape five pages behind the auth. For that, open a session and drive a real browser (see Related).
 
 ## Make it yours
 

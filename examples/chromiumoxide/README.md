@@ -1,6 +1,6 @@
 # chromiumoxide + Steel (Rust)
 
-chromiumoxide speaks the Chrome DevTools Protocol over a websocket, which is exactly what a Steel session exposes. `Browser::connect` takes the session's websocket URL and hands back a connected browser plus a `Handler`. From there you get plain async chromiumoxide: `new_page`, `content`, `get_title`, `find_elements`, `evaluate`, `screenshot`. No local Chrome, no `chromedriver`, no display.
+chromiumoxide speaks the Chrome DevTools Protocol over a WebSocket, which is exactly what a Steel session exposes. `Browser::connect` takes the session's WebSocket URL and hands back a connected browser plus a `Handler`. From there you get plain async chromiumoxide: `new_page`, `content`, `get_title`, `find_elements`, `evaluate`, `screenshot`. No local Chrome, no `chromedriver`, no display.
 
 The connection is one line, but it returns a tuple, and the second half is the part that trips everyone up:
 
@@ -26,7 +26,7 @@ Everything after the spawn is ordinary scraping. `run` opens Hacker News, waits 
 let stories: Vec<Story> = page.evaluate(EXTRACT_STORIES).await?.into_value()?;
 ```
 
-The screenshot uses `page.screenshot`, which returns the PNG as `Vec<u8>` directly from CDP. This example writes those bytes to `screenshot.png`, but the same bytes go just as easily into an upload, a vision model prompt, or a diff against a baseline.
+The screenshot uses `page.screenshot`, which returns the PNG as `Vec<u8>` directly from CDP. This example writes those bytes to `screenshot.png`, but you can send the same bytes to an upload, a vision model prompt, or a diff against a baseline.
 
 ## Run it
 

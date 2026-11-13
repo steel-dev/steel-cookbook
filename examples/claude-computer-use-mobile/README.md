@@ -1,6 +1,6 @@
 # Claude Computer Use (Mobile)
 
-Mobile-emulated Chrome, driven by Claude's computer-use tool. The agent loop is the same as the [Desktop TS](../claude-computer-use-ts) recipe (screenshot in, coordinate out, next screenshot back), but three things change when the surface is a phone: Steel allocates the viewport instead of you, Playwright drives the page over CDP instead of Steel's Input API, and every coordinate is clamped before it touches the browser.
+Mobile-emulated Chrome, driven by Claude's computer toolset. The agent loop is the same as the [Desktop TS](../claude-computer-use-ts) recipe (screenshot in, coordinate out, next screenshot back), but three things change when the surface is a phone: Steel allocates the viewport instead of you, Playwright drives the page over CDP instead of Steel's Input API, and every coordinate is clamped before it touches the browser.
 
 ## Mobile session, Playwright driver
 
@@ -9,18 +9,19 @@ Mobile-emulated Chrome, driven by Claude's computer-use tool. The agent loop is 
 ```typescript
 this.session = await this.client.sessions.create({
   timeout: 900000,
-  solveCaptcha: false,
   deviceConfig: { device: "mobile" },
 });
 
-const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+const cdpUrl = this.session.websocketUrl;
 this.browser = await chromium.connectOverCDP(cdpUrl, { timeout: 60000 });
 this.page = this.browser.contexts()[0].pages()[0];
 ```
 
 `deviceConfig.device: "mobile"` tells Steel to spin up Chrome with a mobile user agent, mobile viewport, and touch-capable device metrics.
 
-The action switch in `executeComputerAction` maps Claude's computer-use vocabulary onto Playwright calls: `left_click` becomes `page.mouse.click(x, y)`, `type` chunks through `page.keyboard.type` with a 12 ms delay per keystroke, `scroll` multiplies `scroll_amount` by 100 and calls `page.mouse.wheel`, `key` splits on `+` so `ctrl+a` routes through `CUA_KEY_TO_PLAYWRIGHT_KEY` into real modifier-plus-key presses.
+Claude Opus 5.5 gets one tool entry, `{ type: "computer_toolset_20260801" }`, with no beta header and no display size. It often asks for several actions in one turn. `processResponse` runs them in order and answers each with a `tool_result` that carries `toolset_name: "computer"`, as in the [Desktop TS](../claude-computer-use-ts) recipe.
+
+The switch in `executeComputerAction` maps each action onto Playwright calls: `left_click` becomes `page.mouse.click(x, y)`, `type` chunks through `page.keyboard.type` with a 12 ms delay per keystroke, `scroll` multiplies `scroll_amount` by 100 and calls `page.mouse.wheel`, `key` splits on `+` so `ctrl+a` routes through `CUA_KEY_TO_PLAYWRIGHT_KEY` into real modifier-plus-key presses. Playwright can hold keys, so modifiers in `text` work on clicks, scrolls and drags, and `hold_key`, `triple_click`, `left_mouse_down` and `left_mouse_up` all run. Only `zoom` is turned off.
 
 ## Dimensions come from the session
 
@@ -42,7 +43,9 @@ async initialize() {
 }
 ```
 
-`ClaudeAgent` reads those dimensions back through `computer.getDimensions()` and threads them into both the system prompt and the `computer_20251124` tool definition. Order matters. Instantiate `ClaudeAgent` before `computer.initialize()` completes and the agent captures the placeholder while the real page is rendered at the mobile size Steel picked.
+`ClaudeAgent` reads those dimensions back through `computer.getDimensions()` and writes them into the system prompt. Order matters. Instantiate `ClaudeAgent` before `computer.initialize()` completes and the agent captures the placeholder while the real page is rendered at the mobile size Steel picked.
+
+The toolset takes no display size. Claude's coordinates are pixels of the screenshots that it gets, so `screenshot` passes `scale: "css"` to Playwright. A screenshot then has one pixel per CSS pixel of the viewport, whatever the phone's pixel ratio, and a click lands where Claude saw the target.
 
 ## Clamping coordinates
 
@@ -59,11 +62,11 @@ private clampCoordinates(x: number, y: number): [number, number] {
 }
 ```
 
-Frequent clamps mean the tool definition and the session's real dimensions have drifted.
+Frequent clamps mean the screenshots no longer match the viewport.
 
 ## Completion markers
 
-The system prompt instructs Claude to end every run with `TASK_COMPLETED:`, `TASK_FAILED:`, or `TASK_ABANDONED:`. `isTaskComplete` scans each assistant turn for those tokens first, then falls back to natural-language patterns. The loop also exits on `detectRepetition` and a 50-iteration cap.
+The system prompt instructs Claude to end every run with `TASK_COMPLETED:`, `TASK_FAILED:`, or `TASK_ABANDONED:`. `isTaskComplete` scans each assistant turn for those tokens first, then falls back to natural-language patterns. The loop also exits when Claude stops with `stop_reason: "refusal"`, on `detectRepetition`, and at a 50-iteration cap.
 
 ## Run it
 
@@ -80,27 +83,41 @@ Keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [console.
 TASK="Open amazon.com and find the price of an iPhone 16 Pro Max" npm start
 ```
 
-Your output varies. Structure looks like this:
+Your output varies. One run printed:
 
 ```text
-Steel Session created successfully!
-View live session at: https://app.steel.dev/sessions/ab12cd34...
-
-Executing task: Go to amazon.com, search for 'iPhone 16 Pro Max'...
+Steel + Claude Computer Use Assistant
 ============================================================
-I'll start by taking a screenshot to see the current state.
-computer({"action":"screenshot"})
-Taking screenshot with dimensions: 390x844
-computer({"action":"left_click","coordinate":[195,120]})
-computer({"action":"type","text":"iPhone 16 Pro Max"})
-...
-TASK_COMPLETED: iPhone 16 Pro Max is $1,199 and in stock.
 
+Starting Steel browser session...
+Steel Session created successfully!
+View live session at: https://app.steel.dev/sessions/35a951cd-9097-4d20-aaa6-2c564327cc75
+Steel browser session started!
+Executing task: Go to amazon.com, search for 'iPhone 16 Pro Max', find the product page,
+    and extract the current price and availability status
+    Note: Don't open new tabs or pages, always stay in the same page.
+============================================================
+screenshot({})
+Taking screenshot with dimensions: 508x1074
+left_click({"coordinate":[220,121]})
+type({"text":"iPhone 16 Pro Max\n"})
+wait({"duration":3})
+screenshot({})
+Taking screenshot with dimensions: 508x1074
+...
+TASK_COMPLETED: Found a renewed iPhone 16 Pro Max (256GB, Black Titanium, Unlocked) on Amazon at $692.00, in stock with only 3 left.
+Task complete - no further actions requested
+
+============================================================
 TASK EXECUTION COMPLETED
-Duration: 96.4 seconds
+============================================================
+Duration: 42.3 seconds
+...
+Releasing Steel session...
+Session completed. View replay at https://app.steel.dev/sessions/35a951cd-9097-4d20-aaa6-2c564327cc75
 ```
 
-Expect ~60-180 seconds and 15-40 iterations for a typical mobile browse.
+Expect one to three minutes for a typical mobile browse.
 
 ## Make it yours
 

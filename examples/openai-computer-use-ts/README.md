@@ -69,7 +69,7 @@ A few translation details:
 
 ## Safety checks
 
-A `computer_call` can attach `pending_safety_checks` when the planned action looks sensitive. The call won't take effect until you echo those check IDs back in `acknowledged_safety_checks`. The starter auto-acknowledges everything; for production, flip `autoAcknowledgeSafety` to `false` and gate each check on a human approval.
+A `computer_call` can attach `pending_safety_checks` when the planned action looks sensitive. The call will not take effect until you echo those check IDs back in `acknowledged_safety_checks`. The starter auto-acknowledges everything; for production, flip `autoAcknowledgeSafety` to `false` and gate each check on a human approval.
 
 ## Run it
 
@@ -112,7 +112,7 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task.
 ## Make it yours
 
 - **Change the viewport.** `viewportWidth` and `viewportHeight` in the `Agent` constructor set the Steel session `dimensions`.
-- **Swap the model.** The default is `gpt-5.5`. Update `this.model` in the `Agent` constructor.
+- **Swap the model.** The default is `gpt-6.1-terra`. Update `this.model` in the `Agent` constructor.
 - **Tune reasoning effort.** `reasoning: { effort: "medium" }` trades latency for planning quality.
 - **Rewrite the system prompt.** `BROWSER_SYSTEM_PROMPT` holds the browsing conventions.
 - **Persist a login.** Pass `sessionContext` to `sessions.create`. See [credentials](../credentials-ts) and [auth-context](../auth-context-ts).

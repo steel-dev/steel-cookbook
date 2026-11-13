@@ -59,13 +59,14 @@ func run(apiKey string) error {
 	fmt.Println("Uploading stock.csv to the session...")
 	uploaded, err := client.Sessions.Files.Upload(ctx, sess.ID, steel.SessionFileUploadParams{
 		File: steel.FileParam(bytes.NewReader(csvBytes), "stock.csv", "text/csv"),
+		Path: steel.F("stock.csv"),
 	})
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
 	fmt.Printf("Uploaded. Path inside the session VM: %s\n", uploaded.Path)
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+	cdpURL := sess.WebsocketURL
 
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()

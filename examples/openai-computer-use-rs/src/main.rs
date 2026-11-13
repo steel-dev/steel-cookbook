@@ -15,7 +15,7 @@ use steel_rs::{
 };
 
 const OPENAI_URL: &str = "https://api.openai.com/v1/responses";
-const MODEL: &str = "computer-use-preview";
+const MODEL: &str = "gpt-6.1-terra";
 
 const VIEWPORT_WIDTH: i64 = 1440;
 const VIEWPORT_HEIGHT: i64 = 900;
@@ -41,7 +41,10 @@ enum OutputItem {
     },
     ComputerCall {
         call_id: String,
-        action: Value,
+        #[serde(default)]
+        action: Option<Value>,
+        #[serde(default)]
+        actions: Vec<Value>,
         #[serde(default)]
         pending_safety_checks: Vec<SafetyCheck>,
     },
@@ -351,12 +354,7 @@ impl Agent {
             "model": MODEL,
             "instructions": browser_system_prompt(),
             "input": input,
-            "tools": [{
-                "type": "computer_use_preview",
-                "display_width": VIEWPORT_WIDTH,
-                "display_height": VIEWPORT_HEIGHT,
-                "environment": "browser",
-            }],
+            "tools": [{ "type": "computer" }],
             "reasoning": { "effort": "medium" },
             "truncation": "auto",
         });
@@ -421,12 +419,20 @@ impl Agent {
                     OutputItem::ComputerCall {
                         call_id,
                         action,
+                        actions,
                         pending_safety_checks,
                     } => {
-                        let typ = action.get("type").and_then(|v| v.as_str()).unwrap_or("");
-                        println!("{}({})", typ, action);
-                        if let Err(e) = self.execute_action(action).await {
-                            println!("Error executing {}: {}", typ, e);
+                        let batch: Vec<&Value> = if actions.is_empty() {
+                            action.iter().collect()
+                        } else {
+                            actions.iter().collect()
+                        };
+                        for action in batch {
+                            let typ = action.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                            println!("{}({})", typ, action);
+                            if let Err(e) = self.execute_action(action).await {
+                                println!("Error executing {}: {}", typ, e);
+                            }
                         }
                         for check in pending_safety_checks {
                             println!("Auto-acknowledging safety check: {}", check.message);

@@ -1,6 +1,6 @@
 # Auth Context (Python)
 
-Logging in is the expensive part of browser automation: forms, redirects, sometimes a captcha. Steel lets you do it once, freeze the result, and pour it into a brand new browser. `main.py` runs that whole loop with Playwright's sync API: log in on session #1, snapshot the auth state, throw session #1 away, then prove a fresh session #2 is already signed in without ever touching the login form.
+Logging in is the expensive part of browser automation: forms, redirects, sometimes a CAPTCHA. Steel lets you do it once, freeze the result, and pour it into a brand new browser. `main.py` runs that whole loop with Playwright's sync API: sign in on session #1, snapshot the auth state, throw session #1 away, then prove a fresh session #2 is already signed in without ever touching the login form.
 
 The two calls that matter are a read and a write:
 
@@ -27,7 +27,7 @@ cp .env.example .env          # set STEEL_API_KEY
 uv run main.py
 ```
 
-Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `uv sync` runs automatically on first `uv run`, so there is no separate install step. Prefer pip? `pip install -e .` then `python main.py`. Playwright needs its browser binaries once: `playwright install chromium`.
+Grab a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `uv sync` runs automatically on first `uv run`, so there is no separate install step. Prefer pip? `pip install -e .` then `python main.py`.
 
 The script prints two session viewer URLs. Open them in other tabs to watch each browser live.
 

@@ -1,6 +1,6 @@
 # headless_chrome + Steel (Rust)
 
-headless_chrome is the Rust equivalent of Puppeteer: a high-level, synchronous wrapper over the Chrome DevTools Protocol. `Browser::connect` takes a websocket URL and returns a connected browser, which is all a Steel session is. There is no event loop to drive and no async runtime in the browser code itself: `new_tab`, `navigate_to`, `find_elements`, and `capture_screenshot` block until they return, the way the Node original does.
+headless_chrome is the Rust equivalent of Puppeteer: a high-level, synchronous wrapper over the Chrome DevTools Protocol. `Browser::connect` takes a WebSocket URL and returns a connected browser, which is all a Steel session is. There is no event loop to drive and no async runtime in the browser code itself: `new_tab`, `navigate_to`, `find_elements`, and `capture_screenshot` block until they return, the way the Node original does.
 
 ```rust
 let browser = Browser::connect(cdp_url)?;
@@ -25,7 +25,7 @@ let result = tokio::task::spawn_blocking(move || scrape(&websocket_url, &key)).a
 
 That is also why `scrape` returns `Box<dyn Error + Send + Sync>` rather than the bare `Box<dyn Error>` you would reach for first: `spawn_blocking` moves the closure to another thread, so its return type has to be `Send`. The session is created before the blocking call and released after it, so the browser work sits between two `await` points and the async SDK never blocks.
 
-One detail in `scrape` is shared with the [chromiumoxide](../chromiumoxide) recipe: the connect URL is normalized to carry a path. Steel's websocket URL is `wss://host?token`, and the websocket layer underneath headless_chrome expects `wss://host/?token`, so the `match` on `://` and `?` inserts the slash before `Browser::connect` dials it.
+One detail in `scrape` is shared with the [chromiumoxide](../chromiumoxide) recipe: the connect URL is normalized to carry a path. Steel's WebSocket URL is `wss://host?token`, and the WebSocket layer underneath headless_chrome expects `wss://host/?token`, so the `match` on `://` and `?` inserts the slash before `Browser::connect` dials it.
 
 ## Run it
 

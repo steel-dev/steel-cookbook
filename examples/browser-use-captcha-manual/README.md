@@ -110,7 +110,7 @@ reCAPTCHA v2 solved! (1 task(s) in 18.4s)
 TASK EXECUTION COMPLETED
 ```
 
-A run takes ~60 seconds and costs Steel session time plus OpenAI tokens for each agent step. The `finally` block that calls `client.sessions.release()` isn't optional. Without it the browser stays up until the 5-minute timeout, whether the solve finished or not.
+A run takes ~60 seconds and costs Steel session time plus OpenAI tokens for each agent step. The `finally` block that calls `client.sessions.release()` is not optional. Without it the browser stays up until the 5-minute timeout, whether the solve finished or not.
 
 ## Make it yours
 

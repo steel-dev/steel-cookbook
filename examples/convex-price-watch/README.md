@@ -49,19 +49,19 @@ If the probes disagree, a yellow-bordered "Divergence detected" card appears abo
 
 ## Why two parallel probes
 
-`useProxy` on `ScrapeParams` is a boolean. Setting it to `true` routes the request through a random residential IP each time, but you don't get to pick the country from the scrape API. The country-pinned form (`{ geolocation: { country } }`) lives on `steel.sessions.create`, not `steel.steel.scrape`.
+`useProxy` on `ScrapeParams` is a boolean. Setting it to `true` routes the request through a random residential IP each time, but you do not get to pick the country from the scrape API. The country-pinned form (`{ geolocation: { country } }`) lives on `steel.sessions.create`, not `steel.steel.scrape`.
 
-Two probes running in different deployment regions (`region: "lax"` and `region: "iad"`) give you two different IPs per tick. That's enough to surface visitor-bucket A/B variance: if Anthropic serves $17 to one bucket and $20 to another, the probes have a real chance of landing in different buckets and the grid lights up.
+Two probes running in different deployment regions (`region: "lax"` and `region: "iad"`) give you two different IPs per tick. That is enough to surface visitor-bucket A/B variance: if Anthropic serves $17 to one bucket and $20 to another, the probes have a real chance of landing in different buckets and the grid lights up.
 
 True per-country routing is a one-line extension: open a session with `useProxy: { geolocation: { country: "DE" } }`, then scrape through the session id. Listed under [Make it yours](#make-it-yours).
 
-Each probe is wrapped in `try`/`catch` inside `captureAll`. A 503 from one Steel region doesn't blank the others.
+Each probe is wrapped in `try`/`catch` inside `captureAll`. A 503 from one Steel region does not blank the others.
 
 ## The delay is load-bearing
 
 `claude.com/pricing` ships a small nav-only stub on the first response and hydrates the actual tier prices client-side. Without `delay: 5000` on the scrape call, the probe grabs the stub, the tier regex finds nothing, and the row count is zero.
 
-`captureFromRegion` retries once if the markdown is empty or doesn't contain any tier name. The retry covers the residual hydration flake on residential IPs without inflating latency on good runs.
+`captureFromRegion` retries once if the markdown is empty or does not contain any tier name. The retry covers the residual hydration flake on residential IPs without inflating latency on good runs.
 
 ```ts
 const result = await steel.steel.scrape(

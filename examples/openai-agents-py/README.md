@@ -1,6 +1,6 @@
 # OpenAI Agents SDK Starter (Python)
 
-The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you don't have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer.
+The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) runs the tool-call loop so you do not have to. You declare an `Agent` with tools, a model, and (optionally) a Pydantic `output_type`. You call `Runner.run(agent, input=...)` once. The SDK handles every model turn, every tool dispatch, and every schema check until the agent returns a typed final answer.
 
 This starter wraps a Steel browser as four tools and points the agent at GitHub Trending.
 
@@ -10,7 +10,7 @@ from agents import Agent, Runner, function_tool
 agent = Agent(
     name="SteelResearch",
     instructions="You operate a Steel cloud browser via tools. ...",
-    model="gpt-5-mini",
+    model="gpt-6.1-terra",
     tools=[open_session, navigate, snapshot, extract],
     output_type=FinalReport,
 )
@@ -26,7 +26,6 @@ Each tool is a plain async function wrapped with `@function_tool`. The SDK reads
 ```bash
 cd examples/openai-agents-py
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 
@@ -71,7 +70,7 @@ The Agents SDK ships [tracing](https://openai.github.io/openai-agents-python/tra
 - **Add a tool.** Write an async function, decorate with `@function_tool`, add it to `tools=[...]`. A useful fifth tool is `click(selector: str)` that calls `page.click` and waits for navigation.
 - **Hand off to a specialist.** The SDK supports [handoffs](https://openai.github.io/openai-agents-python/handoffs/): define a second `Agent` (say, a `Summarizer` with no tools) and list it in `handoffs=[...]` on the research agent.
 - **Add a guardrail.** Attach an [input or output guardrail](https://openai.github.io/openai-agents-python/guardrails/) to reject off-topic requests or validate the `FinalReport` before it returns.
-- **Swap the model.** `model="gpt-5"` for harder reasoning, `"gpt-5-mini"` (default) for speed and cost.
+- **Swap the model.** `model="gpt-6.1-sol"` for harder reasoning, `"gpt-6.1-terra"` (default) for speed and cost.
 - **Raise `max_turns`.** 15 is plenty for single-page extraction. Multi-page flows want 25 to 40.
 - **Use `context`.** Replace module globals with a dataclass passed to `Runner.run(agent, input=..., context=my_ctx)`. Each tool reads it via `RunContextWrapper`. Needed for concurrent runs.
 

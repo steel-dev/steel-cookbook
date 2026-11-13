@@ -19,9 +19,9 @@
   "author": "Steel Team",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.137.0",
     "dotenv": "^16.4.7",
-    "steel-sdk": "^0.21.0"
+    "steel-sdk": "^0.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

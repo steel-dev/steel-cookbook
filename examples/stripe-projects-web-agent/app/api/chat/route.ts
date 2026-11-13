@@ -309,7 +309,7 @@ export async function POST(req: Request) {
               }
 
               browser = await chromium.connectOverCDP(
-                `${session.websocketUrl}&apiKey=${env.steelApiKey}`
+                session.websocketUrl
               );
               if (closing || req.signal.aborted) {
                 await browser.close().catch(() => undefined);

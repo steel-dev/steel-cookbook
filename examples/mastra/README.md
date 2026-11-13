@@ -9,7 +9,7 @@ const researchAgent = new Agent({
   id: "research-agent",
   name: "Steel Research",
   instructions: "You operate a Steel cloud browser via tools. ...",
-  model: "anthropic/claude-haiku-4-5",
+  model: "anthropic/claude-haiku-5-5",
   tools: { openSession, navigate, snapshot, extract },
 });
 
@@ -18,7 +18,7 @@ export const mastra = new Mastra({ agents: { researchAgent } });
 const result = await researchAgent.generate(prompt, {
   structuredOutput: {
     schema: FinalReport,
-    model: "anthropic/claude-haiku-4-5",
+    model: "anthropic/claude-haiku-5-5",
   },
   maxSteps: 15,
   onStepFinish: async (step) => { ... },
@@ -33,7 +33,6 @@ console.log(result.object); // typed as z.infer<typeof FinalReport>
 cd examples/mastra
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 
@@ -85,12 +84,12 @@ It serves at `http://localhost:4111` and reads the `mastra` registry exported fr
 
 ## Make it yours
 
-- **Swap the model.** Change the `model` string. `"openai/gpt-5-mini"`, `"google/gemini-2.5-flash"`, `"anthropic/claude-sonnet-4-6"` all work; set the matching API key in `.env`.
+- **Swap the model.** Change the `model` string. `"openai/gpt-6.1-terra"`, `"google/gemini-4-hydrogen"`, `"anthropic/claude-sonnet-5-5"` all work; set the matching API key in `.env`.
 - **Swap the task.** Change the prompt and the `FinalReport` schema. The four tools are task-agnostic.
 - **Add a tool.** A `click` tool wrapping `page.click`, a `screenshot` tool returning a base64 PNG. Add to the `tools` record.
 - **Add memory.** Install `@mastra/memory` plus a storage adapter (`@mastra/libsql`), pass `memory` on the `Agent`, then call `generate(prompt, { memory: { resource, thread } })` to persist conversation across runs. See [Mastra memory docs](https://mastra.ai/docs/memory/overview).
 - **Wrap it in a workflow.** For multi-step pipelines (login → scrape → summarize) where each step needs to be retryable or human-resumable, port the tool calls into `createStep` blocks under a `createWorkflow`. See [Mastra workflows](https://mastra.ai/docs/workflows/overview).
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` to `steel.sessions.create({...})` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` to `steel.sessions.create({...})` for sites with anti-bot.
 
 ## Related
 

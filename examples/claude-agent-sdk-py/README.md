@@ -25,7 +25,7 @@ steel_server = create_sdk_mcp_server(
 )
 
 options = ClaudeAgentOptions(
-    model="claude-sonnet-4-6",
+    model="claude-sonnet-5-5",
     system_prompt=SYSTEM_PROMPT,
     mcp_servers={"steel": steel_server},
     allowed_tools=["mcp__steel__*"],
@@ -57,7 +57,6 @@ async for message in query(prompt=PROMPT, options=options):
 ```bash
 cd examples/claude-agent-sdk-py
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 
@@ -91,11 +90,11 @@ A run takes ~30 to 50 seconds and 3 to 6 turns. Cost is Steel session-minutes pl
 ## Make it yours
 
 - **Swap the task.** Change `PROMPT` and, if useful, `SYSTEM_PROMPT`. The four tools are task-agnostic.
-- **Use Opus 4.7 for harder pages.** Set `model="claude-opus-4-7"` in `ClaudeAgentOptions`.
+- **Use Opus 5.5 for harder pages.** Set `model="claude-opus-5-5"` in `ClaudeAgentOptions`.
 - **Add a tool.** Decorate a new async function with `@tool`, append it to the `tools` list passed to `create_sdk_mcp_server`. A `click(selector)` tool that calls `page.click` is a useful fifth one.
 - **Hook the lifecycle.** Pass `hooks={"PostToolUse": [...]}` on `ClaudeAgentOptions` to log every tool call, validate arguments, or veto destructive actions. Hook events: `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`.
 - **Resume sessions.** Capture `SystemMessage.data["session_id"]` from the first run, pass `resume=session_id` on the next `ClaudeAgentOptions` to continue with full context.
-- **Hand off auth.** Pair with [credentials](../credentials-ts) or [auth-context](../auth-context-ts) so the Steel session starts already logged in.
+- **Hand off auth.** Pair with [credentials](../credentials-ts) or [auth-context](../auth-context-ts) so the Steel session starts already signed in.
 
 ## Related
 

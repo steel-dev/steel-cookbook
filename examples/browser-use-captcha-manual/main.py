@@ -281,11 +281,12 @@ async def main() -> None:
         print(f"   Viewer:     {session.session_viewer_url}\n")
 
         # Connect browser-use
-        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        cdp_url = session.websocket_url
 
         model = ChatOpenAI(
-            model="gpt-5",
+            model="gpt-6.1-sol",
             api_key=OPENAI_API_KEY,
+            reasoning_models=["gpt-6"],
         )
 
         agent = Agent(

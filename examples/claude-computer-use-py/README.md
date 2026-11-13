@@ -1,20 +1,20 @@
 # Claude Computer Use (Python)
 
-Computer use is Anthropic's primitive for giving Claude direct control of a screen. You declare a `computer` tool with a viewport size; Claude replies with actions like `left_click` at `(x, y)`, `type` with text, `scroll`, `key`. You execute each one and hand back a screenshot.
+Computer use is Anthropic's primitive for giving Claude direct control of a screen. You declare the computer toolset; Claude replies with actions like `left_click` at `(x, y)`, `type` with text, `scroll`, `key`. You execute each one and hand back a screenshot.
 
-Steel supplies the screen. A Steel session is a headful Chromium in a VM reachable over HTTPS, and the Input API (`sessions.computer`) executes mouse and keyboard actions and returns a PNG in the same call.
+Steel supplies the screen. A Steel session is a headful Chromium in a VM reachable over HTTPS, and the Input API (`sessions.computer`) executes mouse and keyboard actions and takes screenshots.
 
 ## The loop
 
-Everything in `main.py` hangs off a single loop in `Agent.execute_task`. Seed the conversation with a system prompt and the task, then on each turn:
+Everything in `main.py` hangs off a single loop in `Agent.execute_task`. Seed the conversation with the task, then on each turn:
 
 ```python
-response = self.client.beta.messages.create(
+response = self.client.messages.create(
     model=self.model,
-    max_tokens=4096,
+    max_tokens=16000,
+    system=self.system_prompt,
     messages=self.messages,
     tools=self.tools,
-    betas=["computer-use-2025-11-24"],
 )
 
 text, has_actions = self.process_response(response)
@@ -23,40 +23,48 @@ if not has_actions:
     break
 ```
 
-`tools` declares the computer tool Claude is allowed to call:
+`tools` holds the computer toolset, with the actions that Steel's Input API can't do turned off:
 
 ```python
 self.tools = [
     {
-        "type": "computer_20251124",
-        "name": "computer",
-        "display_width_px": self.viewport_width,
-        "display_height_px": self.viewport_height,
-        "display_number": 1,
+        "type": "computer_toolset_20260801",
+        "configs": {
+            "zoom": {"enabled": False},
+            "triple_click": {"enabled": False},
+            "left_mouse_down": {"enabled": False},
+            "left_mouse_up": {"enabled": False},
+            "hold_key": {"enabled": False},
+        },
     }
 ]
 ```
 
-The viewport (1280x768) has to match what Steel renders or clicks land in the wrong place.
+The toolset needs no beta header, no tool name and no display size. Claude reads the screen size from the screenshots, so its coordinates are pixels of the screenshots that you send back. Claude Opus 5.5 accepts only this form of computer use on the Claude API.
 
-`tool_use` blocks go to `execute_computer_action`, which maps each Anthropic action name onto a Steel Input API call:
+`process_response` puts Claude's reply into `messages` as it came, thinking blocks included. Claude often asks for several actions in one turn: each is a `tool_use` block whose `name` is the action and whose `toolset_name` is `"computer"`. They run in order through `run_member`, which maps each action onto a Steel Input API call:
 
 ```python
-elif action in ("left_click", "right_click", "middle_click",
-                "double_click", "triple_click"):
+elif name in ("left_click", "right_click", "middle_click", "double_click"):
+    if tool_input.get("text"):
+        raise ValueError("Holding modifier keys during a click is not supported")
     body = {
         "action": "click_mouse",
-        "button": button_map[action],
-        "coordinates": [coords[0], coords[1]],
-        "screenshot": True,
+        "button": {"right_click": "right", "middle_click": "middle"}.get(
+            name, "left"
+        ),
+        "coordinates": self.point(tool_input.get("coordinate")),
     }
+    if name == "double_click":
+        body["num_clicks"] = 2
+    self.act(**body)
 ```
 
-`screenshot: True` tells Steel to attach a base64 PNG to the response, so a click and the screenshot that proves it landed are one round-trip. The PNG goes back into `messages` as a `tool_result` with the matching `tool_use_id`.
+Each call gets a `tool_result` with `toolset_name: "computer"`. If an action fails, the rest of the turn is skipped, and each skipped call gets "Not executed: an earlier computer action in this turn failed." When every action succeeds and the turn didn't end with a `screenshot`, the last result also carries a fresh screenshot.
 
-Two normalization details: `key` / `hold_key` run names like `CTRL+A` through `normalize_key` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`), and `scroll_amount` is multiplied by 100 pixels per step.
+Three translation details: a click or scroll without a `coordinate` uses the last cursor position, which starts at the center of the viewport. `key` runs names like `CTRL+A` through `normalize_key` (`CTRL` to `Control`, `ESC` to `Escape`, `UP` to `ArrowUp`). And Steel scrolls one wheel step per `scroll` call, so `scroll_amount: 3` makes three calls.
 
-Two things end the loop: Claude responds with only text (task done), or the last two assistant messages overlap 80%+ on word content (`detect_repetition`). A hard cap of 50 iterations catches anything that slips past both.
+Three things end the loop: Claude responds with only text (task done), Claude stops with `stop_reason: "refusal"`, or the last two assistant messages overlap 80%+ on word content (`detect_repetition`). A hard cap of 50 iterations catches anything that slips past them.
 
 ## Run it
 
@@ -69,34 +77,46 @@ uv run main.py
 Get keys from [app.steel.dev](https://app.steel.dev/settings/api-keys) and [console.anthropic.com](https://console.anthropic.com/). Default task lives in `.env` as `TASK`; you can override per-run:
 
 ```bash
-TASK="Find the current weather in New York City" python main.py
+TASK="Find the current weather in New York City" uv run main.py
 ```
 
-Your output varies. Structure looks like this:
+Your output varies. One run printed:
 
 ```text
+Steel + Claude Computer Use Assistant
+============================================================
+
 Starting Steel session...
 Steel Session created successfully!
-View live session at: https://app.steel.dev/sessions/ab12cd34…
-
+View live session at: https://app.steel.dev/sessions/2fae1421-9fef-4463-8313-ce048e197e9a
+Steel session started!
 Executing task: Go to Steel.dev and find the latest news
 ============================================================
-I'll navigate to Steel.dev and look for the latest news.
-computer({"action": "key", "text": "ctrl+l"})
-computer({"action": "type", "text": "https://steel.dev"})
-computer({"action": "key", "text": "Return"})
-computer({"action": "screenshot"})
-…
+key({"text": "ctrl+l"})
+type({"text": "steel.dev\n"})
+wait({"duration": 3})
+screenshot({})
+The banner announces news. Let me check Resources for a blog/news section too.
+left_click({"coordinate": [418, 161]})
+wait({"duration": 1})
+screenshot({})
+...
 Task complete - no further actions requested
 
+============================================================
 TASK EXECUTION COMPLETED
-Duration: 74.3 seconds
-Result: Steel just shipped …
-
+============================================================
+Duration: 47.9 seconds
+Task: Go to Steel.dev and find the latest news
+Result:
+The latest news on Steel.dev is a blog post from October 7, 2026: **"Build the agent. Don't build its computer."** by Nikola Balic (19-minute read).
+...
+============================================================
 Releasing Steel session...
+Session completed. View replay at https://app.steel.dev/sessions/2fae1421-9fef-4463-8313-ce048e197e9a
 ```
 
-A run typically takes 60-180 seconds and 10-30 loop iterations.
+A run typically takes one to three minutes.
 
 ## Make it yours
 

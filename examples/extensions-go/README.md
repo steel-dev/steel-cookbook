@@ -41,17 +41,20 @@ go run .
 
 Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The session viewer URL prints as the run starts; open it in another tab to watch the extension render on a live profile.
 
+Your output varies. A run that reused the uploaded extension printed:
+
 ```text
 Looking for an existing extension upload...
-Not found. Uploading from the Chrome Web Store...
-Uploaded extension ext_abc123
+Reusing existing extension eldhmbehfcpfaopdmplblfmhcaalhdjc
 Creating Steel session with the extension attached...
-Session created. Watch it live at https://app.steel.dev/sessions/ab12cd34
+Session created. Watch it live at https://app.steel.dev/sessions/570fa550-302b-4db4-b9e6-6a5f87889bdd
 Navigating to https://github.com/junhsss...
 Waiting for the extension to inject "div.ic-contributions-wrapper"...
 Extension UI confirmed: the session attached and rewrote the DOM.
 Releasing session...
 ```
+
+On the first run, the second line reads `Not found. Uploading from the Chrome Web Store...`, and the next line prints `Uploaded extension` with the new ID. Later runs reuse that ID.
 
 ## Make it yours
 
@@ -62,4 +65,4 @@ Releasing session...
 
 ## Related
 
-[extensions-ts](../extensions-ts) (Playwright sibling) · [extensions-py](../extensions-py) · [extensions-rs](../extensions-rs) · [profiles-go](../profiles-go) (reuse a full browser profile) · [chromedp docs](https://pkg.go.dev/github.com/chromedp/chromedp)
+[extensions-ts](../extensions-ts) (Playwright sibling) · [extensions-py](../extensions-py) · [extensions-rs](../extensions-rs) · [profiles-go](../profiles-go) (reuse a full browser profile) · [Steel extensions docs](https://steel.dev/docs/features/extensions) · [chromedp docs](https://pkg.go.dev/github.com/chromedp/chromedp)

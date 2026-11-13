@@ -14,6 +14,7 @@ import {
   setLogLevel,
   stringifyContent,
 } from "@google/adk";
+import { ThinkingLevel } from "@google/genai";
 import { chromium, type Browser, type Page } from "playwright";
 import Steel from "steel-sdk";
 import type { Session } from "steel-sdk/resources/index";
@@ -25,7 +26,7 @@ setLogLevel(LogLevel.WARN);
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "your-google-api-key-here";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-4-hydrogen";
 
 const steel = new Steel({ steelAPIKey: STEEL_API_KEY });
 
@@ -191,6 +192,9 @@ const extract = new FunctionTool({
 const agent = new LlmAgent({
   name: "steel_research",
   model: new Gemini({ model: MODEL, apiKey: GOOGLE_API_KEY }),
+  generateContentConfig: {
+    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+  },
   description: "Operates a Steel cloud browser to scrape structured data.",
   instruction: [
     "You operate a Steel cloud browser via tools.",
@@ -210,7 +214,7 @@ const agent = new LlmAgent({
 const TASK =
   "Go to https://news.ycombinator.com and return the top 5 stories with rank, title, destination URL, and points.";
 
-// gemini-2.5-flash occasionally ends a turn with MALFORMED_FUNCTION_CALL or an
+// Gemini occasionally ends a turn with MALFORMED_FUNCTION_CALL or an
 // empty answer. Each attempt runs a fresh ADK session, so a transient bad turn
 // is retried instead of sinking the run.
 async function runTask(
@@ -272,7 +276,7 @@ async function main() {
     console.log(`Live View: ${session.sessionViewerUrl}`);
 
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      session.websocketUrl,
     );
     const ctx = browser.contexts()[0];
     page = ctx.pages()[0] ?? (await ctx.newPage());

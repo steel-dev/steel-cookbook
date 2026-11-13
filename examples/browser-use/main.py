@@ -9,7 +9,7 @@ import time
 import asyncio
 from dotenv import load_dotenv
 from steel import Steel
-from browser_use import Agent, BrowserSession
+from browser_use import Agent, Browser
 from browser_use.llm import ChatOpenAI
 
 load_dotenv()
@@ -42,52 +42,48 @@ async def main():
 
     try:
         session = client.sessions.create()
-        print("Steel browser session started!")
-        print(f"View live session at: {session.session_viewer_url}")
+    except Exception as e:
+        print(f"Failed to start Steel browser: {e}")
+        print("Please check your STEEL_API_KEY and internet connection.")
+        sys.exit(1)
 
-        print(
-            f"\033[1;93mSteel Session created!\033[0m\n"
-            f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
-        )
+    print(
+        f"\033[1;93mSteel Session created!\033[0m\n"
+        f"View session at \033[1;37m{session.session_viewer_url}\033[0m\n"
+    )
 
-        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
-
-        model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
-        agent = Agent(task=TASK, llm=model, browser_session=BrowserSession(cdp_url=cdp_url))
+    try:
+        model = ChatOpenAI(model="gpt-6.1-sol", api_key=OPENAI_API_KEY)
+        agent = Agent(task=TASK, llm=model, browser=Browser(cdp_url=session.websocket_url))
 
         start_time = time.time()
 
         print(f"Executing task: {TASK}")
         print("=" * 60)
 
-        try:
-            result = await agent.run()
+        result = await agent.run()
+        if result.has_errors():
+            raise RuntimeError(result.errors()[0])
 
-            duration = f"{(time.time() - start_time):.1f}"
+        duration = f"{(time.time() - start_time):.1f}"
 
-            print("\n" + "=" * 60)
-            print("TASK EXECUTION COMPLETED")
-            print("=" * 60)
-            print(f"Duration: {duration} seconds")
-            print(f"Task: {TASK}")
-            if result:
-                print(f"Result:\n{result}")
-            print("=" * 60)
-
-        except Exception as e:
-            print(f"Task execution failed: {e}")
-            raise
-        finally:
-            if session:
-                print("Releasing Steel session...")
-                client.sessions.release(session.id)
-                print(f"Session completed. View replay at {session.session_viewer_url}")
-            print("Done!")
+        print("\n" + "=" * 60)
+        print("TASK EXECUTION COMPLETED")
+        print("=" * 60)
+        print(f"Duration: {duration} seconds")
+        print(f"Task: {TASK}")
+        if result.final_result():
+            print(f"Result:\n{result.final_result()}")
+        print("=" * 60)
 
     except Exception as e:
-        print(f"Failed to start Steel browser: {e}")
-        print("Please check your STEEL_API_KEY and internet connection.")
+        print(f"Task execution failed: {e}")
         raise
+    finally:
+        print("Releasing Steel session...")
+        client.sessions.release(session.id)
+        print(f"Session completed. View replay at {session.session_viewer_url}")
+        print("Done!")
 
 
 if __name__ == "__main__":

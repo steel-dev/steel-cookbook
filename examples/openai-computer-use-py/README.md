@@ -108,7 +108,7 @@ A run typically takes 60-180 seconds and 10-30 iterations. Screenshots are cache
 ## Make it yours
 
 - **Change the task.** Edit `TASK` in `.env` or pass it inline.
-- **Swap the model.** The default is `gpt-5.5`. Update `self.model` in `Agent.__init__`.
+- **Swap the model.** The default is `gpt-6.1-terra`. Update `self.model` in `Agent.__init__`.
 - **Tune the viewport.** `viewport_width` / `viewport_height` in `Agent.__init__` flow into `sessions.create(dimensions=...)`.
 - **Turn off auto-ack.** Flip `auto_acknowledge_safety = False` to make pending safety checks raise.
 - **Persist a login.** Pass `session_context` to `sessions.create`. See [credentials](../credentials-ts).

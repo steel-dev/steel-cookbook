@@ -105,7 +105,7 @@ export const browserJob = task({
       });
 
       browser = await chromium.connectOverCDP(
-        `${session.websocketUrl}&apiKey=${steelApiKey}`
+        session.websocketUrl
       );
 
       const context = browser.contexts()[0];

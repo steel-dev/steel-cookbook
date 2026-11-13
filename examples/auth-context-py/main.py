@@ -49,7 +49,7 @@ def main():
         print(f"View session at \033[1;37m{session.session_viewer_url}\033[0m")
 
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
         page = browser.contexts[0].pages[0]
         login(page)
@@ -69,7 +69,7 @@ def main():
         print(f"View session at \033[1;37m{session.session_viewer_url}\033[0m")
 
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
         new_page = browser.contexts[0].pages[0]
 

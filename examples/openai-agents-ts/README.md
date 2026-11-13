@@ -18,7 +18,7 @@ const FinalReport = z.object({
 const agent = new Agent({
   name: "SteelResearch",
   instructions: "You operate a Steel cloud browser via tools. Workflow: ...",
-  model: "gpt-5-mini",
+  model: "gpt-6.1-terra",
   tools: [openSession, navigate, snapshot, extract],
   outputType: FinalReport,
 });
@@ -35,7 +35,6 @@ The SDK compiles Zod to OpenAI's strict JSON Schema at registration, which tight
 cd examples/openai-agents-ts
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
 npm install
-npx playwright install chromium
 npm start
 ```
 
@@ -72,8 +71,8 @@ A full run is ~20-40 seconds. Cost is a few cents of Steel session time plus Ope
 - **Swap the task and schema.** Change the prompt passed to `run()` and rewrite `FinalReport`. The four tools are task-agnostic.
 - **Add handoffs.** Pass `handoffs: [writerAgent]` on the `Agent`. The SDK routes between agents based on each one's description.
 - **Add a guardrail.** Wire `inputGuardrails` or `outputGuardrails` on the `Agent` to vet the user's prompt or the final message. See the [guardrails guide](https://openai.github.io/openai-agents-js/guides/guardrails).
-- **Use a stronger model.** `model: "gpt-5"` plans better on ambiguous pages at the cost of tokens and latency.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or a longer `sessionTimeout` to `sessions.create()` for sites with anti-bot.
+- **Use a stronger model.** `model: "gpt-6.1-sol"` plans better on ambiguous pages at the cost of tokens and latency.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or a longer `timeout` to `sessions.create()` for sites with anti-bot.
 
 ## Related
 

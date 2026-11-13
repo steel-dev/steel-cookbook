@@ -50,16 +50,6 @@
   created: "2024-11-19"
   updated: "2026-04-24"
 
-- title: Automate a cloud browser with Selenium
-  slug: selenium
-  path: examples/selenium
-  description: Use Steel with Selenium in Python for cloud browser automation.
-  authors: [hussufo, junhsss]
-  language: Python
-  topics: [Browser automation]
-  created: "2024-11-19"
-  updated: "2026-04-24"
-
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
   path: examples/stagehand-ts
@@ -68,7 +58,7 @@
   language: TypeScript
   topics: [Browser automation]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Automate browsing with natural-language instructions using Stagehand
   slug: stagehand
@@ -78,7 +68,7 @@
   language: Python
   topics: [Browser automation]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Browser Use
   slug: browser-use
@@ -88,7 +78,7 @@
   language: Python
   topics: [Agents, Browser Use]
   created: "2025-02-20"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Solve CAPTCHAs automatically in a Browser Use agent
   slug: browser-use-captcha-auto
@@ -98,7 +88,7 @@
   language: Python
   topics: [Agents, Browser Use, Captchas]
   created: "2025-02-20"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Solve reCAPTCHA v2 manually with Browser Use
   slug: browser-use-captcha-manual
@@ -108,7 +98,7 @@
   language: Python
   topics: [Agents, Browser Use, Captchas]
   created: "2026-02-10"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -118,7 +108,7 @@
   language: TypeScript
   topics: [Computer use]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -128,7 +118,7 @@
   language: Python
   topics: [Computer use]
   created: "2025-07-16"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a mobile browser with Claude Computer Use
   slug: claude-computer-use-mobile
@@ -138,7 +128,7 @@
   language: TypeScript
   topics: [Computer use, Mobile]
   created: "2025-10-14"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -148,7 +138,7 @@
   language: TypeScript
   topics: [Computer use]
   created: "2025-03-19"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -158,7 +148,7 @@
   language: Python
   topics: [Computer use]
   created: "2025-03-19"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -168,7 +158,7 @@
   language: TypeScript
   topics: [Computer use]
   created: "2025-11-25"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -178,7 +168,7 @@
   language: Python
   topics: [Computer use]
   created: "2025-11-25"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with the Claude Agent SDK
   slug: claude-agent-sdk
@@ -188,7 +178,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with the Claude Agent SDK
   slug: claude-agent-sdk
@@ -198,7 +188,7 @@
   language: Python
   topics: [Agents]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -208,7 +198,7 @@
   language: TypeScript
   topics: [Agents, Typed output]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with the OpenAI Agents SDK
   slug: openai-agents
@@ -218,7 +208,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with Pydantic AI
   slug: pydantic-ai
@@ -228,7 +218,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Microsoft Agent Framework
   slug: microsoft-agent-framework
@@ -238,7 +228,7 @@
   language: Python
   topics: [Agents]
   created: "2026-05-11"
-  updated: "2026-05-11"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with the Vercel AI SDK
   slug: vercel-ai-sdk
@@ -248,7 +238,7 @@
   language: TypeScript
   topics: [Agents, Typed output]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Stream a browser agent into a Next.js chat app
   slug: vercel-ai-sdk-nextjs
@@ -258,7 +248,7 @@
   language: TypeScript
   topics: [Agents, Typed output, Next.js]
   created: "2026-04-23"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a live browser agent with Stripe Projects
   slug: stripe-projects-web-agent
@@ -278,7 +268,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Combine You.com search with Steel browser actions
   slug: you-com-search
@@ -288,7 +278,7 @@
   language: Python
   topics: [Agents, Search]
   created: "2026-04-30"
-  updated: "2026-04-30"
+  updated: "2026-11-13"
 
 - title: Build a multi-agent browser workflow with CrewAI
   slug: crewai
@@ -298,7 +288,7 @@
   language: Python
   topics: [Agents]
   created: "2025-09-05"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Inngest AgentKit
   slug: agentkit
@@ -308,7 +298,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2025-09-05"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a typed browser agent with Mastra
   slug: mastra
@@ -318,7 +308,7 @@
   language: TypeScript
   topics: [Agents, Typed output]
   created: "2026-04-29"
-  updated: "2026-04-29"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Agno
   slug: agno
@@ -328,7 +318,7 @@
   language: Python
   topics: [Agents]
   created: "2025-09-05"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Control a browser with Notte's reasoning engine
   slug: notte
@@ -338,7 +328,7 @@
   language: Python
   topics: [Agents]
   created: "2025-08-26"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build an AI browser agent with Magnitude
   slug: magnitude
@@ -348,7 +338,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2025-07-30"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Deep research with Claude Agent SDK subagents
   slug: deep-research
@@ -358,7 +348,7 @@
   language: TypeScript
   topics: [Agents, Subagents]
   created: "2026-05-01"
-  updated: "2026-05-01"
+  updated: "2026-11-13"
 
 - title: Deep research with Claude Agent SDK subagents
   slug: deep-research
@@ -368,7 +358,7 @@
   language: Python
   topics: [Agents, Subagents]
   created: "2026-05-01"
-  updated: "2026-05-01"
+  updated: "2026-11-13"
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
@@ -388,7 +378,7 @@
   language: TypeScript
   topics: [Steel APIs, Authentication]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -398,7 +388,7 @@
   language: TypeScript
   topics: [Steel APIs, Authentication]
   created: "2025-10-13"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Upload and run browser extensions
   slug: extensions
@@ -408,7 +398,7 @@
   language: TypeScript
   topics: [Steel APIs, Playwright]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -418,7 +408,7 @@
   language: TypeScript
   topics: [Steel APIs, Playwright]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-12"
 
 - title: Run a Steel browser job with Trigger.dev
   slug: trigger-dev-browser-job
@@ -468,7 +458,7 @@
   language: Rust
   topics: [Browser automation, Temporal]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Chat with any webpage on Convex
   slug: convex-chat-with-page
@@ -478,7 +468,7 @@
   language: TypeScript
   topics: [Agents, Convex]
   created: "2026-05-04"
-  updated: "2026-05-04"
+  updated: "2026-11-13"
 
 - title: Watch Claude pricing for divergent A/B variants
   slug: convex-price-watch
@@ -508,7 +498,7 @@
   language: Go
   topics: [Browser automation]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Automate a cloud browser with chromiumoxide
   slug: chromiumoxide
@@ -558,7 +548,7 @@
   language: Go
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Drive a browser with OpenAI Computer Use
   slug: openai-computer-use
@@ -568,7 +558,7 @@
   language: Go
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Claude Computer Use
   slug: claude-computer-use
@@ -578,7 +568,7 @@
   language: Rust
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Genkit
   slug: genkit
@@ -588,7 +578,7 @@
   language: Go
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Eino
   slug: eino
@@ -598,7 +588,7 @@
   language: Go
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with rig
   slug: rig
@@ -608,7 +598,7 @@
   language: Rust
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a research agent with Swiftide
   slug: swiftide
@@ -648,7 +638,7 @@
   language: Rust
   topics: [Computer use]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -658,7 +648,7 @@
   language: Go
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -668,7 +658,7 @@
   language: Python
   topics: [Agents, Typed output]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with Google ADK
   slug: google-adk
@@ -678,7 +668,7 @@
   language: TypeScript
   topics: [Agents]
   created: "2026-06-23"
-  updated: "2026-06-23"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -688,7 +678,7 @@
   language: Go
   topics: [Computer use]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -698,7 +688,7 @@
   language: Rust
   topics: [Computer use]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-13"
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
@@ -738,7 +728,7 @@
   language: Python
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -748,7 +738,7 @@
   language: Go
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate logins with the Credentials API
   slug: credentials
@@ -758,7 +748,7 @@
   language: Rust
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -768,7 +758,7 @@
   language: Python
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -778,7 +768,7 @@
   language: Go
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
@@ -788,7 +778,7 @@
   language: Rust
   topics: [Steel APIs, Authentication]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Upload and run browser extensions
   slug: extensions
@@ -828,7 +818,7 @@
   language: Python
   topics: [Steel APIs, Playwright]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -838,7 +828,7 @@
   language: Go
   topics: [Steel APIs]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Move files between your machine and a cloud browser
   slug: files
@@ -848,7 +838,7 @@
   language: Rust
   topics: [Steel APIs]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-12"
 
 - title: Automate a cloud browser with Playwright
   slug: playwright
@@ -870,46 +860,6 @@
   created: "2026-06-24"
   updated: "2026-06-24"
 
-- title: Expose a Steel browser to any MCP client
-  slug: mcp
-  path: examples/mcp-go
-  description: Build a Model Context Protocol server in Go with the official SDK and chromedp that hands any MCP client a Steel cloud browser through explicit session-handle tools.
-  authors: [junhsss]
-  language: Go
-  topics: [Agents, MCP]
-  created: "2026-06-24"
-  updated: "2026-06-24"
-
-- title: Expose a Steel browser to any MCP client
-  slug: mcp
-  path: examples/mcp-rs
-  description: Build a Model Context Protocol server in Rust with rmcp and chromiumoxide that hands any MCP client a Steel cloud browser through explicit session-handle tools.
-  authors: [junhsss]
-  language: Rust
-  topics: [Agents, MCP]
-  created: "2026-06-24"
-  updated: "2026-06-24"
-
-- title: Expose a Steel browser to any MCP client
-  slug: mcp
-  path: examples/mcp-py
-  description: Build a Model Context Protocol server in Python with FastMCP and Playwright that hands any MCP client a Steel cloud browser through explicit session-handle tools.
-  authors: [junhsss]
-  language: Python
-  topics: [Agents, MCP]
-  created: "2026-06-24"
-  updated: "2026-06-24"
-
-- title: Expose a Steel browser to any MCP client
-  slug: mcp
-  path: examples/mcp-ts
-  description: Build a Model Context Protocol server in TypeScript with the official SDK and Playwright that hands any MCP client a Steel cloud browser through explicit session-handle tools.
-  authors: [junhsss]
-  language: TypeScript
-  topics: [Agents, MCP]
-  created: "2026-06-24"
-  updated: "2026-06-24"
-
 - title: Run a durable browser agent with Restate
   slug: restate-agent
   path: examples/restate-agent-ts
@@ -918,7 +868,7 @@
   language: TypeScript
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -928,7 +878,7 @@
   language: Python
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -938,7 +888,7 @@
   language: Go
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"
 
 - title: Run a durable browser agent with Restate
   slug: restate-agent
@@ -948,4 +898,4 @@
   language: Rust
   topics: [Agents, Restate]
   created: "2026-06-29"
-  updated: "2026-06-29"
+  updated: "2026-11-13"

@@ -5,8 +5,9 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/scrape-py
 
 import os
 import sys
-import urllib.request
 from pathlib import Path
+
+import httpx
 from dotenv import load_dotenv
 from steel import Steel
 
@@ -24,10 +25,10 @@ client = Steel(
 
 
 def download(url: str, dest: Path) -> int:
-    with urllib.request.urlopen(url) as response:
-        data = response.read()
-    dest.write_bytes(data)
-    return len(data)
+    response = httpx.get(url)
+    response.raise_for_status()
+    dest.write_bytes(response.content)
+    return len(response.content)
 
 
 def main():

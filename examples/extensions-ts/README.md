@@ -31,43 +31,48 @@ npm start
 
 Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the extension render on a live GitHub profile.
 
-Your output varies. Structure looks like this:
+Your output varies. A run that reused the uploaded extension printed the following, minus the avatar that `terminal-image` draws above the table:
 
 ```text
 Steel + Extensions API Starter
 ============================================================
 
 Checking extension...
-No existing extension found
-
-Uploading extension...
-Extension uploaded: { id: 'ext_...', name: 'Github_Isometric_Contribu', ... }
+Found existing extension: eldhmbehfcpfaopdmplblfmhcaalhdjc
 
 Creating Steel session...
 Steel Session created!
-View session at https://app.steel.dev/sessions/ab12cd34...
-
+View session at https://app.steel.dev/sessions/89cd629a-68e2-4d88-bd55-11ac871497be
 Connected to browser via Playwright
-Navigating to junhsss's GitHub Profile
+Navigating to danew's GitHub Profile
 
-GitHub Stats for junhsss
+GitHub Stats for danew
 
- Stat             Value   Range / Date
- Contributions    1,284   in the last year
- This Week        37      this week
- Best Day         28      on Apr 3
- ...
-
+┌────────────────┬───────┬─────────────────┐
+│ Stat           │ Value │ Range / Date    │
+├────────────────┼───────┼─────────────────┤
+│ Contributions  │ 2,472 │ Nov 9 → Nov 12  │
+├────────────────┼───────┼─────────────────┤
+│ This Week      │ 159   │ Nov 8 → Nov 12  │
+├────────────────┼───────┼─────────────────┤
+│ Best Day       │ 53    │ Nov 8           │
+├────────────────┼───────┼─────────────────┤
+│ Average/Day    │ 6.72  │ Nov 9 → Nov 12  │
+├────────────────┼───────┼─────────────────┤
+│ Streak Longest │ 19    │ Mar 9 → Mar 27  │
+├────────────────┼───────┼─────────────────┤
+│ Streak Current │ 18    │ Oct 26 → Nov 12 │
+└────────────────┴───────┴─────────────────┘
 Releasing session...
 Session released
 Done!
 ```
 
-A run takes ~20 seconds and costs a few cents of session time. First run uploads the extension, later runs reuse the ID.
+On the first run, the script prints `No existing extension found`, uploads the extension, and prints the upload response with the extension's ID. Later runs reuse that ID. A run takes about 20 seconds.
 
 ## How scrapeStats proves the extension loaded
 
-`scrapeStats` in `stats.ts` targets markup the extension injects, not GitHub's stock profile. It waits on `div.ic-contributions-wrapper` (the `ic-` prefix is the extension's namespace), then walks nested `div.p-2` blocks to pull `span.f2` values for contributions, this-week totals, best-day counts, and streak ranges. If the extension never loads, none of those selectors resolve and the scrape hangs. That fragility is the demo: it fails loudly when the extension is missing, which is exactly how you confirm the session attached it.
+`scrapeStats` in `stats.ts` targets markup the extension injects, not GitHub's stock profile. It waits on `div.ic-contributions-wrapper` (the `ic-` prefix is the extension's namespace), then walks nested `div.p-2` blocks to pull `span.f2` values for contributions, this-week totals, best-day counts, and streak ranges. The extension puts its Contributions and Streaks panels in the same wrapper, so the streak cells are read from the child `div` whose `h5` says `Streaks`. If the extension never loads, none of those selectors resolve and the scrape times out. That fragility is the demo: it fails loudly when the extension is missing, which is exactly how you confirm the session attached it.
 
 `randomContributor` in `index.ts` fetches the [steel-browser](https://github.com/steel-dev/steel-browser) contributor list from the GitHub API and picks one. The main loop retries three times across different usernames if a profile fails to render, mostly as a hedge against transient rate limits on avatars.
 
@@ -80,4 +85,4 @@ A run takes ~20 seconds and costs a few cents of session time. First run uploads
 
 ## Related
 
-[Credentials](../credentials-ts) (persist cookies across runs) · [auth-context](../auth-context-ts) (seed logged-in state) · [profiles](../profiles-ts) (reuse a full browser profile) · [Playwright docs](https://playwright.dev)
+[Credentials](../credentials-ts) (store a login that Steel fills) · [auth-context](../auth-context-ts) (seed logged-in state) · [profiles](../profiles-ts) (reuse a full browser profile) · [Steel extensions docs](https://steel.dev/docs/features/extensions) · [Playwright docs](https://playwright.dev)

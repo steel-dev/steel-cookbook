@@ -113,9 +113,9 @@ const scrapePage = createTool({
 
 export const pageAgent = new Agent(components.agent, {
   name: "pageAgent",
-  languageModel: openai.chat("gpt-5.4-mini"),
+  languageModel: openai.responses("gpt-6.1-terra"),
   instructions:
     "You help users understand webpages. When the user mentions a URL, call the scrapePage tool to fetch it. If the result has hasMore=true and the first chunk doesn't contain what you need, call scrapePage again with the same URL and the next chunkIndex. Answer using the returned markdown and always include a short direct quote from the page.",
   tools: { scrapePage },
-  stopWhen: stepCountIs(8),
+  stopWhen: stepCountIs(12),
 });

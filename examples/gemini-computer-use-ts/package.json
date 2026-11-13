@@ -21,7 +21,7 @@
   "dependencies": {
     "@google/genai": "^1.50.0",
     "dotenv": "^16.4.7",
-    "steel-sdk": "^0.21.0"
+    "steel-sdk": "^0.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

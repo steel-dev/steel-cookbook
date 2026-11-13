@@ -51,8 +51,8 @@ github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80 h1:6Yzfa6GP0rIo/kUL
 github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80/go.mod h1:imJHygn/1yfhB7XSJJKlFZKl/J+dCPAknuiaGOshXAs=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde h1:x0TT0RDC7UhAVbbWWBzr41ElhJx5tXPWkIHA2HWPRuw=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzbfBr3hhjoZnS66nKrHmduYNpc34ny7RK4z5/HM0=
-github.com/steel-dev/sdk/go v0.21.0 h1:6fNzVYJr6iz4QrykwOaFcCi3j+4kE60gjI4eOdGkxmw=
-github.com/steel-dev/sdk/go v0.21.0/go.mod h1:f2ZOfW0NJ7x6PJe9Z5qGdnh+FsK/hgBbYPukS3mUD2Y=
+github.com/steel-dev/sdk/go v0.23.0 h1:yevm2za3lU9K3l0zBKZRRo392ooAW0zTQA40gcyjyaI=
+github.com/steel-dev/sdk/go v0.23.0/go.mod h1:f2ZOfW0NJ7x6PJe9Z5qGdnh+FsK/hgBbYPukS3mUD2Y=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

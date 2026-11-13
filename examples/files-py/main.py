@@ -45,13 +45,14 @@ def main():
         uploaded = client.sessions.files.upload(
             session.id,
             file=("stock.csv", csv_bytes, "text/csv"),
+            path="stock.csv",
         )
         print(f"\033[1;92mCSV file uploaded successfully!\033[0m")
         print(f"File path on Steel session: \033[1;37m{uploaded.path}\033[0m")
 
         playwright = sync_playwright().start()
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
         print("Connected to browser via Playwright")
 

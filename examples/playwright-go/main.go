@@ -81,7 +81,7 @@ func run(apiKey string) error {
 	}
 	defer pw.Stop()
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+	cdpURL := sess.WebsocketURL
 	browser, err := pw.Chromium.ConnectOverCDP(cdpURL)
 	if err != nil {
 		return fmt.Errorf("connect over CDP: %w", err)

@@ -46,7 +46,7 @@ async def _ensure_session() -> Page:
     _session = steel.sessions.create()
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.connect_over_cdp(
-        f"{_session.websocket_url}&apiKey={STEEL_API_KEY}"
+        _session.websocket_url
     )
     ctx = _browser.contexts[0]
     _page = ctx.pages[0] if ctx.pages else await ctx.new_page()
@@ -197,7 +197,7 @@ async def click_text(text: str) -> dict:
 
 
 tools = [youcom_search, youcom_contents, navigate, snapshot, click_text]
-model = ChatAnthropic(model="claude-haiku-4-5", api_key=ANTHROPIC_API_KEY)
+model = ChatAnthropic(model="claude-haiku-5-5", api_key=ANTHROPIC_API_KEY)
 
 SYSTEM = (
     "You answer research-style questions by combining You.com APIs with a "

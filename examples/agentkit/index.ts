@@ -27,17 +27,17 @@ const browseHackerNews = createTool({
     "Fetch Hacker News stories (top/best/new) and optionally filter by topics",
   parameters: z.object({
     section: z.enum(["top", "best", "new"]).default("top"),
-    topics: z.array(z.string()).optional(),
+    topics: z.array(z.string()).nullable(),
     limit: z.number().int().min(1).max(20).default(5),
   }),
   handler: async ({ section, topics, limit }, { step }) => {
     if (STEEL_API_KEY === "your-steel-api-key-here") {
       throw new Error("Set STEEL_API_KEY");
     }
-    return await step?.run("browse-hn", async () => {
+    const browse = async () => {
       const session = await client.sessions.create({});
       const browser = await chromium.connectOverCDP(
-        `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+        session.websocketUrl
       );
       try {
         const context = browser.contexts()[0];
@@ -119,7 +119,8 @@ const browseHackerNews = createTool({
       } finally {
         await client.sessions.release(session.id);
       }
-    });
+    };
+    return step ? await step.run("browse-hn", browse) : await browse();
   },
 });
 
@@ -127,7 +128,7 @@ const hnAgent = createAgent({
   name: "hn_curator",
   description: "Curates interesting Hacker News stories by topic",
   system:
-    "Surface novel, high-signal Hacker News stories. Favor technical depth, originality, and relevance to requested topics. Use the tool to browse and return concise picks.",
+    "Surface novel, high-signal Hacker News stories. Favor technical depth, originality, and relevance to requested topics. Call the tool once, then answer with concise picks.",
   tools: [browseHackerNews],
 });
 
@@ -136,8 +137,13 @@ const hnNetwork = createNetwork({
   description: "Network for curating Hacker News stories",
   agents: [hnAgent],
   maxIter: 2,
+  router: ({ lastResult }) =>
+    lastResult && lastResult.toolCalls.length === 0 ? undefined : hnAgent,
   defaultModel: openai({
-    model: "gpt-5-nano",
+    model: "gpt-6-luna",
+    defaultParameters: { reasoning_effort: "none" } as Parameters<
+      typeof openai
+    >[0]["defaultParameters"],
   }),
 });
 

@@ -14,7 +14,7 @@ navigate := genkit.DefineTool(g, "navigate",
 )
 
 resp, err := genkit.Generate(ctx, g,
-    ai.WithModelName("anthropic/claude-haiku-4-5"),
+    ai.WithModelName("anthropic/claude-haiku-5-5"),
     ai.WithTools(navigate, extract, scrape),
     ai.WithMaxTurns(12),
     ai.WithOutputType(Report{}),
@@ -81,17 +81,17 @@ Releasing Steel session...
 Session released. Replay: https://app.steel.dev/sessions/ab12cd34...
 ```
 
-A run takes about 20 to 40 seconds and 4 to 8 model turns. Cost is a few cents of Steel session time plus Claude tokens. The deferred cleanup in `main` releases the session: Steel bills per session-minute, so a leaked session keeps running until the default 5-minute timeout.
+A run takes about 20 to 40 seconds and 4 to 8 model turns. Cost is a few cents of Steel session time plus Claude tokens. The deferred cleanup in `run` releases the session: Steel bills per session-minute, so a leaked session keeps running until the default 5-minute timeout.
 
 ## Notes
 
 - **Go version.** Genkit Go 1.0 requires Go 1.25, so `go.mod` declares `go 1.25.0`. chromedp is pinned to `v0.13.6`, the last release that still builds on Go 1.23, to keep the rest of the tree from pulling the toolchain higher than Genkit needs.
-- **Session reuse.** One Steel session and one chromedp tab live in the `browser` struct shared by every tool, so `navigate` and `extract` act on the same page. `chromedp.NoModifyURL` stops chromedp rewriting Steel's websocket URL, which would drop the `apiKey` query parameter.
+- **Session reuse.** One Steel session and one chromedp tab live in the `browser` struct shared by every tool, so `navigate` and `extract` act on the same page. `chromedp.NoModifyURL` stops chromedp rewriting Steel's WebSocket URL, which would drop the token in its query string.
 
 ## Make it yours
 
-- **Swap the model.** Change `WithModelName`. Any model the [Anthropic plugin](https://pkg.go.dev/github.com/firebase/genkit/go/plugins/anthropic) exposes works without code changes, for example `anthropic/claude-sonnet-4-5`. To use Gemini instead, register `&googlegenai.GoogleAI{}` in `genkit.Init`, set `GEMINI_API_KEY`, and pass `googleai/gemini-2.5-flash`.
-- **Swap the task.** Change the prompt and the `Report` struct in `main`. The tools stay the same; the agent re-plans against the new output shape.
+- **Swap the model.** Change `WithModelName`. Any model the [Anthropic plugin](https://pkg.go.dev/github.com/firebase/genkit/go/plugins/anthropic) exposes works without code changes, for example `anthropic/claude-sonnet-5-5`. To use Gemini instead, register `&googlegenai.GoogleAI{}` in `genkit.Init`, set `GEMINI_API_KEY`, and pass `googleai/gemini-4-hydrogen`.
+- **Swap the task.** Change the prompt in `run` and the `Report` struct. The tools stay the same; the agent re-plans against the new output shape.
 - **Add a tool.** Write a function `func(tc *ai.ToolContext, in In) (Out, error)`, wrap it with `genkit.DefineTool`, and add it to `WithTools`. A useful fourth is `click(selector string)` that runs `chromedp.Click` and waits for navigation.
 - **Expose it as a flow.** Wrap the `Generate` call in `genkit.DefineFlow` to get tracing in the Genkit Dev UI and an HTTP handler for the same logic.
 

@@ -36,7 +36,7 @@ const openSession = tool(
     const t0 = Date.now();
     session = await steel.sessions.create({});
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+      session.websocketUrl,
     );
     const ctx = browser.contexts()[0];
     page = ctx.pages()[0] ?? (await ctx.newPage());
@@ -244,7 +244,7 @@ async function main() {
     for await (const message of query({
       prompt: PROMPT,
       options: {
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5-5",
         systemPrompt: SYSTEM_PROMPT,
         mcpServers: { steel: steelServer },
         allowedTools: ["mcp__steel__*"],

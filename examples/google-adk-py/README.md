@@ -8,10 +8,14 @@ The pieces ADK asks you to assemble:
 from google.adk.agents import LlmAgent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 agent = LlmAgent(
     name="hn_scraper",
-    model="gemini-2.5-flash",
+    model="gemini-4-hydrogen",
+    generate_content_config=types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+    ),
     tools=[navigate, snapshot, extract],
     output_schema=TopStories,
     instruction="You operate a Steel cloud browser via tools. ...",
@@ -119,6 +123,7 @@ A run takes ~20 to 40 seconds and a handful of agent turns on Hacker News. Cost 
 ## Make it yours
 
 - **Swap the model.** Change `MODEL`. Any Gemini that ADK reaches through the same API key works without code changes, since the tool schemas are generated from the functions. Heavier reasoning models trade latency for fewer wrong turns.
+- **Raise the thinking level.** `generate_content_config` in `build_agent` sets `types.ThinkingLevel.LOW` so each model turn stays short. `MEDIUM` and `HIGH` plan more carefully but take longer per turn.
 - **Swap the task.** Edit the prompt passed to `run_agent` and the `TopStories` / `Story` models. The tools stay the same; the agent re-plans against the new shape.
 - **Add a tool.** Write another `async def` with type hints and a docstring, then append it to `tools=[...]`. A useful fourth is `click(selector: str)` that calls `page.click` and waits for navigation.
 - **Carry state across turns.** The `InMemorySessionService` keeps history under one `session_id`, so calling `run_agent` again with the same id continues the conversation. Swap in a `DatabaseSessionService` to persist it.

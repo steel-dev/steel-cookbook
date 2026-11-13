@@ -38,7 +38,6 @@ prepareStep: async ({ stepNumber, steps }) => {
 cd examples/vercel-ai-sdk-nextjs
 cp .env.example .env          # set STEEL_API_KEY and ANTHROPIC_API_KEY
 npm install
-npx playwright install chromium
 npm run dev
 ```
 
@@ -58,20 +57,16 @@ A typical run takes ~20 seconds: `openSession` (~3s), `navigate` (~2s), `snapsho
 
 ## Deploying to Vercel
 
-Push to GitHub, import into Vercel, add `STEEL_API_KEY` and `ANTHROPIC_API_KEY` as environment variables. Playwright's Chromium has to be downloaded during the build, so set the Build Command to:
-
-```
-npx playwright install chromium && next build
-```
+Push to GitHub, import into Vercel, add `STEEL_API_KEY` and `ANTHROPIC_API_KEY` as environment variables, and keep the default build command. The route connects to Steel's browser over CDP, so the build doesn't need to download Chromium.
 
 The `/api/chat` route already declares `maxDuration = 120` and `runtime = "nodejs"`.
 
 ## Make it yours
 
-- **Change the model.** Swap `anthropic("claude-haiku-4-5")` for any model in `@ai-sdk/*`. The Zod tool schemas stay the same.
+- **Change the model.** Swap `anthropic("claude-haiku-5-5")` for any model in `@ai-sdk/*`. The Zod tool schemas stay the same.
 - **Add a screenshot tool.** `await page.screenshot({ type: "png" })` returns a Buffer; return it base64-encoded and render it as an `<img>` in the tool-call panel.
 - **Stream a plan step.** Add a `plan` tool with no side effects and a string input. The model can narrate its intent before executing.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` options to `steel.sessions.create()` inside `openSession`.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` options to `steel.sessions.create()` inside `openSession`.
 - **Wire the approval UI.** `needsApproval: true` on `submitForm` pauses execution and surfaces the call as a `tool-submitForm` part in `state: "input-available"`. Render an Approve/Reject pair and call `addToolResult` from `@ai-sdk/react` to resume.
 
 ## Related

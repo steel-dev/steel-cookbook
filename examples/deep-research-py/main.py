@@ -46,7 +46,7 @@ anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 # Cheap, fast model for the per-page extraction step. Mirrors how Claude Code's
 # WebFetch turns "fetch this URL and answer this question" into one pass over
 # the page content with a small model.
-EXTRACTOR_MODEL = "claude-haiku-4-5-20251001"
+EXTRACTOR_MODEL = "claude-haiku-5-5"
 
 # Markers that flag a page as bot-blocked or JS-rendered, so read_url falls
 # back from plain fetch() to a real Steel browser.
@@ -77,9 +77,9 @@ async def _ensure_session(researcher_id: str) -> dict[str, Any]:
     async with _session_lock:
         if researcher_id in _sessions:
             return _sessions[researcher_id]
-        sess = steel.sessions.create()
+        sess = steel.sessions.create(api_timeout=600_000)
         browser = await _playwright.chromium.connect_over_cdp(
-            f"{sess.websocket_url}&apiKey={STEEL_API_KEY}"
+            sess.websocket_url
         )
         ctx = browser.contexts[0]
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
@@ -222,6 +222,7 @@ async def extract_with_haiku(
     msg = await anthropic.messages.create(
         model=EXTRACTOR_MODEL,
         max_tokens=600,
+        thinking={"type": "disabled"},
         system=sys_prompt,
         messages=[{"role": "user", "content": usr}],
     )
@@ -391,7 +392,7 @@ async def main() -> None:
     _playwright = await async_playwright().start()
 
     options = ClaudeAgentOptions(
-        model="claude-opus-4-7",
+        model="claude-opus-5-5",
         system_prompt=ORCHESTRATOR_PROMPT,
         mcp_servers={"steel": steel_server},
         # The orchestrator only dispatches subagents. The Agent tool is the

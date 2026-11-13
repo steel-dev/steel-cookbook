@@ -19,7 +19,7 @@ client = Steel(steel_api_key=STEEL_API_KEY)
 
 def connect(playwright, session):
     browser = playwright.chromium.connect_over_cdp(
-        f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        session.websocket_url
     )
     page = browser.contexts[0].pages[0]
     return browser, page
@@ -44,6 +44,17 @@ def add_first_book_to_cart(page):
         page.wait_for_timeout(1000)
 
     print(f"Added a book to the cart (cart shows {qty.strip()})")
+
+
+def wait_for_profile(profile_id):
+    for _ in range(60):
+        profile = client.profiles.get(profile_id)
+        if profile.status == "READY":
+            return
+        if profile.status != "UPLOADING":
+            raise RuntimeError(f"Profile {profile_id} is {profile.status}")
+        time.sleep(1)
+    raise RuntimeError(f"Profile {profile_id} is still uploading")
 
 
 def count_cart_rows(page):
@@ -74,8 +85,9 @@ def main():
         browser.close()
 
         client.sessions.release(session.id)
-        print("Session #1 released, snapshotting profile...")
-        time.sleep(3)
+        print("Session #1 released, waiting for the profile to be saved...")
+        wait_for_profile(profile_id)
+        print("Profile is READY")
 
         session = client.sessions.create(persist_profile=True, profile_id=profile_id)
         print(f"Session #2: {session.session_viewer_url}")

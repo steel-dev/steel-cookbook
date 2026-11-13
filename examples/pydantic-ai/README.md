@@ -1,6 +1,6 @@
 # Pydantic AI Starter (Python)
 
-[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. It's provider-agnostic and reuses Pydantic models for tool arguments and final outputs.
+[Pydantic AI](https://ai.pydantic.dev/) is the Pydantic team's agent framework. It is provider-agnostic and reuses Pydantic models for tool arguments and final outputs.
 
 This starter wires a Steel browser into Pydantic AI's dependency-injection pattern and points the agent at GitHub Trending.
 
@@ -8,7 +8,7 @@ This starter wires a Steel browser into Pydantic AI's dependency-injection patte
 from pydantic_ai import Agent, RunContext
 
 agent = Agent(
-    "openai:gpt-5-mini",
+    "openai:gpt-6.1-terra",
     deps_type=BrowserDeps,
     output_type=FinalReport,
     tools=[navigate, snapshot, extract],
@@ -42,7 +42,6 @@ async def navigate(ctx: RunContext[BrowserDeps], url: str) -> dict:
 ```bash
 cd examples/pydantic-ai
 cp .env.example .env          # set STEEL_API_KEY and OPENAI_API_KEY
-uv run playwright install chromium
 uv run main.py
 ```
 
@@ -81,7 +80,7 @@ A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost i
 
 ## Make it yours
 
-- **Swap the model.** Change the first arg to `agent`. `'anthropic:claude-sonnet-4-6'` and `'google-gla:gemini-2.5-flash'` work without code changes; tool-arg JSON schemas are provider-agnostic. Set the matching API key in `.env`.
+- **Swap the model.** Change the first arg to `agent`. `'anthropic:claude-sonnet-5-5'` and `'google-gla:gemini-4-hydrogen'` work without code changes; tool-arg JSON schemas are provider-agnostic. Set the matching API key in `.env`.
 - **Swap the task.** Change the prompt in `agent.run` and the `FinalReport` schema. Tools stay the same; the agent re-plans against the new shape.
 - **Add a tool.** Write an async function that takes `RunContext[BrowserDeps]`, add it to `tools=[...]` (or use `@agent.tool` after the agent exists). A useful fourth tool is `click(selector: str)` that calls `page.click` and waits for navigation.
 - **Stream the answer.** Use `async with agent.run_stream(prompt, deps=...)` to stream the final answer token-by-token while tool calls happen behind the scenes. Helpful for long summaries.

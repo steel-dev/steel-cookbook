@@ -39,7 +39,7 @@ async def open_session() -> dict:
     _session = steel.sessions.create()
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.connect_over_cdp(
-        f"{_session.websocket_url}&apiKey={STEEL_API_KEY}"
+        _session.websocket_url
     )
     ctx = _browser.contexts[0]
     _page = ctx.pages[0] if ctx.pages else await ctx.new_page()
@@ -168,7 +168,7 @@ agent = Agent(
         "(5) return the final FinalReport. "
         "Prefer snapshot's links list over guessing selectors. Do not invent data."
     ),
-    model="gpt-5-mini",
+    model="gpt-6.1-terra",
     tools=[open_session, navigate, snapshot, extract],
     output_type=FinalReport,
 )

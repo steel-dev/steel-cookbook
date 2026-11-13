@@ -8,17 +8,17 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use steel_rs::{
     Client, SessionComputerParams, SessionComputerParamsClickMouse,
-    SessionComputerParamsClickMouseButton, SessionComputerParamsClickMouseClickType,
-    SessionComputerParamsDragMouse, SessionComputerParamsGetCursorPosition,
-    SessionComputerParamsMoveMouse, SessionComputerParamsPressKey, SessionComputerParamsScroll,
+    SessionComputerParamsClickMouseButton, SessionComputerParamsDragMouse,
+    SessionComputerParamsGetCursorPosition, SessionComputerParamsMoveMouse,
+    SessionComputerParamsPressKey, SessionComputerParamsScroll,
     SessionComputerParamsTakeScreenshot, SessionComputerParamsTypeText, SessionComputerParamsWait,
     SessionComputerResponse, SessionCreateParams, SessionCreateParamsDimensions,
 };
 
 const ANTHROPIC_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-const COMPUTER_USE_BETA: &str = "computer-use-2025-11-24";
-const MODEL: &str = "claude-opus-4-7";
+const MODEL: &str = "claude-opus-5-5";
+const NOT_EXECUTED: &str = "Not executed: an earlier computer action in this turn failed.";
 
 const VIEWPORT_WIDTH: i64 = 1280;
 const VIEWPORT_HEIGHT: i64 = 768;
@@ -27,7 +27,9 @@ const MAX_ITERATIONS: usize = 50;
 #[derive(Debug, Deserialize)]
 struct MessagesResponse {
     #[serde(default)]
-    content: Vec<ContentBlock>,
+    content: Vec<Value>,
+    #[serde(default)]
+    stop_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +42,8 @@ enum ContentBlock {
         id: String,
         name: String,
         input: Value,
+        #[serde(default)]
+        toolset_name: Option<String>,
     },
     #[serde(other)]
     Other,
@@ -63,7 +67,7 @@ fn browser_system_prompt() -> String {
     format!(
         r#"<BROWSER_ENV>
   - You control a headful Chromium browser running in a VM with internet access.
-  - Chromium is already open; interact only through the "computer" tool (mouse, keyboard, scroll, screenshots).
+  - Chromium is already open; interact only through the computer tools (mouse, keyboard, scroll, screenshots).
   - Today's date is {today}.
   </BROWSER_ENV>
 
@@ -72,7 +76,7 @@ fn browser_system_prompt() -> String {
   - When typing into any input:
     * Clear it first with Ctrl+A, then Delete.
     * After submitting (pressing Enter or clicking a button), take an extra screenshot to confirm the result and move the mouse away.
-  - Computer tool calls are slow; batch related actions into a single call whenever possible.
+  - Each turn is slow; send related actions together in one turn whenever possible.
   - You may act on the user's behalf on sites where they are already authenticated.
   - Assume any required authentication/Auth Contexts are already configured before the task starts.
   - If the first screenshot is black:
@@ -148,6 +152,7 @@ struct Agent {
     messages: Vec<Value>,
     session_id: Option<String>,
     session_viewer_url: Option<String>,
+    cursor: (f64, f64),
 }
 
 impl Agent {
@@ -159,20 +164,20 @@ impl Agent {
             messages: Vec::new(),
             session_id: None,
             session_viewer_url: None,
+            cursor: ((VIEWPORT_WIDTH / 2) as f64, (VIEWPORT_HEIGHT / 2) as f64),
         }
-    }
-
-    fn center() -> (f64, f64) {
-        ((VIEWPORT_WIDTH / 2) as f64, (VIEWPORT_HEIGHT / 2) as f64)
     }
 
     fn tools() -> Value {
         json!([{
-            "type": "computer_20251124",
-            "name": "computer",
-            "display_width_px": VIEWPORT_WIDTH,
-            "display_height_px": VIEWPORT_HEIGHT,
-            "display_number": 1,
+            "type": "computer_toolset_20260801",
+            "configs": {
+                "zoom": { "enabled": false },
+                "triple_click": { "enabled": false },
+                "left_mouse_down": { "enabled": false },
+                "left_mouse_up": { "enabled": false },
+                "hold_key": { "enabled": false },
+            },
         }])
     }
 
@@ -211,225 +216,186 @@ impl Agent {
         }
     }
 
-    async fn run_action(&self, params: SessionComputerParams) -> Result<String, Box<dyn Error>> {
-        let id = self
-            .session_id
-            .as_ref()
-            .ok_or("Session not initialized")?;
-        let resp: SessionComputerResponse =
-            self.steel.sessions().computer(id, params).await?;
-        if let Some(img) = resp.base64_image {
-            return Ok(img);
-        }
-        self.take_screenshot().await
-    }
-
-    async fn take_screenshot(&self) -> Result<String, Box<dyn Error>> {
-        let id = self
-            .session_id
-            .as_ref()
-            .ok_or("Session not initialized")?;
-        let resp: SessionComputerResponse = self
-            .steel
-            .sessions()
-            .computer(
-                id,
-                SessionComputerParams::TakeScreenshot(SessionComputerParamsTakeScreenshot {
-                }),
-            )
-            .await?;
-        resp.base64_image
-            .ok_or_else(|| "No screenshot returned from Input API".into())
-    }
-
-    async fn execute_computer_action(
+    async fn act(
         &self,
-        action: &str,
-        input: &Value,
-    ) -> Result<String, Box<dyn Error>> {
-        let text = input.get("text").and_then(|v| v.as_str());
-        let key = input.get("key").and_then(|v| v.as_str());
-        let coords = match input.get("coordinate").and_then(|v| v.as_array()) {
-            Some(arr) if arr.len() == 2 => (
-                arr[0].as_f64().unwrap_or(0.0),
-                arr[1].as_f64().unwrap_or(0.0),
-            ),
-            _ => Self::center(),
-        };
+        params: SessionComputerParams,
+    ) -> Result<SessionComputerResponse, Box<dyn Error>> {
+        let id = self.session_id.as_ref().ok_or("Session not initialized")?;
+        let resp: SessionComputerResponse = self.steel.sessions().computer(id, params).await?;
+        if let Some(error) = &resp.error {
+            return Err(error.clone().into());
+        }
+        Ok(resp)
+    }
 
-        let params = match action {
+    async fn screenshot(&self) -> Result<Value, Box<dyn Error>> {
+        let resp = self
+            .act(SessionComputerParams::TakeScreenshot(
+                SessionComputerParamsTakeScreenshot {},
+            ))
+            .await?;
+        let data = resp
+            .base64_image
+            .ok_or("No screenshot returned from Input API")?;
+        Ok(json!({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": data,
+            }
+        }))
+    }
+
+    fn point(&mut self, coordinate: Option<&Value>) -> Vec<f64> {
+        if let Some(c) = coordinate_of(coordinate) {
+            self.cursor = (c[0], c[1]);
+        }
+        vec![self.cursor.0, self.cursor.1]
+    }
+
+    async fn run_member(&mut self, name: &str, input: &Value) -> Result<String, Box<dyn Error>> {
+        let text = input.get("text").and_then(|v| v.as_str());
+        let has_modifiers = text.is_some_and(|t| !t.is_empty());
+        let mut times = 1;
+
+        let params = match name {
             "mouse_move" => SessionComputerParams::MoveMouse(SessionComputerParamsMoveMouse {
-                coordinates: vec![coords.0, coords.1],
-                hold_keys: opt_keys(split_keys(key)),
-                screenshot: Some(true),
+                coordinates: self.point(input.get("coordinate")),
+                hold_keys: None,
+                screenshot: None,
             }),
 
-            "left_mouse_down" | "left_mouse_up" => {
-                SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
-                    button: Some(SessionComputerParamsClickMouseButton::Left),
-                    click_type: Some(if action == "left_mouse_down" {
-                        SessionComputerParamsClickMouseClickType::Down
-                    } else {
-                        SessionComputerParamsClickMouseClickType::Up
-                    }),
-                    coordinates: Some(vec![coords.0, coords.1]),
-                    hold_keys: opt_keys(split_keys(key)),
-                    num_clicks: None,
-                    screenshot: Some(true),
-                })
-            }
-
-            "left_click" | "right_click" | "middle_click" | "double_click" | "triple_click" => {
-                let button = match action {
+            "left_click" | "right_click" | "middle_click" | "double_click" => {
+                if has_modifiers {
+                    return Err("Holding modifier keys during a click is not supported".into());
+                }
+                let button = match name {
                     "right_click" => SessionComputerParamsClickMouseButton::Right,
                     "middle_click" => SessionComputerParamsClickMouseButton::Middle,
                     _ => SessionComputerParamsClickMouseButton::Left,
                 };
-                let num_clicks = match action {
-                    "double_click" => Some(2.0),
-                    "triple_click" => Some(3.0),
-                    _ => None,
-                };
                 SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
                     button: Some(button),
                     click_type: None,
-                    coordinates: Some(vec![coords.0, coords.1]),
-                    hold_keys: opt_keys(split_keys(key)),
-                    num_clicks,
-                    screenshot: Some(true),
+                    coordinates: Some(self.point(input.get("coordinate"))),
+                    hold_keys: None,
+                    num_clicks: if name == "double_click" {
+                        Some(2.0)
+                    } else {
+                        None
+                    },
+                    screenshot: None,
                 })
             }
 
             "left_click_drag" => {
-                let (start_x, start_y) = Self::center();
+                let (Some(start), Some(end)) = (
+                    coordinate_of(input.get("start_coordinate")),
+                    coordinate_of(input.get("coordinate")),
+                ) else {
+                    return Err("left_click_drag needs start_coordinate and coordinate".into());
+                };
+                self.cursor = (end[0], end[1]);
                 SessionComputerParams::DragMouse(SessionComputerParamsDragMouse {
-                    hold_keys: opt_keys(split_keys(key)),
-                    path: vec![vec![start_x, start_y], vec![coords.0, coords.1]],
-                    screenshot: Some(true),
+                    hold_keys: None,
+                    path: vec![start, end],
+                    screenshot: None,
                 })
             }
 
             "scroll" => {
-                let step = 100.0;
-                let amount = input
-                    .get("scroll_amount")
-                    .and_then(|v| v.as_f64())
-                    .unwrap_or(0.0);
-                let direction = input
-                    .get("scroll_direction")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("down");
-                let (dx, dy) = match direction {
-                    "up" => (0.0, -step * amount),
-                    "right" => (step * amount, 0.0),
-                    "left" => (-(step * amount), 0.0),
-                    _ => (0.0, step * amount),
+                if has_modifiers {
+                    return Err("Holding modifier keys during a scroll is not supported".into());
+                }
+                let (dx, dy) = match input.get("scroll_direction").and_then(|v| v.as_str()) {
+                    Some("up") => (0.0, -100.0),
+                    Some("left") => (-100.0, 0.0),
+                    Some("right") => (100.0, 0.0),
+                    _ => (0.0, 100.0),
                 };
+                times = input
+                    .get("scroll_amount")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1)
+                    .max(1);
                 SessionComputerParams::Scroll(SessionComputerParamsScroll {
-                    coordinates: Some(vec![coords.0, coords.1]),
+                    coordinates: Some(self.point(input.get("coordinate"))),
                     delta_x: Some(dx),
                     delta_y: Some(dy),
-                    hold_keys: opt_keys(split_keys(text)),
-                    screenshot: Some(true),
-                })
-            }
-
-            "key" | "hold_key" => {
-                let duration = if action == "hold_key" {
-                    input.get("duration").and_then(|v| v.as_f64())
-                } else {
-                    None
-                };
-                SessionComputerParams::PressKey(SessionComputerParamsPressKey {
-                    duration,
-                    keys: normalize_keys(split_keys(text)),
-                    screenshot: Some(true),
+                    hold_keys: None,
+                    screenshot: None,
                 })
             }
 
             "type" => SessionComputerParams::TypeText(SessionComputerParamsTypeText {
-                hold_keys: opt_keys(split_keys(key)),
-                screenshot: Some(true),
+                hold_keys: None,
+                screenshot: None,
                 text: text.unwrap_or("").to_string(),
             }),
 
-            "wait" => SessionComputerParams::Wait(SessionComputerParamsWait {
-                duration: input.get("duration").and_then(|v| v.as_f64()).unwrap_or(1.0),
-                screenshot: Some(true),
-            }),
-
-            "screenshot" => return self.take_screenshot().await,
-
-            "cursor_position" => {
-                let id = self.session_id.as_ref().ok_or("Session not initialized")?;
-                self.steel
-                    .sessions()
-                    .computer(
-                        id,
-                        SessionComputerParams::GetCursorPosition(
-                            SessionComputerParamsGetCursorPosition {
-                            },
-                        ),
-                    )
-                    .await?;
-                return self.take_screenshot().await;
+            "key" => {
+                times = input
+                    .get("repeat")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1)
+                    .max(1);
+                SessionComputerParams::PressKey(SessionComputerParamsPressKey {
+                    duration: None,
+                    keys: normalize_keys(split_keys(text)),
+                    screenshot: None,
+                })
             }
 
-            other => return Err(format!("Invalid action: {}", other).into()),
+            "wait" => SessionComputerParams::Wait(SessionComputerParamsWait {
+                duration: input
+                    .get("duration")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(1.0),
+                screenshot: None,
+            }),
+
+            "cursor_position" => {
+                let resp = self
+                    .act(SessionComputerParams::GetCursorPosition(
+                        SessionComputerParamsGetCursorPosition {},
+                    ))
+                    .await?;
+                return Ok(resp
+                    .output
+                    .unwrap_or_else(|| format!("{}, {}", self.cursor.0, self.cursor.1)));
+            }
+
+            other => return Err(format!("Unsupported action: {}", other).into()),
         };
 
-        self.run_action(params).await
+        for _ in 0..times {
+            self.act(params.clone()).await?;
+        }
+        Ok("OK".to_string())
     }
 
-    async fn process_response(&mut self, message: MessagesResponse) -> Result<(String, bool), Box<dyn Error>> {
+    async fn process_response(
+        &mut self,
+        message: MessagesResponse,
+    ) -> Result<(String, bool), Box<dyn Error>> {
         let mut response_text = String::new();
-        let mut has_actions = false;
-        let mut assistant_content: Vec<Value> = Vec::new();
-        let mut tool_results: Vec<Value> = Vec::new();
+        let mut calls: Vec<(String, String, Value)> = Vec::new();
 
-        for block in &message.content {
-            match block {
+        for raw in &message.content {
+            match serde_json::from_value::<ContentBlock>(raw.clone())? {
                 ContentBlock::Text { text } => {
-                    response_text.push_str(text);
+                    response_text.push_str(&text);
                     println!("{}", text);
-                    assistant_content.push(json!({ "type": "text", "text": text }));
                 }
-                ContentBlock::ToolUse { id, name, input } => {
-                    has_actions = true;
-                    assistant_content.push(json!({
-                        "type": "tool_use",
-                        "id": id,
-                        "name": name,
-                        "input": input,
-                    }));
-                    println!("{}({})", name, input);
-                    if name == "computer" {
-                        let action = input.get("action").and_then(|v| v.as_str()).unwrap_or("");
-                        match self.execute_computer_action(action, input).await {
-                            Ok(screenshot_base64) => {
-                                tool_results.push(json!({
-                                    "type": "tool_result",
-                                    "tool_use_id": id,
-                                    "content": [{
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": "image/png",
-                                            "data": screenshot_base64,
-                                        }
-                                    }]
-                                }));
-                            }
-                            Err(e) => {
-                                println!("Error executing {}: {}", action, e);
-                                tool_results.push(json!({
-                                    "type": "tool_result",
-                                    "tool_use_id": id,
-                                    "content": format!("Error executing {}: {}", action, e),
-                                    "is_error": true,
-                                }));
-                            }
-                        }
+                ContentBlock::ToolUse {
+                    id,
+                    name,
+                    input,
+                    toolset_name,
+                } => {
+                    if toolset_name.as_deref() == Some("computer") {
+                        calls.push((id, name, input));
                     }
                 }
                 ContentBlock::Other => {}
@@ -437,19 +403,66 @@ impl Agent {
         }
 
         self.messages
-            .push(json!({ "role": "assistant", "content": assistant_content }));
-        if !tool_results.is_empty() {
-            self.messages
-                .push(json!({ "role": "user", "content": tool_results }));
+            .push(json!({ "role": "assistant", "content": message.content }));
+
+        if calls.is_empty() {
+            return Ok((response_text, false));
         }
 
-        Ok((response_text, has_actions))
+        let mut results: Vec<Value> = Vec::new();
+        let mut failed = false;
+        for (id, name, input) in &calls {
+            println!("{}({})", name, input);
+            let mut result = json!({
+                "type": "tool_result",
+                "tool_use_id": id,
+                "toolset_name": "computer",
+            });
+            if failed {
+                result["content"] = json!(NOT_EXECUTED);
+                result["is_error"] = json!(true);
+            } else {
+                let outcome = if name == "screenshot" {
+                    self.screenshot().await
+                } else {
+                    self.run_member(name, input)
+                        .await
+                        .map(|text| json!({ "type": "text", "text": text }))
+                };
+                match outcome {
+                    Ok(block) => result["content"] = json!([block]),
+                    Err(e) => {
+                        println!("Error executing {}: {}", name, e);
+                        result["content"] = json!(format!("Error: {}", e));
+                        result["is_error"] = json!(true);
+                        failed = true;
+                    }
+                }
+            }
+            results.push(result);
+        }
+
+        let ends_with_screenshot = calls
+            .last()
+            .is_some_and(|(_, name, _)| name == "screenshot");
+        if !failed && !ends_with_screenshot {
+            let shot = self.screenshot().await?;
+            if let Some(content) = results.last_mut().and_then(|r| r["content"].as_array_mut()) {
+                content.push(shot);
+            }
+        }
+
+        self.messages
+            .push(json!({ "role": "user", "content": results }));
+
+        Ok((response_text, true))
     }
 
     async fn call_anthropic(&self) -> Result<MessagesResponse, Box<dyn Error>> {
         let body = json!({
             "model": MODEL,
-            "max_tokens": 4096,
+            "max_tokens": 16000,
+            "system": browser_system_prompt(),
             "messages": self.messages,
             "tools": Self::tools(),
         });
@@ -459,7 +472,6 @@ impl Agent {
             .post(ANTHROPIC_URL)
             .header("x-api-key", &self.anthropic_key)
             .header("anthropic-version", ANTHROPIC_VERSION)
-            .header("anthropic-beta", COMPUTER_USE_BETA)
             .json(&body)
             .send()
             .await?;
@@ -477,10 +489,7 @@ impl Agent {
     }
 
     async fn execute_task(&mut self, task: &str) -> Result<String, Box<dyn Error>> {
-        self.messages = vec![
-            json!({ "role": "user", "content": browser_system_prompt() }),
-            json!({ "role": "user", "content": task }),
-        ];
+        self.messages = vec![json!({ "role": "user", "content": task })];
 
         println!("Executing task: {}", task);
         println!("{}", "=".repeat(60));
@@ -510,6 +519,11 @@ impl Agent {
             }
 
             let response = self.call_anthropic().await?;
+            if response.stop_reason.as_deref() == Some("refusal") {
+                println!("Claude declined to continue this task");
+                final_text = "Claude declined to continue this task".to_string();
+                break;
+            }
             let (text, has_actions) = self.process_response(response).await?;
 
             if !has_actions {
@@ -531,12 +545,12 @@ impl Agent {
     }
 }
 
-fn opt_keys(keys: Vec<String>) -> Option<Vec<String>> {
-    if keys.is_empty() {
-        None
-    } else {
-        Some(keys)
+fn coordinate_of(value: Option<&Value>) -> Option<Vec<f64>> {
+    let arr = value?.as_array()?;
+    if arr.len() != 2 {
+        return None;
     }
+    Some(vec![arr[0].as_f64()?, arr[1].as_f64()?])
 }
 
 fn extract_text(content: Option<&Value>) -> String {
@@ -556,9 +570,17 @@ fn detect_repetition(new_message: &str, history: &[String]) -> bool {
     if history.len() < 2 {
         return false;
     }
-    let words1: Vec<String> = new_message.to_lowercase().split_whitespace().map(String::from).collect();
+    let words1: Vec<String> = new_message
+        .to_lowercase()
+        .split_whitespace()
+        .map(String::from)
+        .collect();
     history.iter().any(|prev| {
-        let words2: Vec<String> = prev.to_lowercase().split_whitespace().map(String::from).collect();
+        let words2: Vec<String> = prev
+            .to_lowercase()
+            .split_whitespace()
+            .map(String::from)
+            .collect();
         let overlap = words1.iter().filter(|w| words2.contains(w)).count();
         let denom = words1.len().max(words2.len()).max(1);
         overlap as f64 / denom as f64 > 0.8
@@ -574,7 +596,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let steel_key = std::env::var("STEEL_API_KEY").unwrap_or_default();
     let anthropic_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
-    let task = std::env::var("TASK").unwrap_or_else(|_| "Go to Steel.dev and find the latest news".to_string());
+    let task = std::env::var("TASK")
+        .unwrap_or_else(|_| "Go to Steel.dev and find the latest news".to_string());
 
     if steel_key.is_empty() {
         eprintln!("WARNING: Set STEEL_API_KEY in your environment or .env file");

@@ -74,7 +74,7 @@ class Agent:
     def __init__(self):
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
         self.session = None
-        self.model = "gpt-5.5"
+        self.model = "gpt-6.1-terra"
 
         self.viewport_width = 1440
         self.viewport_height = 900

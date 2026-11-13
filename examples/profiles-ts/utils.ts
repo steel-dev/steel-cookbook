@@ -160,7 +160,7 @@ export async function addItemsToCart(page: Page) {
 
         // Get item names if possible
         const itemNames = await page
-          .locator(".product-name a")
+          .locator(".cart .product-name")
           .allTextContents();
         if (itemNames.length > 0) {
           console.log("Items added:");
@@ -207,7 +207,7 @@ export async function checkItemsInCart(page: Page) {
       console.log(`Found ${cartRows} items in cart`);
 
       // Try to get item details
-      const itemNames = await page.locator(".product-name a").allTextContents();
+      const itemNames = await page.locator(".cart .product-name").allTextContents();
       if (itemNames.length > 0) {
         console.log("\nItems in cart:");
         itemNames.forEach((name, index) => {
@@ -231,4 +231,16 @@ export async function checkItemsInCart(page: Page) {
     console.error("Error checking cart");
     return false;
   }
+}
+
+export async function waitForProfile(client: Steel, profileId: string) {
+  for (let i = 0; i < 60; i++) {
+    const profile = await client.profiles.get(profileId);
+    if (profile.status === "READY") return;
+    if (profile.status !== "UPLOADING") {
+      throw new Error(`Profile ${profileId} is ${profile.status}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(`Profile ${profileId} is still uploading`);
 }

@@ -71,6 +71,9 @@ Before opening a PR:
 - Confirm the source file URL comment points at the current slug.
 - Confirm every author in your registry entry exists in
   `authors.yaml`.
+- Confirm the code connects with the session's `websocketUrl` as it
+  is. Never add `apiKey` to it. `check_connect_urls.py` fails the PR
+  if you do.
 
 ## Recent learnings
 

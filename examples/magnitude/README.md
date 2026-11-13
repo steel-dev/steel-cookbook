@@ -14,17 +14,18 @@ const agent = await startBrowserAgent({
   llm: {
     provider: "anthropic",
     options: {
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5-5",
       apiKey: ANTHROPIC_API_KEY,
+      temperature: 1,
     },
   },
   browser: {
-    cdp: `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`,
+    cdp: session.websocketUrl,
   },
 });
 ```
 
-`browser.cdp` is the whole wiring. `narrate: true` streams a log of what the agent is doing between screenshot turns. The `url` option does the first navigation, so there is no separate `goto` call in `main()`.
+`browser.cdp` is the whole wiring. `narrate: true` streams a log of what the agent is doing between screenshot turns. The `url` option does the first navigation, so there is no separate `goto` call in `main()`. `temperature: 1` is there because Magnitude sends a temperature of 0 unless you set one, and Claude 5 models accept only the default of 1.
 
 ## What the demo does
 
@@ -102,7 +103,7 @@ A full run takes ~45 seconds. The `finally` block stops the agent first, then re
 - **Swap the schema and prompt.** `extract()` is schema-driven: forms, tables, invoices, search results.
 - **Chain `act` calls for multi-step flows.** Login, filter, paginate, export. Each step is one natural-language instruction.
 - **Switch models.** `llm.provider` accepts `"anthropic"` (used here) among others. Point `model` and `apiKey` at a different provider in `startBrowserAgent()`.
-- **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `sessionTimeout` in `client.sessions.create()` for sites with anti-bot.
+- **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `timeout` in `client.sessions.create()` for sites with anti-bot.
 
 ## Related
 

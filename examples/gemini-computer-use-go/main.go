@@ -19,12 +19,14 @@ import (
 )
 
 const (
-	model          = "gemini-3-flash-preview"
+	model          = "gemini-4-hydrogen"
 	maxIterations  = 50
 	maxCoordinate  = 1000
 	viewportWidth  = 1440
 	viewportHeight = 900
 )
+
+var unsupportedActions = []string{"triple_click", "mouse_down", "mouse_up", "key_down", "key_up"}
 
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -130,6 +132,22 @@ func argString(args map[string]any, key, fallback string) string {
 	return fallback
 }
 
+func argStrings(args map[string]any, key string) []string {
+	switch v := args[key].(type) {
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	case string:
+		return splitKeys(v)
+	}
+	return nil
+}
+
 func argBool(args map[string]any, key string, fallback bool) bool {
 	if v, ok := args[key]; ok {
 		if b, ok := v.(bool); ok {
@@ -161,8 +179,12 @@ func NewAgent(ctx context.Context, steelKey, geminiKey string) (*Agent, error) {
 		steel: steel.NewClient(option.WithSteelAPIKey(steelKey)),
 		config: &genai.GenerateContentConfig{
 			Tools: []*genai.Tool{{
-				ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser},
+				ComputerUse: &genai.ComputerUse{
+					Environment:                 genai.EnvironmentBrowser,
+					ExcludedPredefinedFunctions: unsupportedActions,
+				},
 			}},
+			ThinkingConfig: &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelLow},
 		},
 		currentURL: "about:blank",
 	}, nil
@@ -178,6 +200,17 @@ func (a *Agent) denormalizeY(y int) float64 {
 
 func (a *Agent) center() (float64, float64) {
 	return float64(viewportWidth / 2), float64(viewportHeight / 2)
+}
+
+func (a *Agent) point(args map[string]any) []float64 {
+	x, y := a.center()
+	if _, ok := args["x"]; ok {
+		x = a.denormalizeX(argInt(args, "x", 0))
+	}
+	if _, ok := args["y"]; ok {
+		y = a.denormalizeY(argInt(args, "y", 0))
+	}
+	return []float64{x, y}
 }
 
 func (a *Agent) initialize(ctx context.Context) error {
@@ -234,17 +267,6 @@ func (a *Agent) takeScreenshot(ctx context.Context) (string, error) {
 	return resp.Base64Image, nil
 }
 
-func (a *Agent) click(ctx context.Context, x, y float64) error {
-	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
-		Body: steel.SessionComputerParamsBodyClickMouse{
-			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
-			Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
-			Coordinates: steel.F([]float64{x, y}),
-		},
-	})
-	return err
-}
-
 func (a *Agent) pressKeys(ctx context.Context, keys ...string) error {
 	_, err := a.steel.Sessions.Computer(ctx, a.session.ID, steel.SessionComputerParams{
 		Body: steel.SessionComputerParamsBodyPressKey{
@@ -283,195 +305,41 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 	}
 
 	switch name {
-	case "open_web_browser":
-		shot, err := a.takeScreenshot(ctx)
-		return shot, a.currentURL, err
+	case "click", "double_click", "right_click", "middle_click":
+		button := steel.SessionComputerParamsBodyClickMouseButtonLeft
+		switch name {
+		case "right_click":
+			button = steel.SessionComputerParamsBodyClickMouseButtonRight
+		case "middle_click":
+			button = steel.SessionComputerParamsBodyClickMouseButtonMiddle
+		}
+		body := steel.SessionComputerParamsBodyClickMouse{
+			Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
+			Button:      steel.F(button),
+			Coordinates: steel.F(a.point(args)),
+			Screenshot:  steel.F(true),
+		}
+		if name == "double_click" {
+			body.NumClicks = steel.F(float64(2))
+		}
+		shot, err := a.run(ctx, steel.SessionComputerParams{Body: body})
+		return shot, "", err
 
-	case "click_at":
-		x := a.denormalizeX(argInt(args, "x", 0))
-		y := a.denormalizeY(argInt(args, "y", 0))
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyClickMouse{
-				Action:      steel.F(steel.SessionComputerParamsBodyClickMouseActionClickMouse),
-				Button:      steel.F(steel.SessionComputerParamsBodyClickMouseButtonLeft),
-				Coordinates: steel.F([]float64{x, y}),
-				Screenshot:  steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
-
-	case "hover_at":
-		x := a.denormalizeX(argInt(args, "x", 0))
-		y := a.denormalizeY(argInt(args, "y", 0))
+	case "move":
 		shot, err := a.run(ctx, steel.SessionComputerParams{
 			Body: steel.SessionComputerParamsBodyMoveMouse{
 				Action:      steel.F(steel.SessionComputerParamsBodyMoveMouseActionMoveMouse),
-				Coordinates: steel.F([]float64{x, y}),
+				Coordinates: steel.F(a.point(args)),
 				Screenshot:  steel.F(true),
 			},
 		})
-		return shot, a.currentURL, err
-
-	case "type_text_at":
-		x := a.denormalizeX(argInt(args, "x", 0))
-		y := a.denormalizeY(argInt(args, "y", 0))
-		text := argString(args, "text", "")
-		pressEnter := argBool(args, "press_enter", true)
-		clearBefore := argBool(args, "clear_before_typing", true)
-
-		if err := a.click(ctx, x, y); err != nil {
-			return "", a.currentURL, err
-		}
-
-		if clearBefore {
-			if err := a.pressKeys(ctx, "Control", "a"); err != nil {
-				return "", a.currentURL, err
-			}
-			if err := a.pressKeys(ctx, "Backspace"); err != nil {
-				return "", a.currentURL, err
-			}
-		}
-
-		if err := a.typeText(ctx, text); err != nil {
-			return "", a.currentURL, err
-		}
-
-		if pressEnter {
-			if err := a.pressKeys(ctx, "Enter"); err != nil {
-				return "", a.currentURL, err
-			}
-		}
-
-		if err := a.waitFor(ctx, 1); err != nil {
-			return "", a.currentURL, err
-		}
-
-		shot, err := a.takeScreenshot(ctx)
-		return shot, a.currentURL, err
-
-	case "scroll_document":
-		direction := argString(args, "direction", "down")
-		switch direction {
-		case "left", "right":
-			cx, cy := a.center()
-			delta := float64(400)
-			if direction == "left" {
-				delta = -400
-			}
-			shot, err := a.run(ctx, steel.SessionComputerParams{
-				Body: steel.SessionComputerParamsBodyScroll{
-					Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
-					Coordinates: steel.F([]float64{cx, cy}),
-					DeltaX:      steel.F(delta),
-					DeltaY:      steel.F(float64(0)),
-					Screenshot:  steel.F(true),
-				},
-			})
-			return shot, a.currentURL, err
-		default:
-			keys := []string{"PageDown"}
-			if direction == "up" {
-				keys = []string{"PageUp"}
-			}
-			shot, err := a.run(ctx, steel.SessionComputerParams{
-				Body: steel.SessionComputerParamsBodyPressKey{
-					Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
-					Keys:       steel.F(keys),
-					Screenshot: steel.F(true),
-				},
-			})
-			return shot, a.currentURL, err
-		}
-
-	case "scroll_at":
-		x := a.denormalizeX(argInt(args, "x", 0))
-		y := a.denormalizeY(argInt(args, "y", 0))
-		direction := argString(args, "direction", "down")
-		magnitude := a.denormalizeY(argInt(args, "magnitude", 800))
-
-		var dx, dy float64
-		switch direction {
-		case "up":
-			dy = -magnitude
-		case "right":
-			dx = magnitude
-		case "left":
-			dx = -magnitude
-		default:
-			dy = magnitude
-		}
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyScroll{
-				Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
-				Coordinates: steel.F([]float64{x, y}),
-				DeltaX:      steel.F(dx),
-				DeltaY:      steel.F(dy),
-				Screenshot:  steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
-
-	case "wait_5_seconds":
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyWait{
-				Action:     steel.F(steel.SessionComputerParamsBodyWaitActionWait),
-				Duration:   steel.F(float64(5)),
-				Screenshot: steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
-
-	case "go_back":
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyPressKey{
-				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
-				Keys:       steel.F([]string{"Alt", "ArrowLeft"}),
-				Screenshot: steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
-
-	case "go_forward":
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyPressKey{
-				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
-				Keys:       steel.F([]string{"Alt", "ArrowRight"}),
-				Screenshot: steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
-
-	case "search":
-		if shot, err := a.openURL(ctx, "https://www.google.com", 2); err != nil {
-			return shot, a.currentURL, err
-		} else {
-			return shot, a.currentURL, nil
-		}
-
-	case "navigate":
-		url := argString(args, "url", "")
-		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-			url = "https://" + url
-		}
-		shot, err := a.openURL(ctx, url, 2)
-		return shot, a.currentURL, err
-
-	case "key_combination":
-		keys := normalizeKeys(splitKeys(argString(args, "keys", "")))
-		shot, err := a.run(ctx, steel.SessionComputerParams{
-			Body: steel.SessionComputerParamsBodyPressKey{
-				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
-				Keys:       steel.F(keys),
-				Screenshot: steel.F(true),
-			},
-		})
-		return shot, a.currentURL, err
+		return shot, "", err
 
 	case "drag_and_drop":
-		startX := a.denormalizeX(argInt(args, "x", 0))
-		startY := a.denormalizeY(argInt(args, "y", 0))
-		endX := a.denormalizeX(argInt(args, "destination_x", 0))
-		endY := a.denormalizeY(argInt(args, "destination_y", 0))
+		startX := a.denormalizeX(argInt(args, "start_x", 0))
+		startY := a.denormalizeY(argInt(args, "start_y", 0))
+		endX := a.denormalizeX(argInt(args, "end_x", 0))
+		endY := a.denormalizeY(argInt(args, "end_y", 0))
 		shot, err := a.run(ctx, steel.SessionComputerParams{
 			Body: steel.SessionComputerParamsBodyDragMouse{
 				Action:     steel.F(steel.SessionComputerParamsBodyDragMouseActionDragMouse),
@@ -479,12 +347,100 @@ func (a *Agent) executeComputerAction(ctx context.Context, fc *genai.FunctionCal
 				Screenshot: steel.F(true),
 			},
 		})
-		return shot, a.currentURL, err
+		return shot, "", err
+
+	case "type":
+		if err := a.typeText(ctx, argString(args, "text", "")); err != nil {
+			return "", "", err
+		}
+		if argBool(args, "press_enter", false) {
+			if err := a.pressKeys(ctx, "Enter"); err != nil {
+				return "", "", err
+			}
+		}
+		if err := a.waitFor(ctx, 1); err != nil {
+			return "", "", err
+		}
+		shot, err := a.takeScreenshot(ctx)
+		return shot, "", err
+
+	case "scroll":
+		magnitude := float64(argInt(args, "magnitude_in_pixels", 300))
+		var dx, dy float64
+		switch argString(args, "direction", "down") {
+		case "up":
+			dy = -magnitude
+		case "left":
+			dx = -magnitude
+		case "right":
+			dx = magnitude
+		default:
+			dy = magnitude
+		}
+		shot, err := a.run(ctx, steel.SessionComputerParams{
+			Body: steel.SessionComputerParamsBodyScroll{
+				Action:      steel.F(steel.SessionComputerParamsBodyScrollActionScroll),
+				Coordinates: steel.F(a.point(args)),
+				DeltaX:      steel.F(dx),
+				DeltaY:      steel.F(dy),
+				Screenshot:  steel.F(true),
+			},
+		})
+		return shot, "", err
+
+	case "press_key", "hotkey":
+		keys := argStrings(args, "keys")
+		if name == "press_key" {
+			keys = argStrings(args, "key")
+		}
+		shot, err := a.run(ctx, steel.SessionComputerParams{
+			Body: steel.SessionComputerParamsBodyPressKey{
+				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
+				Keys:       steel.F(normalizeKeys(keys)),
+				Screenshot: steel.F(true),
+			},
+		})
+		return shot, "", err
+
+	case "wait":
+		shot, err := a.run(ctx, steel.SessionComputerParams{
+			Body: steel.SessionComputerParamsBodyWait{
+				Action:     steel.F(steel.SessionComputerParamsBodyWaitActionWait),
+				Duration:   steel.F(float64(argInt(args, "seconds", 1))),
+				Screenshot: steel.F(true),
+			},
+		})
+		return shot, "", err
+
+	case "navigate":
+		url := argString(args, "url", "")
+		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+			url = "https://" + url
+		}
+		shot, err := a.openURL(ctx, url, 2)
+		return shot, "", err
+
+	case "go_back", "go_forward":
+		arrow := "ArrowLeft"
+		if name == "go_forward" {
+			arrow = "ArrowRight"
+		}
+		shot, err := a.run(ctx, steel.SessionComputerParams{
+			Body: steel.SessionComputerParamsBodyPressKey{
+				Action:     steel.F(steel.SessionComputerParamsBodyPressKeyActionPressKey),
+				Keys:       steel.F([]string{"Alt", arrow}),
+				Screenshot: steel.F(true),
+			},
+		})
+		return shot, "", err
+
+	case "take_screenshot":
+		shot, err := a.takeScreenshot(ctx)
+		return shot, "", err
 
 	default:
-		fmt.Printf("Unknown action: %s, taking screenshot\n", name)
 		shot, err := a.takeScreenshot(ctx)
-		return shot, a.currentURL, err
+		return shot, "Unsupported action: " + name, err
 	}
 }
 
@@ -540,17 +496,17 @@ func extractFunctionCalls(candidate *genai.Candidate) []*genai.FunctionCall {
 	return calls
 }
 
-func (a *Agent) buildFunctionResponseParts(calls []*genai.FunctionCall, shots []string, urls []string) ([]*genai.Part, error) {
+func (a *Agent) buildFunctionResponseParts(calls []*genai.FunctionCall, shots []string, actionErrs []string) ([]*genai.Part, error) {
 	var parts []*genai.Part
 	for i, fc := range calls {
-		url := urls[i]
-		if url == "" {
-			url = a.currentURL
+		response := map[string]any{"url": a.currentURL}
+		if actionErrs[i] != "" {
+			response["error"] = actionErrs[i]
 		}
 		parts = append(parts, &genai.Part{
 			FunctionResponse: &genai.FunctionResponse{
 				Name:     fc.Name,
-				Response: map[string]any{"url": url},
+				Response: response,
 			},
 		})
 
@@ -624,7 +580,7 @@ func (a *Agent) executeTask(ctx context.Context, task string) (string, error) {
 		}
 
 		shots := make([]string, len(functionCalls))
-		urls := make([]string, len(functionCalls))
+		actionErrs := make([]string, len(functionCalls))
 		for i, fc := range functionCalls {
 			if raw, err := json.Marshal(fc.Args); err == nil {
 				fmt.Printf("%s(%s)\n", fc.Name, raw)
@@ -637,15 +593,15 @@ func (a *Agent) executeTask(ctx context.Context, task string) (string, error) {
 				}
 			}
 
-			shot, url, err := a.executeComputerAction(ctx, fc)
+			shot, actionErr, err := a.executeComputerAction(ctx, fc)
 			if err != nil {
 				return "", fmt.Errorf("error executing %s: %w", fc.Name, err)
 			}
 			shots[i] = shot
-			urls[i] = url
+			actionErrs[i] = actionErr
 		}
 
-		parts, err := a.buildFunctionResponseParts(functionCalls, shots, urls)
+		parts, err := a.buildFunctionResponseParts(functionCalls, shots, actionErrs)
 		if err != nil {
 			return "", err
 		}
@@ -703,19 +659,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := run(ctx, agent, task); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, agent *Agent, task string) error {
 	fmt.Println("\nStarting Steel session...")
 	if err := agent.initialize(ctx); err != nil {
-		fmt.Printf("Failed to start Steel session: %v\n", err)
-		fmt.Println("Please check your STEEL_API_KEY and internet connection.")
-		os.Exit(1)
+		return fmt.Errorf("failed to start Steel session (check your STEEL_API_KEY and internet connection): %w", err)
 	}
 	defer agent.cleanup(ctx)
 
 	start := time.Now()
 	result, err := agent.executeTask(ctx, task)
 	if err != nil {
-		fmt.Printf("Task execution failed: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("task execution failed: %w", err)
 	}
 
 	fmt.Println("\n" + strings.Repeat("=", 60))
@@ -725,4 +685,5 @@ func main() {
 	fmt.Printf("Task: %s\n", task)
 	fmt.Printf("Result:\n%s\n", result)
 	fmt.Println(strings.Repeat("=", 60))
+	return nil
 }

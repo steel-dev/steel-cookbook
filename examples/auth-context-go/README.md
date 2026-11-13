@@ -1,6 +1,6 @@
 # Auth Context (Go + chromedp)
 
-A Steel session can hand you a snapshot of its browser state: cookies, localStorage, sessionStorage, indexedDB. Steel exposes that as one read call and one create option, so you log in once, pull the snapshot, and start a second browser that is already signed in.
+A Steel session can hand you a snapshot of its browser state: cookies, localStorage, sessionStorage, indexedDB. Steel exposes that as one read call and one create option, so you sign in once, pull the snapshot, and start a second browser that is already signed in.
 
 ```go
 // Capture the live cookies + storage off session #1
@@ -12,7 +12,7 @@ second, _ := client.Sessions.New(ctx, steel.SessionNewParams{
 })
 ```
 
-`main.go` drives both browsers with [chromedp](https://github.com/chromedp/chromedp) over CDP. It connects with `chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)` so the websocket URL Steel returns is used verbatim, then runs the login form on [practice.expandtesting.com](https://practice.expandtesting.com/login) and reads the `#username` welcome text to confirm auth.
+`main.go` drives both browsers with [chromedp](https://github.com/chromedp/chromedp) over CDP. It connects with `chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)` so the WebSocket URL Steel returns is used verbatim, then runs the login form on [practice.expandtesting.com](https://practice.expandtesting.com/login) and reads the `#username` welcome text to confirm auth.
 
 ## The read type is not the write type
 

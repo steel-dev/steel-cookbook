@@ -7,7 +7,8 @@ This recipe wires that tool layer to a Steel cloud browser. Three `FunctionTool`
 ```typescript
 const agent = new LlmAgent({
   name: "steel_research",
-  model: new Gemini({ model: "gemini-2.5-flash", apiKey: GOOGLE_API_KEY }),
+  model: new Gemini({ model: "gemini-4-hydrogen", apiKey: GOOGLE_API_KEY }),
+  generateContentConfig: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
   instruction: "You operate a Steel cloud browser via tools. Workflow: navigate, snapshot, extract. ...",
   tools: [navigate, snapshot, extract],
 });
@@ -22,7 +23,7 @@ for await (const event of runner.runAsync({ userId, sessionId, newMessage })) {
 }
 ```
 
-The model is built as an explicit `Gemini` instance so the key comes from `GOOGLE_API_KEY`. ADK's bare-string model path (`model: "gemini-2.5-flash"`) only resolves `GOOGLE_GENAI_API_KEY` or `GEMINI_API_KEY` from the environment, so passing `apiKey` directly keeps the one variable name consistent with the rest of the cookbook.
+The model is built as an explicit `Gemini` instance so the key comes from `GOOGLE_API_KEY`. ADK's bare-string model path (`model: "gemini-4-hydrogen"`) only resolves `GOOGLE_GENAI_API_KEY` or `GEMINI_API_KEY` from the environment, so passing `apiKey` directly keeps the one variable name consistent with the rest of the cookbook.
 
 ## Run it
 
@@ -78,7 +79,7 @@ A full run takes ~15-30 seconds and a few cents of Steel session time plus Gemin
 
 The `step:` log reads `event.content.parts` for `functionCall.name`. That is the only place the recipe inspects raw event parts; everything else leans on the two helpers. ADK logs one INFO line per event by default; `setLogLevel(LogLevel.WARN)` at startup keeps the console to the agent's own output.
 
-`runTask` runs that loop inside a fresh session and watches `event.errorCode`. gemini-2.5-flash occasionally ends a turn with `MALFORMED_FUNCTION_CALL` or an empty answer, so the helper retries up to three times before giving up rather than failing the whole run.
+`runTask` runs that loop inside a fresh session and watches `event.errorCode`. Gemini occasionally ends a turn with `MALFORMED_FUNCTION_CALL` or an empty answer, so the helper retries up to three times before giving up rather than failing the whole run.
 
 One Gemini wrinkle shapes the tools: its function-declaration schema rejects numeric bounds (`exclusiveMinimum`, `maximum`) and `default`, so each tool keeps its `parameters` to plain types and applies caps and defaults inside `execute`. A `.positive()` or `.default()` left on a Zod field surfaces as a 400 from the model call.
 
@@ -86,12 +87,13 @@ This agent has no `outputSchema`. ADK disables tool calls when an output schema 
 
 ## Make it yours
 
-- **Swap the model.** Change the `model` string passed to `Gemini`. `"gemini-2.5-pro"`, `"gemini-flash-latest"`, and other Gemini IDs all work with the same `GOOGLE_API_KEY`.
+- **Swap the model.** Change the `model` string passed to `Gemini`. `"gemini-4-carbon"`, `"gemini-flash-latest"`, and other Gemini IDs all work with the same `GOOGLE_API_KEY`.
+- **Raise the thinking level.** `generateContentConfig` sets `ThinkingLevel.LOW` so each model turn stays short. `MEDIUM` and `HIGH` plan more carefully but take longer per turn.
 - **Swap the task.** Edit `TASK` and the JSON shape named in the agent's `instruction`. The three tools are task-agnostic; they describe a generic navigate-then-scrape flow.
 - **Add a tool.** A `click` tool wrapping `page.click`, or a `screenshot` tool returning a base64 PNG. Build it with `new FunctionTool({ name, description, parameters, execute })` and add it to the agent's `tools` array.
 - **Persist sessions.** Swap `InMemoryRunner` for a `Runner` with a `DatabaseSessionService` to keep conversation state across runs; the session ID is the thread key.
 - **Run Vertex instead of AI Studio.** Set `GOOGLE_GENAI_USE_VERTEXAI=TRUE` plus `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`, and construct `new Gemini({ model, vertexai: true })`.
-- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` to `steel.sessions.create({...})` for sites with anti-bot.
+- **Turn on stealth.** Pass `useProxy`, `solveCaptcha`, or `timeout` to `steel.sessions.create({...})` for sites with anti-bot.
 
 ## Related
 

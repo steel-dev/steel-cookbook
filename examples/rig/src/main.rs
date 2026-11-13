@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = steel.sessions().create(steel_rs::SessionCreateParams::default()).await?;
     println!("Session: {}", session.session_viewer_url);
 
-    let raw = format!("{}&apiKey={}", session.websocket_url, steel_api_key);
+    let raw = session.websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])
@@ -198,7 +198,7 @@ async fn run(browser: &Browser, anthropic_api_key: &str) -> Result<String, Box<d
     let page = browser.new_page("about:blank").await?;
 
     let agent = anthropic::Client::new(anthropic_api_key)?
-        .agent("claude-sonnet-4-6")
+        .agent("claude-sonnet-5-5")
         .preamble(
             "You operate a Steel cloud browser through tools. Workflow: call navigate \
              to open the target URL, then extract_text to read the page, then answer \

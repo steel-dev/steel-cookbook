@@ -51,7 +51,7 @@ async def open_session(args: dict[str, Any]) -> dict[str, Any]:
     _session = steel.sessions.create()
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.connect_over_cdp(
-        f"{_session.websocket_url}&apiKey={STEEL_API_KEY}"
+        _session.websocket_url
     )
     ctx = _browser.contexts[0]
     _page = ctx.pages[0] if ctx.pages else await ctx.new_page()
@@ -240,7 +240,7 @@ async def main() -> None:
         sys.exit(1)
 
     options = ClaudeAgentOptions(
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5-5",
         system_prompt=SYSTEM_PROMPT,
         mcp_servers={"steel": steel_server},
         allowed_tools=["mcp__steel__*"],

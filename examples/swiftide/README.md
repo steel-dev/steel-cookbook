@@ -2,7 +2,7 @@
 
 [Swiftide](https://swiftide.rs) is a Rust framework for LLM applications: indexing pipelines, query pipelines, and agents that loop over tool calls until they reach an answer. This recipe builds an agent whose only tool reads the web through Steel's `scrape` endpoint, so the model works from clean Markdown instead of raw HTML and never touches a browser library or CDP.
 
-The agent runs on Anthropic (`claude-sonnet-4-6`) and the tool is a `#[derive(Tool)]` struct that owns the Steel client:
+The agent runs on Anthropic (`claude-sonnet-4-6`) and the tool is a `#[derive(Tool)]` struct that owns the Steel client. It stays on Sonnet 4.6 because swiftide's Anthropic client, `async-anthropic` 0.6, can't parse the thinking blocks that Claude 5 models return by default:
 
 ```rust
 #[derive(Clone, swiftide::Tool)]
@@ -43,7 +43,7 @@ let mut agent = Agent::builder()
 agent.query(TASK).await?;
 ```
 
-`query` drives the loop: Claude reads the task, calls `read_page` on Hacker News, optionally follows one or two links the scrape returned, then calls the always-present `stop` tool when it has the answer. `.limit(8)` caps the round trips so a confused model can't loop forever. The `on_new_message` hook in `main` prints each assistant turn as it lands.
+`query` drives the loop: Claude reads the task, calls `read_page` on Hacker News, optionally follows one or two links the scrape returned, then calls the always-present `stop` tool when it has the answer. `.limit(8)` caps the round trips so a confused model cannot loop forever. The `on_new_message` hook in `main` prints each assistant turn as it lands.
 
 ## Run it
 
@@ -83,7 +83,7 @@ Steel's client methods are plain `async fn`s with `Send` futures, so `client.scr
 - **Swap the task.** Change `TASK` and `SYSTEM_PROMPT` in `main.rs`. The tool stays the same; the agent re-plans against the new goal.
 - **Give it more reach.** The tool already returns up to 40 of the page's links, which is what lets the model follow a story into its comments. Raise `.limit(8)` if you want it to crawl deeper, and widen or drop the link cap.
 - **Add a second tool.** A `screenshot` tool backed by `client.screenshot(...)` (returns a hosted image URL) or a `pdf` tool backed by `client.pdf(...)` drops in as another `#[derive(Tool)]` struct in the `tools(vec![...])` list. The agent picks per turn.
-- **Change the model.** Any Anthropic chat model works in `default_prompt_model`. Swiftide also ships OpenAI, Gemini, Groq, and Ollama integrations behind feature flags; swap the `Anthropic` builder for one of those and the tools are unaffected.
+- **Change the model.** Any Anthropic chat model that doesn't return thinking blocks works in `default_prompt_model`. Swiftide also ships OpenAI, Gemini, Groq, and Ollama integrations behind feature flags; swap the `Anthropic` builder for one of those and the tools are unaffected.
 
 ## Related
 

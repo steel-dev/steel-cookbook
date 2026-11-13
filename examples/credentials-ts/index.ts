@@ -4,14 +4,13 @@
  */
 
 import dotenv from "dotenv";
-import { setTimeout } from "node:timers/promises";
-import { writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import Steel from "steel-sdk";
 
 dotenv.config();
 
 const STEEL_API_KEY = process.env.STEEL_API_KEY || "your-steel-api-key-here";
+const ORIGIN = "https://practice.expandtesting.com";
 
 // Initialize Steel client with the API key from environment variables
 const client = new Steel({
@@ -36,22 +35,20 @@ async function main() {
   let browser;
 
   try {
-    console.log("\nCreating credential...");
-    await client.credentials
-      .create({
-        origin: "https://demo.testfire.net",
+    console.log("\nStoring credential...");
+    try {
+      await client.credentials.create({
+        origin: ORIGIN,
         value: {
-          username: "admin",
-          password: "admin",
+          username: "practice",
+          password: "SuperSecretPassword!",
         },
-      })
-      .catch((err) => {
-        if (err.error.message === "Credential already exists") {
-          console.log("Credential already exists, moving on.");
-          return;
-        }
-        throw err;
       });
+      console.log("Credential stored.");
+    } catch (err) {
+      if (!(err instanceof Steel.ConflictError)) throw err;
+      console.log("Credential already exists, moving on.");
+    }
 
     console.log("Creating Steel session...");
 
@@ -66,9 +63,7 @@ async function main() {
     );
 
     // Connect Playwright to the Steel session
-    browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
-    );
+    browser = await chromium.connectOverCDP(session.websocketUrl);
 
     console.log("Connected to browser via Playwright");
 
@@ -80,23 +75,11 @@ async function main() {
     // Your Automations Go Here!
     // ============================================================
 
-    //  Navigate to the demo website and wait for the page to load.
-    await page.goto("https://demo.testfire.net", {
-      waitUntil: "networkidle",
-    });
+    await page.goto(`${ORIGIN}/login`);
+    await page.waitForURL(`${ORIGIN}/secure`, { timeout: 20_000 });
 
-    // Navigate to the login page
-    await page.click("#AccountLink");
-
-    // Wait for the login to succeed
-    await setTimeout(2000);
-
-    const headingText = await page.textContent("h1");
-    if (headingText?.trim() === "Hello Admin User") {
-      console.log("Success, you are logged in");
-    } else {
-      console.log("Uh oh, something went wrong!");
-    }
+    const message = await page.locator("#flash b").innerText();
+    console.log(`Steel signed in. The site says: ${message}`);
 
     // ============================================================
     // End of Automations

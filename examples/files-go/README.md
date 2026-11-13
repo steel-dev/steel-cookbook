@@ -7,10 +7,11 @@ The upload takes an `io.Reader`, and the SDK assembles the multipart form for yo
 ```go
 uploaded, err := client.Sessions.Files.Upload(ctx, sess.ID, steel.SessionFileUploadParams{
 	File: steel.FileParam(bytes.NewReader(csvBytes), "stock.csv", "text/csv"),
+	Path: steel.F("stock.csv"),
 })
 ```
 
-`bytes.NewReader` wraps the raw `[]byte` you got from `os.ReadFile`. What comes back is a `*steel.File` whose `Path` is a handle inside the session VM (typically `stock.csv` at the sandbox root). That path is meaningless on your laptop, and your laptop's paths are meaningless inside the session. Keeping that distinction straight is the whole point.
+`bytes.NewReader` wraps the raw `[]byte` you got from `os.ReadFile`. `Path` names the file in the session. Steel does not use the filename that `steel.FileParam` carries, and without `Path` it names the file with a random ID. What comes back is a `*steel.File` whose `Path` is the file's place inside the session VM, `/files/stock.csv`. That path is meaningless on your laptop, and your laptop's paths are meaningless inside the session. Keeping that distinction straight is the whole point.
 
 ## Wiring a remote file into a DOM input
 
@@ -45,13 +46,13 @@ go run .
 
 Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The program prints a session viewer URL as it starts. Open it in another tab to watch the upload land and the chart render.
 
-Your output varies. Structure looks like this:
+Your output varies. One run printed:
 
 ```text
 Creating Steel session...
-Session created. Watch it live at https://app.steel.dev/sessions/ab12cd34...
+Session created. Watch it live at https://app.steel.dev/sessions/6e9e7824-592d-4165-ae2d-cf19ea9599a2
 Uploading stock.csv to the session...
-Uploaded. Path inside the session VM: stock.csv
+Uploaded. Path inside the session VM: /files/stock.csv
 Loading csvplot.com and feeding it the uploaded file...
 Saved chart to stock.png
 Releasing session...
@@ -61,10 +62,10 @@ Releasing session...
 
 ## Make it yours
 
-- **Upload from a URL.** `steel.FileParam` wraps bytes, but the underlying API also accepts a URL string for the file field. Pass `File: steel.Raw[io.Reader](url)` to fetch a report server-side and skip your machine entirely.
-- **Harvest generated files.** Swap the csvplot.com flow for a site that exports. After the download fires, call `client.Sessions.Files.List(ctx, sess.ID)` to discover the new path, then `client.Sessions.Files.Download(ctx, sess.ID, path)` to pull it back as an `*http.Response` whose `Body` streams the file.
-- **Target a nested path.** `SessionFileUploadParams` has an optional `Path` field. The default is the filename at the sandbox root; set `Path` with `steel.F` to nest the upload, for example under `inputs/`.
+- **Upload from a URL.** Steel can fetch a public `http://` or `https://` URL into the session, so the bytes skip your machine. The SDK's `File` field takes only file content, so send that request with `net/http`. The [Steel files docs](https://steel.dev/docs/features/files#keep-global-files) show the request in TypeScript and Python.
+- **Harvest generated files.** Swap the csvplot.com flow for a site that exports. After the download fires, call `client.Sessions.Files.List(ctx, sess.ID)` to discover the new path, then `client.Sessions.Files.Download(ctx, sess.ID, path)` with the path minus its `/files/` prefix to pull it back as an `*http.Response` whose `Body` streams the file.
+- **Target a nested path.** Set `Path: steel.F("inputs/stock.csv")` to put the file in a folder. Without `Path`, Steel gives the file a random ID as its name.
 
 ## Related
 
-[files-ts](../files-ts) and [files-py](../files-py) and [files-rs](../files-rs) for the same recipe in other languages. [chromedp](https://github.com/chromedp/chromedp) and its [cdproto/dom](https://pkg.go.dev/github.com/chromedp/cdproto/dom) package for the raw CDP surface used here.
+[files-ts](../files-ts) and [files-py](../files-py) and [files-rs](../files-rs) for the same recipe in other languages. The [Steel files docs](https://steel.dev/docs/features/files) cover session and global files. [chromedp](https://github.com/chromedp/chromedp) and its [cdproto/dom](https://pkg.go.dev/github.com/chromedp/cdproto/dom) package for the raw CDP surface used here.

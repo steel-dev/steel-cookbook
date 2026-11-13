@@ -7,7 +7,7 @@ Unlike a CDP-driven recipe, there is no browser session to open or release here.
 ```go
 chatModel, _ := claude.NewChatModel(ctx, &claude.Config{
     APIKey:    anthropicKey,
-    Model:     "claude-sonnet-4-6",
+    Model:     "claude-sonnet-5-5",
     MaxTokens: 2048,
 })
 

@@ -83,7 +83,7 @@ async def main():
             # use_proxy=True,              # Use Steel's proxy network (residential IPs)
             # proxy_url='http://...',      # Use your own proxy (format: protocol://username:password@host:port)
             # solve_captcha=True,          # Enable automatic CAPTCHA solving
-            # session_timeout=1800000,     # Session timeout in ms (default: 5 mins)
+            # api_timeout=900000,          # Session timeout in ms (default: 5 mins)
             # === Browser Configuration ===
             # user_agent='custom-ua',      # Set a custom User-Agent
         )
@@ -91,7 +91,7 @@ async def main():
         print(f"\033[1;93mSteel Session created!\033[0m")
         print(f"View session at \033[1;37m{session.session_viewer_url}\033[0m")
 
-        cdp_url = f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+        cdp_url = session.websocket_url
 
         # Stagehand v3: embedded local server drives a Steel-hosted browser over CDP.
         stagehand = AsyncStagehand(
@@ -102,7 +102,7 @@ async def main():
 
         print("Initializing Stagehand...")
         stagehand_session = await stagehand.sessions.start(
-            model_name="openai/gpt-5",
+            model_name="openai/gpt-6.1-sol",
             browser={
                 "type": "local",
                 "launchOptions": {

@@ -11,7 +11,7 @@ result = client.scrape(
 )
 ```
 
-The one detail worth internalizing: the response mixes inline data and hosted artifacts. `result.content.markdown` is a string you can write straight to a file. But `result.screenshot.url` and `result.pdf.url` are **hosted URLs**, not bytes. Steel renders the image and PDF, stores them, and returns links. So the recipe writes the markdown directly, then fetches the two URLs with `urllib` and saves the bytes. The `download` helper does the fetch; `main` wires the three writes.
+The one detail worth internalizing: the response mixes inline data and hosted artifacts. `result.content.markdown` is a string you can write straight to a file. But `result.screenshot.url` and `result.pdf.url` are **hosted URLs**, not bytes. Steel renders the image and PDF, stores them, and returns links. So the recipe writes the markdown directly, then fetches the two URLs with `httpx` and saves the bytes. The `download` helper does the fetch; `main` wires the three writes.
 
 Because there is no session object, there is no teardown. `client.sessions.release(...)` does not apply here. You pay for the render, the response comes back, and you are done. That makes scrape the lowest-friction way to pull a page into an agent's context: one call, structured output, no lifecycle to manage.
 
@@ -55,7 +55,7 @@ A scrape costs a few cents of browser time. You are billed per render, not per m
 
 ## How scrape differs from a browser session
 
-The other recipes in the cookbook connect a browser library (Playwright, Selenium) to a live Steel session over CDP, then drive clicks and reads themselves. That is the right tool when you need to log in, fill forms, or step through an app. Scrape is the right tool when you just want the page as it renders: one request in, content out, nothing to keep alive. If your agent's job is "read this URL," reach for scrape first and graduate to a session only when you need interaction.
+The other recipes in the cookbook connect a browser library (Playwright, Puppeteer) to a live Steel session over CDP, then drive clicks and reads themselves. That is the right tool when you need to sign in, fill forms, or step through an app. Scrape is the right tool when you just want the page as it renders: one request in, content out, nothing to keep alive. If your agent's job is "read this URL," reach for scrape first and graduate to a session only when you need interaction.
 
 ## Related
 

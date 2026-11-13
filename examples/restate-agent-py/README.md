@@ -51,7 +51,7 @@ Your output varies. Structure looks like this:
 The same session key keeps its `observations` list. Call the shared history handler to inspect it:
 
 ```bash
-curl localhost:8080/restate/call/ResearchSession/demo/history --json '{}'
+curl -X POST localhost:8080/restate/call/ResearchSession/demo/history
 ```
 
 ## Make it yours

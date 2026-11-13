@@ -1,9 +1,9 @@
 # Rod on a Steel browser (Go)
 
-Rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a websocket, so the CDP connection is the only seam you need: hand Rod a client dialed to the session's websocket URL with your key appended, and the rest of your code is ordinary Rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
+Rod talks the Chrome DevTools Protocol directly and exposes it through a chainable, panic-on-error API. A Steel session is a Chrome instance reachable over a WebSocket, so the CDP connection is the only seam you need: hand Rod a client dialed to the session's WebSocket URL, and the rest of your code is ordinary Rod against a browser that runs in Steel's cloud with stealth, proxies, and a live viewer. Nothing about the queries below knows or cares that the browser is remote.
 
 ```go
-cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, apiKey)
+cdpURL := session.WebsocketURL
 cdpClient, err := connectCDP(ctx, cdpURL)
 browser := rod.New().Client(cdpClient).MustConnect()
 defer browser.MustClose()
@@ -15,11 +15,11 @@ page := browser.MustPage("https://quotes.toscrape.com").MustWaitStable()
 
 ## The connect URL
 
-`session.WebsocketURL` already carries Steel's session identifier. The one thing you add is your API key as a query parameter, which is why the code formats `%s&apiKey=%s` rather than passing the URL through untouched. `connectCDP` dials exactly the URL you give it and does not rewrite the address, so the key has to be in the string before the dial. If you forget it, the websocket handshake is rejected and `connectCDP` returns an error before the first page loads.
+`session.WebsocketURL` already carries the session's ID and a token that authorizes the connection, so the code passes it through untouched. `connectCDP` dials exactly the URL you give it and does not rewrite the address. A client that drops the query string loses the token, and Steel rejects the WebSocket handshake before the first page loads.
 
-`connectCDP` exists because Rod's built-in websocket client is too minimal for Steel. Its handshake, the one `ControlURL` uses, sends the literal header `Sec-WebSocket-Key: nil`, which Steel answers with `400 Bad request`. Its reader also ignores frame types, so the close frame Steel sends when the browser or session ends lands in Rod's JSON decoder and crashes the process from a background goroutine, before the deferred `Release` can run. `connectCDP` dials with `github.com/gorilla/websocket` instead and wraps the connection in `cdpSocket`, a small adapter for Rod's two-method `cdp.WebSocketable` interface. A close frame then comes back from `Read` as an ordinary error (`websocket: close 1000 (normal)`), Rod returns it to any CDP call still waiting, and a normal shutdown exits cleanly.
+`connectCDP` exists because Rod's built-in WebSocket client is too minimal for Steel. Its handshake, the one `ControlURL` uses, sends the literal header `Sec-WebSocket-Key: nil`, which Steel answers with `400 Bad request`. Its reader also ignores frame types, so the close frame Steel sends when the browser or session ends lands in Rod's JSON decoder and crashes the process from a background goroutine, before the deferred `Release` can run. `connectCDP` dials with `github.com/gorilla/websocket` instead and wraps the connection in `cdpSocket`, a small adapter for Rod's two-method `cdp.WebSocketable` interface. A close frame then comes back from `Read` as an ordinary error (`websocket: close 1000 (normal)`), Rod returns it to any CDP call still waiting, and a normal shutdown exits cleanly.
 
-The session itself comes from the Steel SDK. `client.Sessions.New` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the websocket URL to connect, the viewer URL to print, and the ID to release at the end.
+The session itself comes from the Steel SDK. `client.Sessions.New` returns a `*Session` whose `WebsocketURL`, `SessionViewerURL`, and `ID` fields drive the rest of the program: the WebSocket URL to connect, the viewer URL to print, and the ID to release at the end.
 
 ```go
 session, err := client.Sessions.New(ctx, steel.SessionNewParams{
@@ -33,7 +33,7 @@ The one field worth setting deliberately on a longer job is `Timeout`. It is the
 
 ## The Must idiom
 
-The `Must` prefix is the whole style. `MustElement`, `MustText`, and `MustElements` panic instead of returning a `(value, error)` pair, which keeps a scrape readable as a straight line of selectors rather than an error check after every call. The trade is that a missing selector aborts the program, so the cleanup that releases the session has to run no matter how the scrape exits. That is what the two deferred calls in `main` are for: one closes the CDP connection, the other ends the Steel session.
+The `Must` prefix is the whole style. `MustElement`, `MustText`, and `MustElements` panic instead of returning a `(value, error)` pair, which keeps a scrape readable as a straight line of selectors rather than an error check after every call. The trade is that a missing selector aborts the program, so the cleanup that releases the session has to run no matter how the scrape exits. That is what the two deferred calls in `run` are for: one closes the CDP connection, the other ends the Steel session.
 
 `main.go` loads `quotes.toscrape.com` and pulls the first five quote cards off the page. For each `.quote` block it reads the quote text, the author, and the tag list:
 

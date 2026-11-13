@@ -14,7 +14,7 @@ SYSTEM = (
 )
 ```
 
-You.com Search returns LLM-shaped JSON for any web query (`$5/1k calls`). You.com Contents fetches up to ten URLs of clean Markdown in one round trip (`$1/1k pages`). Both run in milliseconds against a CDN. Steel's cloud browser is the slow, expensive option you reach for when the page needs a real Chromium: a click, a form submit, a JS-rendered table, an auth wall the Contents API can't see through. Routing the agent through this hierarchy keeps token spend, latency, and session billing low on the questions that don't need a browser.
+You.com Search returns LLM-shaped JSON for any web query (`$5/1k calls`). You.com Contents fetches up to ten URLs of clean Markdown in one round trip (`$1/1k pages`). Both run in milliseconds against a CDN. Steel's cloud browser is the slow, expensive option you reach for when the page needs a real Chromium: a click, a form submit, a JS-rendered table, an auth wall the Contents API cannot see through. Routing the agent through this hierarchy keeps token spend, latency, and session billing low on the questions that do not need a browser.
 
 ## The two tiers
 
@@ -48,7 +48,7 @@ async def _ensure_session() -> Page:
     _session = steel.sessions.create()
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.connect_over_cdp(
-        f"{_session.websocket_url}&apiKey={STEEL_API_KEY}"
+        _session.websocket_url
     )
     ...
     return _page
@@ -81,7 +81,6 @@ result = await executor.ainvoke({"input": question})
 cd examples/you-com-search
 cp .env.example .env          # set STEEL_API_KEY, ANTHROPIC_API_KEY, YDC_API_KEY
 uv sync
-uv run playwright install chromium
 uv run main.py
 ```
 
@@ -106,7 +105,7 @@ Releasing Steel session...
 Session released. Replay: https://app.steel.dev/sessions/...
 ```
 
-If the agent answers from search and contents alone, the `open_session`, `navigate`, and `snapshot` lines (and the release line) won't appear; the run ends with `No Steel session was opened (cheap path only).` instead. You.com bills per call (search and contents are cheap); Steel bills per session minute, which is why the lazy-open matters.
+If the agent answers from search and contents alone, the `open_session`, `navigate`, and `snapshot` lines (and the release line) will not appear; the run ends with `No Steel session was opened (cheap path only).` instead. You.com bills per call (search and contents are cheap); Steel bills per session minute, which is why the lazy-open matters.
 
 ## Make it yours
 
@@ -114,7 +113,7 @@ If the agent answers from search and contents alone, the `open_session`, `naviga
 - **Add more browser actions.** `click_text` is the minimum interactive primitive. Add `fill(selector, text)`, `press(key)`, `wait_for_selector`, or `scroll` when the agent needs to operate forms or trigger lazy-loaded content.
 - **Tighten the routing.** The `verbose=False` agent re-derives the routing each turn. For repeatable production flows, replace the agent with an explicit two-step pipeline: always run `youcom_search`, always run `youcom_contents` on the top hit, only call browser tools if a heuristic flag (response too short, contains "Please enable JavaScript", etc.) trips.
 - **Trace with LangSmith.** Set `LANGSMITH_API_KEY` and `LANGSMITH_TRACING=true` in `.env`. No code changes; every tool call shows up at [smith.langchain.com](https://smith.langchain.com).
-- **Swap the model.** `ChatOpenAI(model="gpt-5-mini")` works without touching the tools. The system prompt is generic.
+- **Swap the model.** `ChatOpenAI(model="gpt-6.1-terra")` works without touching the tools. The system prompt is generic.
 - **Self-host.** Both Steel (open-source browser infra) and the cookbook are deployable; the You.com APIs are remote. For a fully self-hostable variant, replace `youcom_contents` with a local extractor (Trafilatura, Readability) and a search frontend like SearXNG, and keep Steel for the browser tier.
 
 ## Related

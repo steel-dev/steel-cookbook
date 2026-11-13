@@ -20,7 +20,7 @@ import (
 	"github.com/steel-dev/sdk/go/option"
 )
 
-const model = "anthropic/claude-haiku-4-5"
+const model = "anthropic/claude-haiku-5-5"
 
 // browser holds the resources every tool shares. A single Steel session and one
 // chromedp tab are reused across tool calls, so the agent navigates and extracts
@@ -81,6 +81,13 @@ func main() {
 	fmt.Println("Steel + Genkit Go Starter")
 	fmt.Println("============================================================")
 
+	if err := run(steelKey); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(steelKey string) error {
 	ctx := context.Background()
 	client := steel.NewClient(option.WithSteelAPIKey(steelKey))
 
@@ -89,8 +96,7 @@ func main() {
 		Dimensions: steel.F(steel.SessionNewParamsDimensions{Width: steel.F(int64(1280)), Height: steel.F(int64(800))}),
 	})
 	if err != nil {
-		fmt.Printf("Failed to create session: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create session: %w", err)
 	}
 	fmt.Printf("Session: %s\n", session.SessionViewerURL)
 
@@ -106,8 +112,8 @@ func main() {
 	}()
 
 	// chromedp attaches to the exact websocket URL Steel returns. NoModifyURL
-	// stops chromedp rewriting it, which would drop the apiKey query param.
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", session.WebsocketURL, steelKey)
+	// stops chromedp rewriting it, which would drop the token in the query string.
+	cdpURL := session.WebsocketURL
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()
 	tab, cancelTab := chromedp.NewContext(allocCtx)
@@ -209,15 +215,13 @@ func main() {
 		ai.WithConfig(&anthropicsdk.MessageNewParams{MaxTokens: 4096}),
 	)
 	if err != nil {
-		fmt.Printf("\nAgent error: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("agent error: %w", err)
 	}
 
 	var out Report
 	if err := resp.Output(&out); err != nil {
-		fmt.Printf("\nCould not parse final report: %v\n", err)
 		fmt.Println(resp.Text())
-		os.Exit(1)
+		return fmt.Errorf("could not parse final report: %w", err)
 	}
 
 	fmt.Println("\nAgent finished.")
@@ -226,4 +230,5 @@ func main() {
 	if resp.Usage != nil {
 		fmt.Printf("\ntokens: %d in, %d out\n", resp.Usage.InputTokens, resp.Usage.OutputTokens)
 	}
+	return nil
 }

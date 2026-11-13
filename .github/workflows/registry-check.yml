@@ -7,6 +7,7 @@ on:
       - 'authors.yaml'
       - 'examples/**'
       - '.github/scripts/verify_registry.py'
+      - '.github/scripts/check_connect_urls.py'
   push:
     branches: [main]
     paths:
@@ -24,3 +25,4 @@ jobs:
           python-version: '3.11'
       - run: pip install pyyaml
       - run: python .github/scripts/verify_registry.py
+      - run: python .github/scripts/check_connect_urls.py

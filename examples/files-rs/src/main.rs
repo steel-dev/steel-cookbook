@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Session live at {}", session.session_viewer_url);
 
-    let result = run(&client, &session.id, &session.websocket_url, &api_key).await;
+    let result = run(&client, &session.id, &session.websocket_url).await;
 
     println!("Releasing session...");
     client.sessions().release(&session.id).await?;
@@ -38,29 +38,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
     result
 }
 
-async fn run(
-    client: &Client,
-    session_id: &str,
-    websocket_url: &str,
-    api_key: &str,
-) -> Result<(), Box<dyn Error>> {
+async fn run(client: &Client, session_id: &str, websocket_url: &str) -> Result<(), Box<dyn Error>> {
     let bytes = std::fs::read("./assets/stock.csv")?;
-    println!("Uploading stock.csv ({} bytes) to the session...", bytes.len());
+    println!(
+        "Uploading stock.csv ({} bytes) to the session...",
+        bytes.len()
+    );
 
     let uploaded = client
         .sessions()
         .files()
         .upload(
             session_id,
-            SessionFileUploadParams::new(
-                Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
-            ),
+            SessionFileUploadParams {
+                path: Some("stock.csv".into()),
+                ..SessionFileUploadParams::new(
+                    Upload::from_bytes("stock.csv", bytes).with_content_type("text/csv"),
+                )
+            },
         )
         .await?;
 
     println!("Uploaded. Path inside the session VM: {}", uploaded.path);
 
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+    let raw = websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])

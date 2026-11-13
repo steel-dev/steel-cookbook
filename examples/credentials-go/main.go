@@ -9,14 +9,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
 	"github.com/joho/godotenv"
 	steel "github.com/steel-dev/sdk/go"
 	"github.com/steel-dev/sdk/go/option"
 )
 
-const origin = "https://demo.testfire.net"
+const origin = "https://practice.expandtesting.com"
 
 func main() {
 	_ = godotenv.Load()
@@ -44,21 +43,17 @@ func evalString(ctx context.Context, expr string) string {
 	return out
 }
 
-// waitForAutofill polls the login form until Steel injects the vaulted username,
-// before the credential's auto-submit navigates away.
-func waitForAutofill(out *string, selector string) chromedp.Action {
-	expr := fmt.Sprintf(`(document.querySelector(%q) ? document.querySelector(%q).value : "").trim()`, selector, selector)
+func waitForPath(path string) chromedp.Action {
 	return chromedp.ActionFunc(func(ctx context.Context) error {
 		for i := 0; i < 100; i++ {
-			if v := evalString(ctx, expr); v != "" {
-				*out = v
+			if evalString(ctx, "location.pathname") == path {
 				return nil
 			}
 			if err := chromedp.Sleep(200 * time.Millisecond).Do(ctx); err != nil {
 				return err
 			}
 		}
-		return nil
+		return fmt.Errorf("the page never reached %s", path)
 	})
 }
 
@@ -78,7 +73,7 @@ func run(apiKey string) error {
 	} else {
 		if _, err := client.Credentials.New(ctx, steel.CredentialNewParams{
 			Origin: steel.F(origin),
-			Value:  steel.F(map[string]string{"username": "admin", "password": "admin"}),
+			Value:  steel.F(map[string]string{"username": "practice", "password": "SuperSecretPassword!"}),
 		}); err != nil {
 			return fmt.Errorf("create credential: %w", err)
 		}
@@ -101,7 +96,7 @@ func run(apiKey string) error {
 		}
 	}()
 
-	cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+	cdpURL := sess.WebsocketURL
 
 	allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 	defer cancelAlloc()
@@ -112,23 +107,18 @@ func run(apiKey string) error {
 	runCtx, cancelRun := context.WithTimeout(browserCtx, 60*time.Second)
 	defer cancelRun()
 
-	fmt.Println("Opening the login page; Steel auto-fills it from the vault...")
-	var filledUser string
+	fmt.Println("Opening the login page; Steel fills and submits it from the vault...")
+	var message string
 	err = chromedp.Run(runCtx,
-		security.Enable(),
-		security.SetIgnoreCertificateErrors(true),
-		chromedp.Navigate(origin+"/login.jsp"),
-		waitForAutofill(&filledUser, "#uid"),
+		chromedp.Navigate(origin+"/login"),
+		waitForPath("/secure"),
+		chromedp.Text("#flash b", &message, chromedp.ByQuery),
 	)
 	if err != nil {
 		return fmt.Errorf("run tasks: %w", err)
 	}
 
-	if filledUser != "" {
-		fmt.Printf("Success: Steel auto-filled the login form with %q from the vault, no credentials in this code.\n", filledUser)
-	} else {
-		fmt.Println("Uh oh, the login form was not auto-filled.")
-	}
+	fmt.Printf("Steel signed in. The site says: %s\n", message)
 
 	return nil
 }

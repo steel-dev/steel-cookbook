@@ -1,9 +1,9 @@
 # chromedp + Steel (Go)
 
-chromedp speaks the Chrome DevTools Protocol over a websocket and never shells out to a local Chrome. A Steel session exposes exactly that websocket, so `chromedp.NewRemoteAllocator` points at the remote browser and every `chromedp.Run` step executes in the cloud, behind Steel's stealth, proxies, and live viewer. No browser on your machine.
+chromedp speaks the Chrome DevTools Protocol over a WebSocket and never shells out to a local Chrome. A Steel session exposes exactly that WebSocket, so `chromedp.NewRemoteAllocator` points at the remote browser and every `chromedp.Run` step executes in the cloud, behind Steel's stealth, proxies, and live viewer. No browser on your machine.
 
 ```go
-cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+cdpURL := sess.WebsocketURL
 
 allocCtx, cancelAlloc := chromedp.NewRemoteAllocator(ctx, cdpURL, chromedp.NoModifyURL)
 defer cancelAlloc()
@@ -12,7 +12,7 @@ browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
 defer cancelBrowser()
 ```
 
-`NoModifyURL` is the one detail that matters here. By default chromedp probes `/json/version` and rewrites the websocket it gets back. Steel already hands you the exact browser endpoint with its auth query string attached, so rewriting it breaks the connection. The flag tells chromedp to dial the URL verbatim.
+`NoModifyURL` is the one detail that matters here. By default chromedp probes `/json/version` and rewrites the WebSocket it gets back. Steel already hands you the exact browser endpoint with its auth query string attached, so rewriting it breaks the connection. The flag tells chromedp to dial the URL verbatim.
 
 After that it is plain chromedp. `run` builds one task list and ships it in a single `chromedp.Run`: navigate, wait for the story rows, pull data out, screenshot.
 

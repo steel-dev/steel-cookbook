@@ -1,20 +1,20 @@
 # Gemini Computer Use (Rust)
 
-There is no official Gemini Rust SDK, so this port talks to the `generateContent` REST endpoint directly over `reqwest`. The request body is a hand-built `serde_json::Value`: `contents` accumulates the conversation turn by turn, and `tools` carries a single `{ "computerUse": { "environment": "ENVIRONMENT_BROWSER" } }` entry that switches Gemini into its built-in computer-use vocabulary. The browser itself is a Steel cloud session driven through the `steel-rs` crate, the same `sessions().computer(...)` surface the Anthropic and OpenAI Rust recipes use.
+There is no official Gemini Rust SDK, so this port talks to the `generateContent` REST endpoint directly over `reqwest`. The request body is a hand-built `serde_json::Value`: `contents` accumulates the conversation turn by turn, and `tools` carries a single `computerUse` entry with `"environment": "ENVIRONMENT_BROWSER"` that switches Gemini into its built-in computer-use vocabulary. Its `excludedPredefinedFunctions` list removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform. The browser itself is a Steel cloud session driven through the `steel-rs` crate, the same `sessions().computer(...)` surface the Anthropic and OpenAI Rust recipes use.
 
-The model is `gemini-3-flash-preview`, the viewport is 1440x900, and the agent caps out at 50 iterations.
+The model is `gemini-4-hydrogen` at the `LOW` thinking level, the viewport is 1440x900, and the agent caps out at 50 iterations.
 
 ## REST plumbing and coordinates
 
 Everything in the request and response is camelCase JSON, so the two response structs (`Candidate`, `GenerateContentResponse`) carry `#[serde(rename_all = "camelCase")]` and the rest is read straight off `serde_json::Value` with `.get(...)`. Auth is the `x-goog-api-key` header rather than a bearer token.
 
-Gemini plans on a fixed 0-1000 grid regardless of the real viewport. `denormalize_x` and `denormalize_y` scale those numbers back to pixels off `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` before any coordinate reaches Steel. Several actions are compound and get expanded locally: `type_text_at` fans into click, Ctrl+A, Backspace, type, optional Enter, and a wait; `navigate` and `search` skip the address-bar hunt with the Chrome `Ctrl+L` trick (focus the bar, type the URL, press Enter, wait). `key_combination` arrives as a `+`-joined string such as `"Control+Enter"`, which `split_keys` and `normalize_key` break apart and rewrite to canonical names (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
+Gemini plans on a fixed 0-1000 grid regardless of the real viewport. `denormalize_x` and `denormalize_y` scale those numbers back to pixels off `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` before any coordinate reaches Steel. Every call carries an `intent` string that says why the model chose it. Some actions are compound and get expanded locally: `type` sends the text, then Enter if `press_enter` is true, then waits; `navigate` skips the address-bar hunt with the Chrome `Ctrl+L` trick (focus the bar, type the URL, press Enter, wait). `hotkey` arrives as a list such as `["Control", "Enter"]`, and `normalize_key` rewrites each name to its canonical form (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
 
 ## Sending frames back
 
-In REST the screenshot stays a base64 string the whole way through. Each completed call appends two parts to a single user-role turn: a `functionResponse` naming the call and echoing the current URL, then an `inlineData` part with `mimeType` `image/png` and the base64 PNG as `data`. The bytes are never decoded.
+In REST the screenshot stays a base64 string the whole way through. Each completed call appends two parts to a single user-role turn: a `functionResponse` naming the call and echoing the current URL, then an `inlineData` part with `mimeType` `image/png` and the base64 PNG as `data`. The bytes are never decoded. An action the agent cannot run adds an `error` field to the `functionResponse`, so the model can pick another action.
 
-The loop has four exits: a text-only turn (the model wrote its final answer), three empty turns in a row, a `MALFORMED_FUNCTION_CALL` finish reason with nothing else (a known preview-model quirk, retried on the next iteration), and the 50-iteration cap. A call may carry a `safety_decision` arg requesting confirmation; the agent logs it and auto-acknowledges before running the action.
+The loop has four exits: a text-only turn (the model wrote its final answer), three empty turns in a row, a `MALFORMED_FUNCTION_CALL` finish reason with nothing else (the model produced a call it could not format, so the loop retries on the next iteration), and the 50-iteration cap. A call may carry a `safety_decision` arg requesting confirmation; the agent logs it and auto-acknowledges before running the action.
 
 ## Run it
 
@@ -43,10 +43,9 @@ Steel session started!
 Executing task: Go to Steel.dev and find the latest news
 ============================================================
 
-I'll navigate to steel.dev and scan the landing page for news.
-navigate({"url":"https://steel.dev"})
-scroll_document({"direction":"down"})
-click_at({"x":520,"y":410})
+take_screenshot({"intent":"Check initial screen"})
+navigate({"intent":"Go to steel.dev","url":"https://steel.dev"})
+click({"intent":"Click on announcements/news banner at the top","x":495,"y":115})
 Steel's latest release adds ...
 
 ============================================================
@@ -61,16 +60,17 @@ Releasing Steel session...
 Session completed. View replay at https://app.steel.dev/sessions/ab12cd34...
 ```
 
-Expect roughly 60 to 120 seconds and 15 to 40 turns for a simple browsing task.
+Expect roughly 40 to 80 seconds and 4 to 7 turns for a simple browsing task.
 
 ## Make it yours
 
 - **Resize the viewport.** `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` feed both the Steel session `dimensions` and the `denormalize_x` / `denormalize_y` math, so they stay in sync.
-- **Swap the model.** `GEMINI_URL` is the only place the version string `gemini-3-flash-preview` appears.
+- **Swap the model.** `GEMINI_URL` is the only place the version string `gemini-4-hydrogen` appears. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
+- **Raise the thinking level.** `call_gemini` sends `"thinkingLevel": "LOW"`, which keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40 seconds to 2 minutes.
 - **Tune the system prompt.** `browser_system_prompt` carries the browsing conventions: today's date via `format_today`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledge branch with a human approval before the next `execute_computer_action` fires.
 - **Cap the run.** `MAX_ITERATIONS` bounds the loop; lower it for cheaper experiments.
 
 ## Related
 
-[Gemini computer use docs](https://ai.google.dev/gemini-api/docs/computer-use) · [TypeScript version](../gemini-computer-use-ts) · [Python version](../gemini-computer-use-py) · [Anthropic equivalent](../claude-computer-use-rs) · [OpenAI equivalent](../openai-computer-use-rs)
+[Gemini computer use docs](https://aistudio.google.com/docs/computer-use) · [TypeScript version](../gemini-computer-use-ts) · [Python version](../gemini-computer-use-py) · [Anthropic equivalent](../claude-computer-use-rs) · [OpenAI equivalent](../openai-computer-use-rs)

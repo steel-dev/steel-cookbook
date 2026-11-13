@@ -13,7 +13,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from steel import Steel
 from anthropic import Anthropic
-from anthropic.types.beta import BetaMessageParam
+from anthropic.types import MessageParam
 
 load_dotenv(override=True)
 
@@ -28,7 +28,7 @@ def format_today() -> str:
 
 BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   - You control a headful Chromium browser running in a VM with internet access.
-  - Chromium is already open; interact only through the "computer" tool (mouse, keyboard, scroll, screenshots).
+  - Chromium is already open; interact only through the computer tools (mouse, keyboard, scroll, screenshots).
   - Today's date is {format_today()}.
   </BROWSER_ENV>
   
@@ -37,7 +37,7 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   - When typing into any input:
     * Clear it first with Ctrl+A, then Delete.
     * After submitting (pressing Enter or clicking a button), take an extra screenshot to confirm the result and move the mouse away.
-  - Computer tool calls are slow; batch related actions into a single call whenever possible.
+  - Each turn is slow; send related actions together in one turn whenever possible.
   - You may act on the user's behalf on sites where they are already authenticated.
   - Assume any required authentication/Auth Contexts are already configured before the task starts.
   - If the first screenshot is black:
@@ -59,30 +59,41 @@ BROWSER_SYSTEM_PROMPT = f"""<BROWSER_ENV>
   </TASK_EXECUTION>"""
 
 
+NOT_EXECUTED = "Not executed: an earlier computer action in this turn failed."
+
+SCROLL_DELTAS = {
+    "up": (0, -100),
+    "down": (0, 100),
+    "left": (-100, 0),
+    "right": (100, 0),
+}
+
+
 class Agent:
     def __init__(self):
         self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
-        self.model = "claude-opus-4-7"
-        self.messages: List[BetaMessageParam] = []
+        self.model = "claude-opus-5-5"
+        self.messages: List[MessageParam] = []
         self.session = None
 
         self.viewport_width = 1280
         self.viewport_height = 768
+        self.cursor = (self.viewport_width // 2, self.viewport_height // 2)
 
         self.system_prompt = BROWSER_SYSTEM_PROMPT
         self.tools = [
             {
-                "type": "computer_20251124",
-                "name": "computer",
-                "display_width_px": self.viewport_width,
-                "display_height_px": self.viewport_height,
-                "display_number": 1,
+                "type": "computer_toolset_20260801",
+                "configs": {
+                    "zoom": {"enabled": False},
+                    "triple_click": {"enabled": False},
+                    "left_mouse_down": {"enabled": False},
+                    "left_mouse_up": {"enabled": False},
+                    "hold_key": {"enabled": False},
+                },
             }
         ]
-
-    def center(self) -> Tuple[int, int]:
-        return (self.viewport_width // 2, self.viewport_height // 2)
 
     def split_keys(self, k: Optional[str]) -> List[str]:
         return [s.strip() for s in k.split("+")] if k else []
@@ -153,240 +164,137 @@ class Agent:
                 f"Session completed. View replay at {self.session.session_viewer_url}"
             )
 
-    def take_screenshot(self) -> str:
-        resp = self.steel.sessions.computer(self.session.id, action="take_screenshot")
-        img = getattr(resp, "base64_image", None)
-        if not img:
-            raise RuntimeError("No screenshot returned from Input API")
-        return img
+    def act(self, **body):
+        resp = self.steel.sessions.computer(self.session.id, **body)
+        if resp.error:
+            raise RuntimeError(resp.error)
+        return resp
 
-    def execute_computer_action(
-        self,
-        action: str,
-        text: Optional[str] = None,
-        coordinate: Optional[Tuple[int, int]] = None,
-        scroll_direction: Optional[str] = None,
-        scroll_amount: Optional[int] = None,
-        duration: Optional[float] = None,
-        key: Optional[str] = None,
-    ) -> str:
-        if (
-            coordinate
-            and isinstance(coordinate, (list, tuple))
-            and len(coordinate) == 2
-        ):
-            coords = (int(coordinate[0]), int(coordinate[1]))
-        else:
-            coords = self.center()
+    def take_screenshot(self) -> dict:
+        resp = self.act(action="take_screenshot")
+        if not resp.base64_image:
+            raise RuntimeError("Steel returned no screenshot")
+        return {
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": resp.base64_image,
+            },
+        }
 
-        body: Optional[dict] = None
+    def point(self, coordinate) -> List[int]:
+        if coordinate:
+            self.cursor = (int(coordinate[0]), int(coordinate[1]))
+        return [self.cursor[0], self.cursor[1]]
 
-        if action == "mouse_move":
-            body = {
-                "action": "move_mouse",
-                "coordinates": [coords[0], coords[1]],
-                "screenshot": True,
-            }
-            hk = self.split_keys(key)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action in ("left_mouse_down", "left_mouse_up"):
+    def run_member(self, name: str, tool_input: dict) -> str:
+        if name == "mouse_move":
+            self.act(
+                action="move_mouse",
+                coordinates=self.point(tool_input.get("coordinate")),
+            )
+        elif name in ("left_click", "right_click", "middle_click", "double_click"):
+            if tool_input.get("text"):
+                raise ValueError(
+                    "Holding modifier keys during a click is not supported"
+                )
             body = {
                 "action": "click_mouse",
-                "button": "left",
-                "click_type": "down" if action == "left_mouse_down" else "up",
-                "coordinates": [coords[0], coords[1]],
-                "screenshot": True,
+                "button": {"right_click": "right", "middle_click": "middle"}.get(
+                    name, "left"
+                ),
+                "coordinates": self.point(tool_input.get("coordinate")),
             }
-            hk = self.split_keys(key)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action in (
-            "left_click",
-            "right_click",
-            "middle_click",
-            "double_click",
-            "triple_click",
-        ):
-            button_map = {
-                "left_click": "left",
-                "right_click": "right",
-                "middle_click": "middle",
-                "double_click": "left",
-                "triple_click": "left",
-            }
-            clicks = (
-                2 if action == "double_click" else 3 if action == "triple_click" else 1
-            )
-            body = {
-                "action": "click_mouse",
-                "button": button_map[action],
-                "coordinates": [coords[0], coords[1]],
-                "screenshot": True,
-            }
-            if clicks > 1:
-                body["num_clicks"] = clicks
-            hk = self.split_keys(key)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action == "left_click_drag":
-            start_x, start_y = self.center()
-            end_x, end_y = coords
-            body = {
-                "action": "drag_mouse",
-                "path": [[start_x, start_y], [end_x, end_y]],
-                "screenshot": True,
-            }
-            hk = self.split_keys(key)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action == "scroll":
-            step = 100
-            dx_dy = {
-                "down": (0, step * (scroll_amount or 0)),
-                "up": (0, -step * (scroll_amount or 0)),
-                "right": (step * (scroll_amount or 0), 0),
-                "left": (-(step * (scroll_amount or 0)), 0),
-            }
-            dx, dy = dx_dy.get(
-                scroll_direction or "down", (0, step * (scroll_amount or 0))
-            )
-            body = {
-                "action": "scroll",
-                "coordinates": [coords[0], coords[1]],
-                "delta_x": dx,
-                "delta_y": dy,
-                "screenshot": True,
-            }
-            hk = self.split_keys(text)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action == "hold_key":
-            keys = self.split_keys(text or "")
-            keys = self.normalize_keys(keys)
-            body = {
-                "action": "press_key",
-                "keys": keys or [],
-                "duration": duration,
-                "screenshot": True,
-            }
-
-        elif action == "key":
-            keys = self.split_keys(text or "")
-            keys = self.normalize_keys(keys)
-            body = {
-                "action": "press_key",
-                "keys": keys or [],
-                "screenshot": True,
-            }
-
-        elif action == "type":
-            body = {
-                "action": "type_text",
-                "text": text,
-                "screenshot": True,
-            }
-            hk = self.split_keys(key)
-            if hk:
-                body["hold_keys"] = hk
-
-        elif action == "wait":
-            body = {
-                "action": "wait",
-                "duration": duration,
-                "screenshot": True,
-            }
-
-        elif action == "screenshot":
-            return self.take_screenshot()
-
-        elif action == "cursor_position":
-            self.steel.sessions.computer(self.session.id, action="get_cursor_position")
-            return self.take_screenshot()
-
+            if name == "double_click":
+                body["num_clicks"] = 2
+            self.act(**body)
+        elif name == "left_click_drag":
+            start = tool_input.get("start_coordinate")
+            end = tool_input.get("coordinate")
+            if not start or not end:
+                raise ValueError(
+                    "left_click_drag needs start_coordinate and coordinate"
+                )
+            self.act(action="drag_mouse", path=[list(start), list(end)])
+            self.point(end)
+        elif name == "scroll":
+            if tool_input.get("text"):
+                raise ValueError(
+                    "Holding modifier keys during a scroll is not supported"
+                )
+            dx, dy = SCROLL_DELTAS[tool_input.get("scroll_direction") or "down"]
+            coordinates = self.point(tool_input.get("coordinate"))
+            for _ in range(max(1, tool_input.get("scroll_amount") or 1)):
+                self.act(
+                    action="scroll", coordinates=coordinates, delta_x=dx, delta_y=dy
+                )
+        elif name == "type":
+            self.act(action="type_text", text=tool_input.get("text") or "")
+        elif name == "key":
+            keys = self.normalize_keys(self.split_keys(tool_input.get("text")))
+            for _ in range(max(1, tool_input.get("repeat") or 1)):
+                self.act(action="press_key", keys=keys)
+        elif name == "wait":
+            self.act(action="wait", duration=tool_input.get("duration") or 1)
+        elif name == "cursor_position":
+            resp = self.act(action="get_cursor_position")
+            return resp.output or f"{self.cursor[0]}, {self.cursor[1]}"
         else:
-            raise ValueError(f"Invalid action: {action}")
-
-        clean_body = {k: v for k, v in body.items() if v is not None}
-        resp = self.steel.sessions.computer(self.session.id, **clean_body)
-        img = getattr(resp, "base64_image", None)
-        if img:
-            return img
-        return self.take_screenshot()
+            raise ValueError(f"Unsupported action: {name}")
+        return "OK"
 
     def process_response(self, message) -> Tuple[str, bool]:
-        response_text = ""
-        has_actions = False
-        tool_results = []
+        self.messages.append({"role": "assistant", "content": message.content})
 
-        assistant_content = []
+        response_text = ""
+        calls = []
         for block in message.content:
             if block.type == "text":
                 response_text += block.text
                 print(block.text)
-                assistant_content.append({"type": "text", "text": block.text})
-            elif block.type == "tool_use":
-                has_actions = True
-                assistant_content.append(
-                    {
-                        "type": "tool_use",
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    }
-                )
-                tool_name = block.name
-                tool_input = block.input
-                print(f"{tool_name}({json.dumps(tool_input)})")
-                if tool_name == "computer":
-                    action = tool_input.get("action")
-                    try:
-                        screenshot_base64 = self.execute_computer_action(
-                            action=action,
-                            text=tool_input.get("text"),
-                            coordinate=tool_input.get("coordinate"),
-                            scroll_direction=tool_input.get("scroll_direction"),
-                            scroll_amount=tool_input.get("scroll_amount"),
-                            duration=tool_input.get("duration"),
-                            key=tool_input.get("key"),
-                        )
-                        tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": [
-                                    {
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": "image/png",
-                                            "data": screenshot_base64,
-                                        },
-                                    }
-                                ],
-                            }
-                        )
-                    except Exception as e:
-                        print(f"Error executing {action}: {e}")
-                        tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": f"Error executing {action}: {e}",
-                                "is_error": True,
-                            }
-                        )
+            elif block.type == "tool_use" and block.toolset_name == "computer":
+                calls.append(block)
 
-        self.messages.append({"role": "assistant", "content": assistant_content})
-        if tool_results:
-            self.messages.append({"role": "user", "content": tool_results})
+        if not calls:
+            return response_text, False
 
-        return response_text, has_actions
+        results = []
+        failed = False
+        for call in calls:
+            print(f"{call.name}({json.dumps(call.input)})")
+            result = {
+                "type": "tool_result",
+                "tool_use_id": call.id,
+                "toolset_name": "computer",
+            }
+            if failed:
+                result["content"] = NOT_EXECUTED
+                result["is_error"] = True
+            else:
+                try:
+                    if call.name == "screenshot":
+                        result["content"] = [self.take_screenshot()]
+                    else:
+                        result["content"] = [
+                            {
+                                "type": "text",
+                                "text": self.run_member(call.name, call.input),
+                            }
+                        ]
+                except Exception as e:
+                    print(f"Error executing {call.name}: {e}")
+                    result["content"] = f"Error: {e}"
+                    result["is_error"] = True
+                    failed = True
+            results.append(result)
+
+        if not failed and calls[-1].name != "screenshot":
+            results[-1]["content"].append(self.take_screenshot())
+
+        self.messages.append({"role": "user", "content": results})
+
+        return response_text, True
 
     def execute_task(
         self,
@@ -394,10 +302,7 @@ class Agent:
         print_steps: bool = True,
         max_iterations: int = 50,
     ) -> str:
-        self.messages = [
-            {"role": "user", "content": self.system_prompt},
-            {"role": "user", "content": task},
-        ]
+        self.messages = [{"role": "user", "content": task}]
 
         iterations = 0
         last_assistant_messages: List[str] = []
@@ -421,7 +326,9 @@ class Agent:
                 return content
             if isinstance(content, list):
                 return "".join(
-                    b.get("text", "") for b in content if b.get("type") == "text"
+                    getattr(b, "text", "")
+                    for b in content
+                    if getattr(b, "type", None) == "text"
                 )
             return ""
 
@@ -444,13 +351,18 @@ class Agent:
                             last_assistant_messages.pop(0)
 
             try:
-                response = self.client.beta.messages.create(
+                response = self.client.messages.create(
                     model=self.model,
-                    max_tokens=4096,
+                    max_tokens=16000,
+                    system=self.system_prompt,
                     messages=self.messages,
                     tools=self.tools,
-                    betas=["computer-use-2025-11-24"],
                 )
+
+                if response.stop_reason == "refusal":
+                    print("Claude declined to continue this task")
+                    final_text = "Claude declined to continue this task"
+                    break
 
                 text, has_actions = self.process_response(response)
 

@@ -31,7 +31,7 @@ Wiring the agent is one builder chain:
 
 ```rust
 let agent = anthropic::Client::new(&anthropic_api_key)?
-    .agent("claude-sonnet-4-6")
+    .agent("claude-sonnet-5-5")
     .preamble(SYSTEM_PROMPT)
     .max_tokens(2048)
     .tool(Navigate { page: page.clone() })

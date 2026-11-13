@@ -6,7 +6,7 @@
 
 A collection of production-ready examples demonstrating how to build powerful browser automations with Steel. From basic Playwright scripts to advanced AI agent workflows, these examples show you how to leverage Steel's cloud browser infrastructure for reliable, scalable web automation.
 
-* **Basics:** Essential examples covering browser automation fundamentals with popular frameworks like Playwright, Puppeteer, and Selenium.
+* **Basics:** Essential examples covering browser automation fundamentals with popular frameworks like Playwright and Puppeteer.
 
 * **AI Agents:** AI-powered browser automation using computer use models (Claude, OpenAI, Gemini) and specialized agent frameworks (Browser-use, Stagehand, CrewAI).
 
@@ -31,7 +31,6 @@ Foundation examples for browser automation with Steel. Start here if you're new 
 |--------------|-----------|
 | <a id="playwright">Playwright Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/playwright-ts) [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/playwright-py) [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/playwright-go) |
 | <a id="puppeteer">Puppeteer Integration</a> | [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](examples/puppeteer-ts) |
-| <a id="selenium">Selenium Integration</a> | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24">](examples/selenium) |
 | <a id="chromedp">chromedp (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/chromedp) |
 | <a id="rod">Rod (Go)</a> | [<img src="https://skillicons.dev/icons?i=go" width="24" height="24">](examples/rod) |
 | <a id="chromiumoxide">chromiumoxide (Rust)</a> | [<img src="https://skillicons.dev/icons?i=rust" width="24" height="24">](examples/chromiumoxide) |
@@ -147,7 +146,6 @@ Steel platform features that enhance your browser automation workflows with pers
 
 **Basics**
 - [Playwright](examples/playwright-py) - Playwright with Python
-- [Selenium](examples/selenium) - Selenium WebDriver integration
 - [Temporal Browser Workflow](examples/temporal-browser-workflow-py) - Durable batch capture with Temporal activities and Steel scraping
 
 **AI Computer Use**

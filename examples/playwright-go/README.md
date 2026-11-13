@@ -1,9 +1,9 @@
 # playwright-go + Steel (Go)
 
-playwright-go exposes `pw.Chromium.ConnectOverCDP`, which attaches to any Chrome speaking the DevTools Protocol. A Steel session is exactly that: a remote Chrome reachable over a websocket. Hand the connect call the session's websocket URL with your key appended and the rest is ordinary Playwright, running against a browser in Steel's cloud with stealth, proxies, and a live viewer.
+playwright-go exposes `pw.Chromium.ConnectOverCDP`, which attaches to any Chrome speaking the DevTools Protocol. A Steel session is exactly that: a remote Chrome reachable over a WebSocket. Hand the connect call the session's WebSocket URL, and the rest is ordinary Playwright, running against a browser in Steel's cloud with stealth, proxies, and a live viewer.
 
 ```go
-cdpURL := fmt.Sprintf("%s&apiKey=%s", sess.WebsocketURL, apiKey)
+cdpURL := sess.WebsocketURL
 browser, err := pw.Chromium.ConnectOverCDP(cdpURL)
 
 page := browser.Contexts()[0].Pages()[0]

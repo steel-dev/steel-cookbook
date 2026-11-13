@@ -5,14 +5,14 @@ https://github.com/steel-dev/steel-cookbook/tree/main/examples/credentials-py
 
 import os
 import sys
-import time
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from steel import Steel, APIError
+from steel import ConflictError, Steel
 
 load_dotenv()
 
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
+ORIGIN = "https://practice.expandtesting.com"
 
 client = Steel(
     steel_api_key=STEEL_API_KEY,
@@ -32,17 +32,15 @@ def main():
     browser = None
 
     try:
-        print("\nCreating credential...")
+        print("\nStoring credential...")
         try:
             client.credentials.create(
-                origin="https://demo.testfire.net",
-                value={"username": "admin", "password": "admin"},
+                origin=ORIGIN,
+                value={"username": "practice", "password": "SuperSecretPassword!"},
             )
-        except APIError as err:
-            if "Credential already exists" in str(getattr(err, "message", err)):
-                print("Credential already exists, moving on.")
-            else:
-                raise
+            print("Credential stored.")
+        except ConflictError:
+            print("Credential already exists, moving on.")
 
         print("Creating Steel session...")
 
@@ -57,7 +55,7 @@ def main():
 
         playwright = sync_playwright().start()
         browser = playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
 
         print("Connected to browser via Playwright")
@@ -69,17 +67,11 @@ def main():
         # Your Automations Go Here!
         # ============================================================
 
-        page.goto("https://demo.testfire.net", wait_until="networkidle")
+        page.goto(f"{ORIGIN}/login")
+        page.wait_for_url(f"{ORIGIN}/secure", timeout=20_000)
 
-        page.click("#AccountLink")
-
-        time.sleep(2)
-
-        heading_text = page.text_content("h1")
-        if heading_text and heading_text.strip() == "Hello Admin User":
-            print("Success, you are logged in")
-        else:
-            print("Uh oh, something went wrong!")
+        message = page.locator("#flash b").inner_text()
+        print(f"Steel signed in. The site says: {message}")
 
         # ============================================================
         # End of Automations

@@ -9,10 +9,13 @@ import type { Browser, Page } from "playwright";
 import { Steel } from "steel-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type {
-  BetaMessageParam,
-  BetaToolResultBlockParam,
-  BetaMessage,
-} from "@anthropic-ai/sdk/resources/beta/messages/messages";
+  ImageBlockParam,
+  Message,
+  MessageParam,
+  ToolResultBlockParam,
+  ToolUnion,
+  ToolUseBlock,
+} from "@anthropic-ai/sdk/resources/messages/messages";
 
 dotenv.config();
 
@@ -35,7 +38,7 @@ const SYSTEM_PROMPT = `You are an expert browser automation assistant operating 
 * You can tap, type, scroll, take screenshots, and interact with mobile web elements  
 * You have full internet access and can visit any public website
 * You can read content, fill forms, search for information, and perform complex multi-step tasks
-* After each action, you receive a screenshot showing the current state
+* After each turn of actions, you receive a screenshot showing the current state
 
 <COORDINATE_SYSTEM>
 * The mobile browser viewport has specific dimensions that you must respect
@@ -98,9 +101,21 @@ const BLOCKED_DOMAINS = [
   "ilanbigio.com",
 ];
 
-const MODEL = "claude-opus-4-7";
-const TOOL_TYPE = "computer_20251124";
-const BETA_FLAG = "computer-use-2025-11-24";
+const MODEL = "claude-opus-5-5";
+const NOT_EXECUTED =
+  "Not executed: an earlier computer action in this turn failed.";
+
+type Coordinates = [number, number];
+
+type MemberInput = {
+  coordinate?: Coordinates;
+  start_coordinate?: Coordinates;
+  text?: string;
+  scroll_direction?: "up" | "down" | "left" | "right";
+  scroll_amount?: number;
+  duration?: number;
+  repeat?: number;
+};
 
 const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
   "/": "Divide",
@@ -247,7 +262,7 @@ class SteelBrowser {
       this.session.dimensions.height,
     ];
 
-    const cdpUrl = `${this.session.websocketUrl}&apiKey=${STEEL_API_KEY}`;
+    const cdpUrl = this.session.websocketUrl;
 
     this.browser = await chromium.connectOverCDP(cdpUrl, {
       timeout: 60000,
@@ -302,6 +317,7 @@ class SteelBrowser {
       const buffer = await this.page.screenshot({
         fullPage: false,
         clip: { x: 0, y: 0, width, height },
+        scale: "css",
       });
       return buffer.toString("base64");
     } catch (error) {
@@ -351,268 +367,196 @@ class SteelBrowser {
     return [clampedX, clampedY];
   }
 
+  private toPlaywrightKey(key: string): string {
+    const lower = key.toLowerCase();
+    if (["ctrl", "control"].includes(lower)) return "Control";
+    if (lower === "shift") return "Shift";
+    if (["alt", "option"].includes(lower)) return "Alt";
+    if (["cmd", "meta", "super"].includes(lower)) return "Meta";
+    return CUA_KEY_TO_PLAYWRIGHT_KEY[key] ?? key;
+  }
+
+  private modifierKeys(text?: string): string[] {
+    return text
+      ? text
+          .split("+")
+          .map((k) => k.trim())
+          .filter(Boolean)
+          .map((k) => this.toPlaywrightKey(k))
+      : [];
+  }
+
+  private async withModifiers(
+    text: string | undefined,
+    fn: () => Promise<void>,
+  ): Promise<void> {
+    const page = this.page!;
+    const modifiers = this.modifierKeys(text);
+    for (const key of modifiers) await page.keyboard.down(key);
+    try {
+      await fn();
+    } finally {
+      for (const key of modifiers.reverse()) await page.keyboard.up(key);
+    }
+  }
+
+  private cursorPosition(): [number, number] {
+    if (this.lastMousePosition) return this.lastMousePosition;
+    const [width, height] = this.dimensions;
+    return [Math.floor(width / 2), Math.floor(height / 2)];
+  }
+
   async executeComputerAction(
     action: string,
-    text?: string,
-    coordinate?: [number, number] | number[],
-    scrollDirection?: "up" | "down" | "left" | "right",
-    scrollAmount?: number,
-    duration?: number,
-    key?: string,
+    input: MemberInput,
   ): Promise<string> {
     if (!this.page) throw new Error("Page not initialized");
+    const page = this.page;
 
-    if (action === "left_mouse_down" || action === "left_mouse_up") {
-      if (coordinate !== undefined) {
-        throw new Error(`coordinate is not accepted for ${action}`);
-      }
-
-      if (action === "left_mouse_down") {
-        await this.page.mouse.down();
-      } else {
-        await this.page.mouse.up();
-      }
-
-      return this.screenshot();
-    }
-
-    if (action === "scroll") {
-      if (
-        !scrollDirection ||
-        !["up", "down", "left", "right"].includes(scrollDirection)
-      ) {
-        throw new Error(
-          "scroll_direction must be 'up', 'down', 'left', or 'right'",
+    switch (action) {
+      case "left_mouse_down":
+        await page.mouse.down();
+        return "OK";
+      case "left_mouse_up":
+        await page.mouse.up();
+        return "OK";
+      case "scroll": {
+        const direction = input.scroll_direction;
+        if (!direction || !["up", "down", "left", "right"].includes(direction)) {
+          throw new Error(
+            "scroll_direction must be 'up', 'down', 'left', or 'right'",
+          );
+        }
+        const amount = input.scroll_amount ?? 1;
+        if (amount < 0) {
+          throw new Error("scroll_amount must be a non-negative number");
+        }
+        if (input.coordinate !== undefined) {
+          const [x, y] = this.validateAndGetCoordinates(input.coordinate);
+          await page.mouse.move(x, y);
+          this.lastMousePosition = [x, y];
+        }
+        const scrollMapping = {
+          down: [0, 100 * amount],
+          up: [0, -100 * amount],
+          right: [100 * amount, 0],
+          left: [-100 * amount, 0],
+        };
+        const [deltaX, deltaY] = scrollMapping[direction];
+        await this.withModifiers(input.text, () =>
+          page.mouse.wheel(deltaX, deltaY),
         );
+        return "OK";
       }
-      if (scrollAmount === undefined || scrollAmount < 0) {
-        throw new Error("scroll_amount must be a non-negative number");
-      }
-
-      if (coordinate !== undefined) {
-        const [x, y] = this.validateAndGetCoordinates(coordinate);
-        await this.page.mouse.move(x, y);
-        this.lastMousePosition = [x, y];
-      }
-
-      if (text) {
-        let modifierKey = text;
-        if (modifierKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-          modifierKey = CUA_KEY_TO_PLAYWRIGHT_KEY[modifierKey];
+      case "hold_key":
+      case "wait": {
+        const duration = input.duration;
+        if (duration === undefined || duration < 0) {
+          throw new Error("duration must be a non-negative number");
         }
-        await this.page.keyboard.down(modifierKey);
-      }
-
-      const scrollMapping = {
-        down: [0, 100 * scrollAmount],
-        up: [0, -100 * scrollAmount],
-        right: [100 * scrollAmount, 0],
-        left: [-100 * scrollAmount, 0],
-      };
-      const [deltaX, deltaY] = scrollMapping[scrollDirection];
-      await this.page.mouse.wheel(deltaX, deltaY);
-
-      if (text) {
-        let modifierKey = text;
-        if (modifierKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-          modifierKey = CUA_KEY_TO_PLAYWRIGHT_KEY[modifierKey];
+        if (duration > 300) {
+          throw new Error("duration is too long");
         }
-        await this.page.keyboard.up(modifierKey);
-      }
-
-      return this.screenshot();
-    }
-
-    if (action === "hold_key" || action === "wait") {
-      if (duration === undefined || duration < 0) {
-        throw new Error("duration must be a non-negative number");
-      }
-      if (duration > 100) {
-        throw new Error("duration is too long");
-      }
-
-      if (action === "hold_key") {
-        if (text === undefined) {
-          throw new Error("text is required for hold_key");
-        }
-
-        let holdKey = text;
-        if (holdKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-          holdKey = CUA_KEY_TO_PLAYWRIGHT_KEY[holdKey];
-        }
-
-        await this.page.keyboard.down(holdKey);
-        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
-        await this.page.keyboard.up(holdKey);
-      } else if (action === "wait") {
-        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
-      }
-
-      return this.screenshot();
-    }
-
-    if (
-      [
-        "left_click",
-        "right_click",
-        "double_click",
-        "triple_click",
-        "middle_click",
-      ].includes(action)
-    ) {
-      if (text !== undefined) {
-        throw new Error(`text is not accepted for ${action}`);
-      }
-
-      let clickX: number, clickY: number;
-      if (coordinate !== undefined) {
-        const [x, y] = this.validateAndGetCoordinates(coordinate);
-        await this.page.mouse.move(x, y);
-        this.lastMousePosition = [x, y];
-        clickX = x;
-        clickY = y;
-      } else if (this.lastMousePosition) {
-        [clickX, clickY] = this.lastMousePosition;
-      } else {
-        const [width, height] = this.dimensions;
-        clickX = Math.floor(width / 2);
-        clickY = Math.floor(height / 2);
-      }
-
-      if (key) {
-        let modifierKey = key;
-        if (modifierKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-          modifierKey = CUA_KEY_TO_PLAYWRIGHT_KEY[modifierKey];
-        }
-        await this.page.keyboard.down(modifierKey);
-      }
-
-      if (action === "left_click") {
-        await this.page.mouse.click(clickX, clickY);
-      } else if (action === "right_click") {
-        await this.page.mouse.click(clickX, clickY, { button: "right" });
-      } else if (action === "double_click") {
-        await this.page.mouse.dblclick(clickX, clickY);
-      } else if (action === "triple_click") {
-        for (let i = 0; i < 3; i++) {
-          await this.page.mouse.click(clickX, clickY);
-        }
-      } else if (action === "middle_click") {
-        await this.page.mouse.click(clickX, clickY, { button: "middle" });
-      }
-
-      if (key) {
-        let modifierKey = key;
-        if (modifierKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-          modifierKey = CUA_KEY_TO_PLAYWRIGHT_KEY[modifierKey];
-        }
-        await this.page.keyboard.up(modifierKey);
-      }
-
-      return this.screenshot();
-    }
-
-    if (action === "mouse_move" || action === "left_click_drag") {
-      if (coordinate === undefined) {
-        throw new Error(`coordinate is required for ${action}`);
-      }
-      if (text !== undefined) {
-        throw new Error(`text is not accepted for ${action}`);
-      }
-
-      const [x, y] = this.validateAndGetCoordinates(coordinate);
-
-      if (action === "mouse_move") {
-        await this.page.mouse.move(x, y);
-        this.lastMousePosition = [x, y];
-      } else if (action === "left_click_drag") {
-        await this.page.mouse.down();
-        await this.page.mouse.move(x, y);
-        await this.page.mouse.up();
-        this.lastMousePosition = [x, y];
-      }
-
-      return this.screenshot();
-    }
-
-    if (action === "key" || action === "type") {
-      if (text === undefined) {
-        throw new Error(`text is required for ${action}`);
-      }
-      if (coordinate !== undefined) {
-        throw new Error(`coordinate is not accepted for ${action}`);
-      }
-
-      if (action === "key") {
-        let pressKey = text;
-
-        if (pressKey.includes("+")) {
-          const keyParts = pressKey.split("+");
-          const modifierKeys = keyParts.slice(0, -1);
-          const mainKey = keyParts[keyParts.length - 1];
-
-          const playwrightModifiers: string[] = [];
-          for (const mod of modifierKeys) {
-            if (["ctrl", "control"].includes(mod.toLowerCase())) {
-              playwrightModifiers.push("Control");
-            } else if (mod.toLowerCase() === "shift") {
-              playwrightModifiers.push("Shift");
-            } else if (["alt", "option"].includes(mod.toLowerCase())) {
-              playwrightModifiers.push("Alt");
-            } else if (["cmd", "meta", "super"].includes(mod.toLowerCase())) {
-              playwrightModifiers.push("Meta");
-            } else {
-              playwrightModifiers.push(mod);
-            }
-          }
-
-          let finalMainKey = mainKey;
-          if (mainKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-            finalMainKey = CUA_KEY_TO_PLAYWRIGHT_KEY[mainKey];
-          }
-
-          pressKey = [...playwrightModifiers, finalMainKey].join("+");
+        if (action === "hold_key") {
+          if (!input.text) throw new Error("text is required for hold_key");
+          await this.withModifiers(input.text, () =>
+            new Promise((resolve) => setTimeout(resolve, duration * 1000)),
+          );
         } else {
-          if (pressKey in CUA_KEY_TO_PLAYWRIGHT_KEY) {
-            pressKey = CUA_KEY_TO_PLAYWRIGHT_KEY[pressKey];
-          }
+          await new Promise((resolve) => setTimeout(resolve, duration * 1000));
         }
-
-        await this.page.keyboard.press(pressKey);
-      } else if (action === "type") {
-        for (const chunk of chunks(text, TYPING_GROUP_SIZE)) {
-          await this.page.keyboard.type(chunk, { delay: TYPING_DELAY_MS });
+        return "OK";
+      }
+      case "left_click":
+      case "right_click":
+      case "middle_click":
+      case "double_click":
+      case "triple_click": {
+        let [x, y] = this.cursorPosition();
+        if (input.coordinate !== undefined) {
+          [x, y] = this.validateAndGetCoordinates(input.coordinate);
+          await page.mouse.move(x, y);
+          this.lastMousePosition = [x, y];
+        }
+        await this.withModifiers(input.text, async () => {
+          if (action === "right_click") {
+            await page.mouse.click(x, y, { button: "right" });
+          } else if (action === "middle_click") {
+            await page.mouse.click(x, y, { button: "middle" });
+          } else if (action === "double_click") {
+            await page.mouse.dblclick(x, y);
+          } else if (action === "triple_click") {
+            await page.mouse.click(x, y, { clickCount: 3 });
+          } else {
+            await page.mouse.click(x, y);
+          }
+        });
+        return "OK";
+      }
+      case "mouse_move": {
+        if (input.coordinate === undefined) {
+          throw new Error("coordinate is required for mouse_move");
+        }
+        const [x, y] = this.validateAndGetCoordinates(input.coordinate);
+        await page.mouse.move(x, y);
+        this.lastMousePosition = [x, y];
+        return "OK";
+      }
+      case "left_click_drag": {
+        if (input.start_coordinate === undefined || input.coordinate === undefined) {
+          throw new Error(
+            "start_coordinate and coordinate are required for left_click_drag",
+          );
+        }
+        const [startX, startY] = this.validateAndGetCoordinates(
+          input.start_coordinate,
+        );
+        const [endX, endY] = this.validateAndGetCoordinates(input.coordinate);
+        await this.withModifiers(input.text, async () => {
+          await page.mouse.move(startX, startY);
+          await page.mouse.down();
+          await page.mouse.move(endX, endY);
+          await page.mouse.up();
+        });
+        this.lastMousePosition = [endX, endY];
+        return "OK";
+      }
+      case "key": {
+        if (!input.text) throw new Error("text is required for key");
+        const parts = input.text.split("+").map((k) => k.trim());
+        const pressKey = parts.map((k) => this.toPlaywrightKey(k)).join("+");
+        for (let i = 0; i < Math.max(1, input.repeat ?? 1); i++) {
+          await page.keyboard.press(pressKey);
+        }
+        return "OK";
+      }
+      case "type": {
+        if (input.text === undefined) {
+          throw new Error("text is required for type");
+        }
+        for (const chunk of chunks(input.text, TYPING_GROUP_SIZE)) {
+          await page.keyboard.type(chunk, { delay: TYPING_DELAY_MS });
           await new Promise((resolve) => setTimeout(resolve, 10));
         }
+        return "OK";
       }
-
-      return this.screenshot();
+      case "cursor_position": {
+        const [x, y] = this.cursorPosition();
+        return `${x}, ${y}`;
+      }
+      default:
+        throw new Error(`Invalid action: ${action}`);
     }
-
-    if (action === "screenshot" || action === "cursor_position") {
-      if (text !== undefined) {
-        throw new Error(`text is not accepted for ${action}`);
-      }
-      if (coordinate !== undefined) {
-        throw new Error(`coordinate is not accepted for ${action}`);
-      }
-
-      return this.screenshot();
-    }
-
-    throw new Error(`Invalid action: ${action}`);
   }
 }
 
 class ClaudeAgent {
   private client: Anthropic;
   private computer: SteelBrowser;
-  private messages: BetaMessageParam[];
+  private messages: MessageParam[];
   private model: string;
-  private tools: any[];
+  private tools: ToolUnion[];
   private systemPrompt: string;
-  private viewportWidth: number;
-  private viewportHeight: number;
 
   constructor(computer: SteelBrowser) {
     this.client = new Anthropic({
@@ -623,8 +567,6 @@ class ClaudeAgent {
     this.messages = [];
 
     const [width, height] = computer.getDimensions();
-    this.viewportWidth = width;
-    this.viewportHeight = height;
 
     this.systemPrompt = SYSTEM_PROMPT.replace(
       "<COORDINATE_SYSTEM>",
@@ -635,129 +577,89 @@ class ClaudeAgent {
 
     this.tools = [
       {
-        type: TOOL_TYPE,
-        name: "computer",
-        display_width_px: width,
-        display_height_px: height,
-        display_number: 1,
+        type: "computer_toolset_20260801",
+        configs: { zoom: { enabled: false } },
       },
     ];
   }
 
-  getViewportInfo(): any {
+  private async screenshotBlock(): Promise<ImageBlockParam> {
     return {
-      innerWidth: this.viewportWidth,
-      innerHeight: this.viewportHeight,
-      devicePixelRatio: 1.0,
-      screenWidth: this.viewportWidth,
-      screenHeight: this.viewportHeight,
-      scrollX: 0,
-      scrollY: 0,
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/png",
+        data: await this.computer.screenshot(),
+      },
     };
   }
 
-  validateScreenshotDimensions(screenshotBase64: string): any {
-    try {
-      const imageBuffer = Buffer.from(screenshotBase64, "base64");
-
-      if (imageBuffer.length === 0) {
-        console.log("Empty screenshot data");
-        return {};
-      }
-
-      const viewportInfo = this.getViewportInfo();
-
-      const scalingInfo = {
-        screenshot_size: ["unknown", "unknown"],
-        viewport_size: [this.viewportWidth, this.viewportHeight],
-        actual_viewport: [viewportInfo.innerWidth, viewportInfo.innerHeight],
-        device_pixel_ratio: viewportInfo.devicePixelRatio,
-        width_scale: 1.0,
-        height_scale: 1.0,
-      };
-
-      return scalingInfo;
-    } catch (e) {
-      console.log(`Error validating screenshot dimensions: ${e}`);
-      return {};
-    }
-  }
-
   async processResponse(
-    message: BetaMessage,
+    message: Message,
   ): Promise<{ text: string; hasActions: boolean }> {
+    this.messages.push({ role: "assistant", content: message.content });
+
     let responseText = "";
-    let hasActions = false;
-    const toolResults: BetaToolResultBlockParam[] = [];
-
-    this.messages.push({
-      role: "assistant",
-      content: message.content as any,
-    });
-
+    const calls: ToolUseBlock[] = [];
     for (const block of message.content) {
       if (block.type === "text") {
         responseText += block.text;
         console.log(block.text);
-      } else if (block.type === "tool_use") {
-        hasActions = true;
-        const toolName = block.name;
-        const toolInput = block.input as any;
-
-        console.log(`${toolName}(${JSON.stringify(toolInput)})`);
-
-        if (toolName === "computer") {
-          const action = toolInput.action;
-          try {
-            const screenshotBase64 = await this.computer.executeComputerAction(
-              action,
-              toolInput.text,
-              toolInput.coordinate,
-              toolInput.scroll_direction,
-              toolInput.scroll_amount,
-              toolInput.duration,
-              toolInput.key,
-            );
-
-            if (action === "screenshot") {
-              this.validateScreenshotDimensions(screenshotBase64);
-            }
-
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: [
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: "image/png",
-                    data: screenshotBase64,
-                  },
-                },
-              ],
-            });
-          } catch (error) {
-            console.log(`Error executing ${action}: ${error}`);
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: `Error executing ${action}: ${String(error)}`,
-              is_error: true,
-            });
-          }
-        }
+      } else if (block.type === "tool_use" && block.toolset_name === "computer") {
+        calls.push(block);
       }
     }
 
-    if (toolResults.length > 0) {
-      this.messages.push({
-        role: "user",
-        content: toolResults,
-      });
+    if (calls.length === 0) return { text: responseText, hasActions: false };
+
+    const results: ToolResultBlockParam[] = [];
+    let failed = false;
+    for (const call of calls) {
+      console.log(`${call.name}(${JSON.stringify(call.input)})`);
+      const result: ToolResultBlockParam = {
+        type: "tool_result",
+        tool_use_id: call.id,
+        toolset_name: "computer",
+      };
+      if (failed) {
+        result.content = NOT_EXECUTED;
+        result.is_error = true;
+      } else {
+        try {
+          result.content =
+            call.name === "screenshot"
+              ? [await this.screenshotBlock()]
+              : [
+                  {
+                    type: "text",
+                    text: await this.computer.executeComputerAction(
+                      call.name,
+                      call.input as MemberInput,
+                    ),
+                  },
+                ];
+        } catch (error) {
+          console.log(`Error executing ${call.name}: ${error}`);
+          result.content = `Error: ${String(error)}`;
+          result.is_error = true;
+          failed = true;
+        }
+      }
+      results.push(result);
     }
 
-    return { text: responseText, hasActions };
+    const last = results[results.length - 1];
+    if (
+      !failed &&
+      calls[calls.length - 1].name !== "screenshot" &&
+      Array.isArray(last.content)
+    ) {
+      last.content.push(await this.screenshotBlock());
+    }
+
+    this.messages.push({ role: "user", content: results });
+
+    return { text: responseText, hasActions: true };
   }
 
   async executeTask(
@@ -767,10 +669,6 @@ class ClaudeAgent {
     maxIterations: number = 50,
   ): Promise<string> {
     this.messages = [
-      {
-        role: "user",
-        content: this.systemPrompt,
-      },
       {
         role: "user",
         content: task,
@@ -885,22 +783,22 @@ class ClaudeAgent {
       }
 
       try {
-        const response = await this.client.beta.messages.create(
-          {
-            model: this.model,
-            max_tokens: 4096,
-            messages: this.messages,
-            tools: this.tools,
-          },
-          {
-            headers: {
-              "anthropic-beta": BETA_FLAG,
-            },
-          },
-        );
+        const response = await this.client.messages.create({
+          model: this.model,
+          max_tokens: 16000,
+          system: this.systemPrompt,
+          messages: this.messages,
+          tools: this.tools,
+        });
 
         if (debug) {
           pp(response);
+        }
+
+        if (response.stop_reason === "refusal") {
+          console.log("Claude declined to continue this task");
+          finalText = "Claude declined to continue this task";
+          break;
         }
 
         const { text, hasActions } = await this.processResponse(response);

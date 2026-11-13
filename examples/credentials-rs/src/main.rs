@@ -5,12 +5,13 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 
-use chromiumoxide::cdp::browser_protocol::security::SetIgnoreCertificateErrorsParams;
 use chromiumoxide::Browser;
 use futures::StreamExt;
-use steel_rs::{Client, CredentialCreateParams, SessionCreateParams, SessionCreateParamsCredentials};
+use steel_rs::{
+    Client, CredentialCreateParams, SessionCreateParams, SessionCreateParamsCredentials,
+};
 
-const ORIGIN: &str = "https://demo.testfire.net";
+const ORIGIN: &str = "https://practice.expandtesting.com";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -27,15 +28,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .create(CredentialCreateParams {
             origin: Some(ORIGIN.into()),
             ..CredentialCreateParams::new(HashMap::from([
-                ("username".into(), "admin".into()),
-                ("password".into(), "admin".into()),
+                ("username".into(), "practice".into()),
+                ("password".into(), "SuperSecretPassword!".into()),
             ]))
         })
         .await;
 
     match create {
         Ok(_) => println!("Credential stored"),
-        Err(err) if err.to_string().contains("already exists") => {
+        Err(err) if err.status() == Some(409) => {
             println!("Credential already exists, moving on");
         }
         Err(err) => return Err(err.into()),
@@ -52,7 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Session live at {}", session.session_viewer_url);
 
-    let result = run(&session.websocket_url, &api_key).await;
+    let result = run(&session.websocket_url).await;
 
     println!("Releasing session...");
     client.sessions().release(&session.id).await?;
@@ -61,8 +62,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     result
 }
 
-async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
-    let raw = format!("{websocket_url}&apiKey={api_key}");
+async fn run(websocket_url: &str) -> Result<(), Box<dyn Error>> {
+    let raw = websocket_url.to_string();
     let cdp_url = match (raw.find("://"), raw.find('?')) {
         (Some(s), Some(q)) if !raw[s + 3..q].contains('/') => {
             format!("{}/{}", &raw[..q], &raw[q..])
@@ -74,32 +75,33 @@ async fn run(websocket_url: &str, api_key: &str) -> Result<(), Box<dyn Error>> {
     let handle = tokio::spawn(async move { while handler.next().await.is_some() {} });
 
     let page = browser.new_page("about:blank").await?;
-    page.execute(SetIgnoreCertificateErrorsParams::new(true)).await?;
 
-    println!("Opening the login page; Steel auto-fills it from the vault...");
-    page.goto(format!("{ORIGIN}/login.jsp")).await?;
+    println!("Opening the login page; Steel fills and submits it from the vault...");
+    page.goto(format!("{ORIGIN}/login")).await?;
 
-    let mut filled = String::new();
+    let mut signed_in = false;
     for _ in 0..100 {
-        if let Ok(result) = page
-            .evaluate(r#"(document.querySelector('#uid') ? document.querySelector('#uid').value : "").trim()"#)
-            .await
-        {
-            if let Ok(value) = result.into_value::<String>() {
-                if !value.is_empty() {
-                    filled = value;
-                    break;
-                }
+        if let Ok(result) = page.evaluate("location.pathname").await {
+            if result.into_value::<String>().ok().as_deref() == Some("/secure") {
+                signed_in = true;
+                break;
             }
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
 
-    if !filled.is_empty() {
-        println!("Success: Steel auto-filled the login form with {filled:?} from the vault, no credentials in this code.");
-    } else {
-        println!("Uh oh, the login form was not auto-filled.");
+    if !signed_in {
+        handle.abort();
+        return Err("the page never reached /secure".into());
     }
+
+    let message = page
+        .find_element("#flash b")
+        .await?
+        .inner_text()
+        .await?
+        .unwrap_or_default();
+    println!("Steel signed in. The site says: {message}");
 
     handle.abort();
     Ok(())

@@ -2,10 +2,13 @@ import * as dotenv from "dotenv";
 import { Steel } from "steel-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type {
-  BetaMessageParam,
-  BetaToolResultBlockParam,
-  BetaMessage,
-} from "@anthropic-ai/sdk/resources/beta/messages/messages";
+  ImageBlockParam,
+  Message,
+  MessageParam,
+  ToolResultBlockParam,
+  ToolUnion,
+  ToolUseBlock,
+} from "@anthropic-ai/sdk/resources/messages/messages";
 
 dotenv.config();
 
@@ -25,7 +28,7 @@ function formatToday(): string {
 
 const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   - You control a headful Chromium browser running in a VM with internet access.
-  - Chromium is already open; interact only through the "computer" tool (mouse, keyboard, scroll, screenshots).
+  - Chromium is already open; interact only through the computer tools (mouse, keyboard, scroll, screenshots).
   - Today's date is ${formatToday()}.
   </BROWSER_ENV>
   
@@ -34,7 +37,7 @@ const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   - When typing into any input:
     * Clear it first with Ctrl+A, then Delete.
     * After submitting (pressing Enter or clicking a button), take an extra screenshot to confirm the result and move the mouse away.
-  - Computer tool calls are slow; batch related actions into a single call whenever possible.
+  - Each turn is slow; send related actions together in one turn whenever possible.
   - You may act on the user's behalf on sites where they are already authenticated.
   - Assume any required authentication/Auth Contexts are already configured before the task starts.
   - If the first screenshot is black:
@@ -50,153 +53,70 @@ const BROWSER_SYSTEM_PROMPT = `<BROWSER_ENV>
   - Keep your final response concise and focused on fulfilling the task (e.g., a brief summary of findings or results).
   </TASK_EXECUTION>`;
 
+const NOT_EXECUTED =
+  "Not executed: an earlier computer action in this turn failed.";
+
 type Coordinates = [number, number];
-interface BaseActionRequest {
-  screenshot?: boolean;
-  hold_keys?: string[];
-}
-type MoveMouseRequest = BaseActionRequest & {
-  action: "move_mouse";
-  coordinates: Coordinates;
-};
-type ClickMouseRequest = BaseActionRequest & {
-  action: "click_mouse";
-  button: "left" | "right" | "middle";
-  coordinates: Coordinates;
-  num_clicks?: number;
-  click_type?: "down" | "up";
-};
-type DragMouseRequest = BaseActionRequest & {
-  action: "drag_mouse";
-  path: Coordinates[];
-};
-type ScrollRequest = BaseActionRequest & {
-  action: "scroll";
-  coordinates: Coordinates;
-  delta_x: number;
-  delta_y: number;
-};
-type PressKeyRequest = BaseActionRequest & {
-  action: "press_key";
-  keys: string[];
+
+type MemberInput = {
+  coordinate?: Coordinates;
+  start_coordinate?: Coordinates;
+  text?: string;
+  scroll_direction?: "up" | "down" | "left" | "right";
+  scroll_amount?: number;
   duration?: number;
+  repeat?: number;
 };
-type TypeTextRequest = BaseActionRequest & {
-  action: "type_text";
-  text: string;
+
+const SCROLL_DELTAS: Record<
+  NonNullable<MemberInput["scroll_direction"]>,
+  [number, number]
+> = {
+  up: [0, -100],
+  down: [0, 100],
+  left: [-100, 0],
+  right: [100, 0],
 };
-type WaitRequest = BaseActionRequest & {
-  action: "wait";
-  duration: number;
-};
-type GetCursorPositionRequest = {
-  action: "get_cursor_position";
-};
-type ComputerActionRequest =
-  | MoveMouseRequest
-  | ClickMouseRequest
-  | DragMouseRequest
-  | ScrollRequest
-  | PressKeyRequest
-  | TypeTextRequest
-  | WaitRequest
-  | GetCursorPositionRequest;
 
 class Agent {
   private client: Anthropic;
   private steel: Steel;
   private session: Steel.Session | null = null;
-  private messages: BetaMessageParam[];
-  private tools: any[];
+  private messages: MessageParam[];
+  private tools: ToolUnion[];
   private model: string;
   private systemPrompt: string;
   private viewportWidth: number;
   private viewportHeight: number;
+  private cursor: Coordinates;
 
   constructor() {
     this.client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "claude-opus-4-7";
+    this.model = "claude-opus-5-5";
     this.messages = [];
 
     this.viewportWidth = 1280;
     this.viewportHeight = 768;
+    this.cursor = [
+      Math.floor(this.viewportWidth / 2),
+      Math.floor(this.viewportHeight / 2),
+    ];
 
     this.systemPrompt = BROWSER_SYSTEM_PROMPT;
 
     this.tools = [
       {
-        type: "computer_20251124",
-        name: "computer",
-        display_width_px: this.viewportWidth,
-        display_height_px: this.viewportHeight,
-        display_number: 1,
+        type: "computer_toolset_20260801",
+        configs: {
+          zoom: { enabled: false },
+          triple_click: { enabled: false },
+          left_mouse_down: { enabled: false },
+          left_mouse_up: { enabled: false },
+          hold_key: { enabled: false },
+        },
       },
     ];
-  }
-
-  private center(): [number, number] {
-    return [
-      Math.floor(this.viewportWidth / 2),
-      Math.floor(this.viewportHeight / 2),
-    ];
-  }
-
-  private splitKeys(k?: string): string[] {
-    return k
-      ? k
-          .split("+")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-  }
-
-  private normalizeKey(key: string): string {
-    if (!key) return key;
-    const k = String(key).trim();
-    const upper = k.toUpperCase();
-    const synonyms: Record<string, string> = {
-      ENTER: "Enter",
-      RETURN: "Enter",
-      ESC: "Escape",
-      ESCAPE: "Escape",
-      TAB: "Tab",
-      BACKSPACE: "Backspace",
-      BKSP: "Backspace",
-      DELETE: "Delete",
-      DEL: "Delete",
-      SPACE: "Space",
-      CTRL: "Control",
-      CONTROL: "Control",
-      ALT: "Alt",
-      SHIFT: "Shift",
-      META: "Meta",
-      SUPER: "Meta",
-      CMD: "Meta",
-      COMMAND: "Meta",
-      UP: "ArrowUp",
-      DOWN: "ArrowDown",
-      LEFT: "ArrowLeft",
-      RIGHT: "ArrowRight",
-      ARROWUP: "ArrowUp",
-      ARROWDOWN: "ArrowDown",
-      ARROWLEFT: "ArrowLeft",
-      ARROWRIGHT: "ArrowRight",
-      HOME: "Home",
-      END: "End",
-      PAGEUP: "PageUp",
-      PAGEDOWN: "PageDown",
-      INSERT: "Insert",
-    };
-    if (upper in synonyms) return synonyms[upper];
-    if (upper.startsWith("F") && /^\d+$/.test(upper.slice(1))) {
-      return "F" + upper.slice(1);
-    }
-    return k;
-  }
-
-  private normalizeKeys(keys: string[]): string[] {
-    return keys.map((k) => this.normalizeKey(k));
   }
 
   async initialize(): Promise<void> {
@@ -221,255 +141,177 @@ class Agent {
     }
   }
 
-  private async takeScreenshot(): Promise<string> {
-    const resp: any = await this.steel.sessions.computer(this.session!.id, {
-      action: "take_screenshot",
-    });
-    const img: string | undefined = resp?.base64_image;
-    if (!img) throw new Error("No screenshot returned from Input API");
-    return img;
+  private async act(
+    body: Steel.SessionComputerParams,
+  ): Promise<Steel.SessionComputerResponse> {
+    const resp = await this.steel.sessions.computer(this.session!.id, body);
+    if (resp.error) throw new Error(resp.error);
+    return resp;
   }
 
-  private async executeComputerAction(
-    action: string,
-    text?: string,
-    coordinate?: [number, number] | number[],
-    scrollDirection?: "up" | "down" | "left" | "right",
-    scrollAmount?: number,
-    duration?: number,
-    key?: string,
-  ): Promise<string> {
-    const coords: Coordinates =
-      coordinate && Array.isArray(coordinate) && coordinate.length === 2
-        ? [coordinate[0], coordinate[1]]
-        : this.center();
+  private async screenshot(): Promise<ImageBlockParam> {
+    const resp = await this.act({ action: "take_screenshot" });
+    if (!resp.base64_image) throw new Error("Steel returned no screenshot");
+    return {
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/png",
+        data: resp.base64_image,
+      },
+    };
+  }
 
-    let body: ComputerActionRequest | null = null;
+  private point(coordinate?: Coordinates): Coordinates {
+    if (coordinate) this.cursor = [coordinate[0], coordinate[1]];
+    return this.cursor;
+  }
 
-    switch (action) {
+  private async runMember(name: string, input: MemberInput): Promise<string> {
+    switch (name) {
       case "mouse_move": {
-        const hk = this.splitKeys(key);
-        body = {
+        await this.act({
           action: "move_mouse",
-          coordinates: coords,
-          screenshot: true,
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
-      }
-      case "left_mouse_down":
-      case "left_mouse_up": {
-        const hk = this.splitKeys(key);
-        body = {
-          action: "click_mouse",
-          button: "left",
-          click_type: action === "left_mouse_down" ? "down" : "up",
-          coordinates: coords,
-          screenshot: true,
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
+          coordinates: this.point(input.coordinate),
+        });
+        return "OK";
       }
       case "left_click":
       case "right_click":
       case "middle_click":
-      case "double_click":
-      case "triple_click": {
-        const buttonMap: Record<
-          | "left_click"
-          | "right_click"
-          | "middle_click"
-          | "double_click"
-          | "triple_click",
-          "left" | "right" | "middle"
-        > = {
-          left_click: "left",
-          right_click: "right",
-          middle_click: "middle",
-          double_click: "left",
-          triple_click: "left",
-        };
-        const clicks =
-          action === "double_click" ? 2 : action === "triple_click" ? 3 : 1;
-        const hk = this.splitKeys(key);
-        body = {
+      case "double_click": {
+        if (input.text) {
+          throw new Error("Holding modifier keys during a click is not supported");
+        }
+        await this.act({
           action: "click_mouse",
-          button: buttonMap[action as keyof typeof buttonMap],
-          coordinates: coords,
-          screenshot: true,
-          ...(clicks > 1 ? { num_clicks: clicks } : {}),
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
+          button:
+            name === "right_click"
+              ? "right"
+              : name === "middle_click"
+                ? "middle"
+                : "left",
+          coordinates: this.point(input.coordinate),
+          ...(name === "double_click" ? { num_clicks: 2 } : {}),
+        });
+        return "OK";
       }
       case "left_click_drag": {
-        const [endX, endY] = coords;
-        const [startX, startY] = this.center();
-        const hk = this.splitKeys(key);
-        body = {
+        if (!input.start_coordinate || !input.coordinate) {
+          throw new Error("left_click_drag needs start_coordinate and coordinate");
+        }
+        await this.act({
           action: "drag_mouse",
-          path: [
-            [startX, startY],
-            [endX, endY],
-          ],
-          screenshot: true,
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
+          path: [input.start_coordinate, input.coordinate],
+        });
+        this.point(input.coordinate);
+        return "OK";
       }
       case "scroll": {
-        const step = 100;
-        type ScrollDir = "up" | "down" | "left" | "right";
-        const map: Record<ScrollDir, [number, number]> = {
-          down: [0, step * (scrollAmount as number)],
-          up: [0, -step * (scrollAmount as number)],
-          right: [step * (scrollAmount as number), 0],
-          left: [-(step * (scrollAmount as number)), 0],
-        };
-        const dir: ScrollDir = (scrollDirection || "down") as ScrollDir;
-        const [delta_x, delta_y] = map[dir];
-        const hk = this.splitKeys(text);
-        body = {
-          action: "scroll",
-          coordinates: coords,
-          delta_x,
-          delta_y,
-          screenshot: true,
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
-      }
-      case "hold_key": {
-        const keys = this.splitKeys(text);
-        const normalized = this.normalizeKeys(keys);
-        body = {
-          action: "press_key",
-          keys: normalized,
-          duration,
-          screenshot: true,
-        };
-        break;
-      }
-      case "key": {
-        const keys = this.splitKeys(text);
-        const normalized = this.normalizeKeys(keys);
-        body = {
-          action: "press_key",
-          keys: normalized,
-          screenshot: true,
-        };
-        break;
+        if (input.text) {
+          throw new Error("Holding modifier keys during a scroll is not supported");
+        }
+        const [delta_x, delta_y] =
+          SCROLL_DELTAS[input.scroll_direction ?? "down"];
+        const coordinates = this.point(input.coordinate);
+        for (let i = 0; i < Math.max(1, input.scroll_amount ?? 1); i++) {
+          await this.act({ action: "scroll", coordinates, delta_x, delta_y });
+        }
+        return "OK";
       }
       case "type": {
-        const hk = this.splitKeys(key);
-        body = {
-          action: "type_text",
-          text: text ?? "",
-          screenshot: true,
-          ...(hk.length ? { hold_keys: hk } : {}),
-        };
-        break;
+        await this.act({ action: "type_text", text: input.text ?? "" });
+        return "OK";
+      }
+      case "key": {
+        const keys = (input.text ?? "")
+          .split("+")
+          .map((k) => k.trim())
+          .filter(Boolean);
+        for (let i = 0; i < Math.max(1, input.repeat ?? 1); i++) {
+          await this.act({ action: "press_key", keys });
+        }
+        return "OK";
       }
       case "wait": {
-        body = {
-          action: "wait",
-          duration: duration ?? 1000,
-          screenshot: true,
-        };
-        break;
-      }
-      case "screenshot": {
-        return this.takeScreenshot();
+        await this.act({ action: "wait", duration: input.duration ?? 1 });
+        return "OK";
       }
       case "cursor_position": {
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "get_cursor_position",
-        });
-        return this.takeScreenshot();
+        const resp = await this.act({ action: "get_cursor_position" });
+        return resp.output ?? `${this.cursor[0]}, ${this.cursor[1]}`;
       }
       default:
-        throw new Error(`Invalid action: ${action}`);
+        throw new Error(`Unsupported action: ${name}`);
     }
-
-    const resp: any = await this.steel.sessions.computer(
-      this.session!.id,
-      body!,
-    );
-    const img: string | undefined = resp?.base64_image;
-    if (img) return img;
-    return this.takeScreenshot();
   }
 
   private async processResponse(
-    message: BetaMessage,
+    message: Message,
   ): Promise<{ text: string; hasActions: boolean }> {
+    this.messages.push({ role: "assistant", content: message.content });
+
     let responseText = "";
-    let hasActions = false;
-    const toolResults: BetaToolResultBlockParam[] = [];
-
-    this.messages.push({
-      role: "assistant",
-      content: message.content as any,
-    });
-
+    const calls: ToolUseBlock[] = [];
     for (const block of message.content) {
       if (block.type === "text") {
         responseText += block.text;
         console.log(block.text);
-      } else if (block.type === "tool_use") {
-        hasActions = true;
-        const toolName = block.name;
-        const toolInput = block.input as any;
-
-        console.log(`${toolName}(${JSON.stringify(toolInput)})`);
-
-        if (toolName === "computer") {
-          const action = toolInput.action;
-          try {
-            const screenshotBase64 = await this.executeComputerAction(
-              action,
-              toolInput.text,
-              toolInput.coordinate,
-              toolInput.scroll_direction,
-              toolInput.scroll_amount,
-              toolInput.duration,
-              toolInput.key,
-            );
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: [
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: "image/png",
-                    data: screenshotBase64,
-                  },
-                },
-              ],
-            });
-          } catch (error) {
-            console.log(`Error executing ${action}: ${error}`);
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: `Error executing ${action}: ${String(error)}`,
-              is_error: true,
-            });
-          }
-        }
+      } else if (block.type === "tool_use" && block.toolset_name === "computer") {
+        calls.push(block);
       }
     }
 
-    if (toolResults.length > 0) {
-      this.messages.push({
-        role: "user",
-        content: toolResults,
-      });
+    if (calls.length === 0) return { text: responseText, hasActions: false };
+
+    const results: ToolResultBlockParam[] = [];
+    let failed = false;
+    for (const call of calls) {
+      console.log(`${call.name}(${JSON.stringify(call.input)})`);
+      const result: ToolResultBlockParam = {
+        type: "tool_result",
+        tool_use_id: call.id,
+        toolset_name: "computer",
+      };
+      if (failed) {
+        result.content = NOT_EXECUTED;
+        result.is_error = true;
+      } else {
+        try {
+          result.content =
+            call.name === "screenshot"
+              ? [await this.screenshot()]
+              : [
+                  {
+                    type: "text",
+                    text: await this.runMember(
+                      call.name,
+                      call.input as MemberInput,
+                    ),
+                  },
+                ];
+        } catch (error) {
+          console.log(`Error executing ${call.name}: ${error}`);
+          result.content = `Error: ${String(error)}`;
+          result.is_error = true;
+          failed = true;
+        }
+      }
+      results.push(result);
     }
 
-    return { text: responseText, hasActions };
+    const last = results[results.length - 1];
+    if (
+      !failed &&
+      calls[calls.length - 1].name !== "screenshot" &&
+      Array.isArray(last.content)
+    ) {
+      last.content.push(await this.screenshot());
+    }
+
+    this.messages.push({ role: "user", content: results });
+
+    return { text: responseText, hasActions: true };
   }
 
   async executeTask(
@@ -478,10 +320,6 @@ class Agent {
     maxIterations: number = 50,
   ): Promise<string> {
     this.messages = [
-      {
-        role: "user",
-        content: this.systemPrompt,
-      },
       {
         role: "user",
         content: task,
@@ -540,13 +378,19 @@ class Agent {
       }
 
       try {
-        const response = await this.client.beta.messages.create({
+        const response = await this.client.messages.create({
           model: this.model,
-          max_tokens: 4096,
+          max_tokens: 16000,
+          system: this.systemPrompt,
           messages: this.messages,
           tools: this.tools,
-          betas: ["computer-use-2025-11-24"],
         });
+
+        if (response.stop_reason === "refusal") {
+          console.log("Claude declined to continue this task");
+          finalText = "Claude declined to continue this task";
+          break;
+        }
 
         const { text, hasActions } = await this.processResponse(response);
 

@@ -5,6 +5,7 @@ description = "Steel Scrape API (Python): markdown, screenshot, and PDF to disk"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "httpx>=0.23.0",
     "python-dotenv>=1.0.0",
-    "steel-sdk>=0.9.0",
+    "steel-sdk>=0.23.0",
 ]

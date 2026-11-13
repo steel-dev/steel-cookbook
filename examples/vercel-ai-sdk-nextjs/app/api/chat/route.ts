@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   };
 
   const result = streamText({
-    model: anthropic("claude-haiku-4-5"),
+    model: anthropic("claude-haiku-5-5"),
     system: [
       "You operate Steel cloud browsers via tools.",
       "Per-session workflow: (1) openSession (returns a sessionId),",
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         execute: async () => {
           const session = await steel.sessions.create({});
           const browser = await chromium.connectOverCDP(
-            `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+            session.websocketUrl
           );
           const ctx = browser.contexts()[0];
           const page = ctx.pages()[0] ?? (await ctx.newPage());

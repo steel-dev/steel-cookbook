@@ -318,11 +318,11 @@ func (a *agent) executeTask(ctx context.Context, task string) (string, error) {
 
 	for turn := 0; turn < maxIterations; turn++ {
 		params := responses.ResponseNewParams{
-			Model:        shared.ResponsesModelComputerUsePreview,
+			Model:        "gpt-6.1-terra",
 			Instructions: openai.String(systemPrompt()),
 			Input:        responses.ResponseNewParamsInputUnion{OfInputItemList: input},
 			Tools: []responses.ToolUnionParam{
-				responses.ToolParamOfComputerUsePreview(viewportHeight, viewportWidth, responses.ComputerUsePreviewToolEnvironmentBrowser),
+				{OfComputer: &responses.ComputerToolParam{}},
 			},
 			Reasoning:  shared.ReasoningParam{Effort: shared.ReasoningEffortMedium},
 			Truncation: responses.ResponseNewParamsTruncationAuto,
@@ -472,18 +472,24 @@ func main() {
 
 	ctx := context.Background()
 	a := newAgent(steelKey, openaiKey)
+
+	if err := run(ctx, a, task); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, a *agent, task string) error {
 	defer a.cleanup(ctx)
 
 	if err := a.initialize(ctx); err != nil {
-		fmt.Printf("Failed to start Steel session: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to start Steel session: %w", err)
 	}
 
 	start := time.Now()
 	result, err := a.executeTask(ctx, task)
 	if err != nil {
-		fmt.Printf("Task execution failed: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("task execution failed: %w", err)
 	}
 
 	fmt.Println("\n" + strings.Repeat("=", 60))
@@ -493,4 +499,5 @@ func main() {
 	fmt.Printf("Task: %s\n", task)
 	fmt.Printf("Result:\n%s\n", result)
 	fmt.Println(strings.Repeat("=", 60))
+	return nil
 }

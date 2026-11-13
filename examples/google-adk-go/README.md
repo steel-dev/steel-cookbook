@@ -18,7 +18,7 @@ for event, err := range r.Run(ctx, userID, sessionID, task, agent.RunConfig{
 }
 ```
 
-`Run` returns a Go 1.23 iterator (`iter.Seq2[*session.Event, error]`). Each event is one step: a model turn that requests a tool, the tool's result fed back in, the next model turn, and so on until the model answers without calling anything. Every event carries a `genai.Content`, so ranging over `event.Content.Parts` lets you watch text, function calls, and function responses flow past. The loop in `main` keeps the last non-empty text part; that is the agent's final answer.
+`Run` returns a Go 1.23 iterator (`iter.Seq2[*session.Event, error]`). Each event is one step: a model turn that requests a tool, the tool's result fed back in, the next model turn, and so on until the model answers without calling anything. Every event carries a `genai.Content`, so ranging over `event.Content.Parts` lets you watch text, function calls, and function responses flow past. The loop in `run` keeps the last non-empty text part; that is the agent's final answer.
 
 ## Tools from a Go function
 
@@ -89,15 +89,16 @@ Releasing Steel session...
 Session released. Replay: https://app.steel.dev/sessions/ab12cd34...
 ```
 
-A run takes about 20 to 40 seconds and a handful of model turns. Cost is a few cents of Steel session time plus Gemini tokens. The deferred cleanup in `main` releases the session: Steel bills per session-minute, so a leaked session keeps running until the default 5-minute timeout.
+A run takes about 20 to 40 seconds and a handful of model turns. Cost is a few cents of Steel session time plus Gemini tokens. The deferred cleanup in `run` releases the session: Steel bills per session-minute, so a leaked session keeps running until the default 5-minute timeout.
 
 ## Structured output
 
-ADK Go can pin an agent's reply to a `genai.Schema` through `OutputSchema` on the agent config, but setting it disables tools: an agent with an output schema can only reply, it cannot call functions. This agent needs its tools, so it returns JSON as text instead. The instruction asks for a bare JSON object, and `prettyJSON` in `main` strips a stray code fence if the model adds one, then re-indents the result. If you would rather have a typed value, split the work into two agents: a tool-using agent that gathers the rows and a second agent with `OutputSchema` set that formats them.
+ADK Go can pin an agent's reply to a `genai.Schema` through `OutputSchema` on the agent config, but setting it disables tools: an agent with an output schema can only reply, it cannot call functions. This agent needs its tools, so it returns JSON as text instead. The instruction asks for a bare JSON object, and `prettyJSON` strips a stray code fence if the model adds one, then re-indents the result. If you would rather have a typed value, split the work into two agents: a tool-using agent that gathers the rows and a second agent with `OutputSchema` set that formats them.
 
 ## Make it yours
 
-- **Swap the model.** Change `modelName`. Any Gemini model your key can reach works without code changes, for example `gemini-2.5-pro`. `gemini.NewModel` takes the name and a `genai.ClientConfig`.
+- **Swap the model.** Change `modelName`. Any Gemini model your key can reach works without code changes, for example `gemini-4-carbon`. `gemini.NewModel` takes the name and a `genai.ClientConfig`.
+- **Raise the thinking level.** The agent's `GenerateContentConfig` sets `genai.ThinkingLevelLow` so each model turn stays short. `genai.ThinkingLevelMedium` and `genai.ThinkingLevelHigh` plan more carefully but take longer per turn.
 - **Swap the task.** Change the `task` content and the JSON shape named in the agent instruction. The tools stay the same; the agent re-plans against the new request.
 - **Add a tool.** Write a `func(agent.ToolContext, In) (Out, error)`, wrap it with `functiontool.New`, and add it to the agent's `Tools`. A useful fourth is `click(selector string)` that runs `chromedp.Click` and waits for navigation.
 - **Inspect the loop.** Range over more than text. Every event exposes `event.Content.Parts`, where `FunctionCall` and `FunctionResponse` parts let you log exactly which tool the agent reached for and what came back.

@@ -24,7 +24,7 @@ load_dotenv()
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or "your-google-api-key-here"
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-4-hydrogen"
 APP_NAME = "steel-google-adk"
 USER_ID = "cookbook"
 
@@ -150,6 +150,11 @@ def build_agent() -> LlmAgent:
     return LlmAgent(
         name="hn_scraper",
         model=MODEL,
+        generate_content_config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            )
+        ),
         tools=[navigate, snapshot, extract],
         # output_schema enforces TopStories on the final reply; ADK keeps the
         # tools available during the thought loop and only constrains the answer.
@@ -197,7 +202,7 @@ async def main() -> None:
     browser: Optional[Browser] = None
     try:
         browser = await playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
         ctx = browser.contexts[0]
         _PAGE = ctx.pages[0] if ctx.pages else await ctx.new_page()

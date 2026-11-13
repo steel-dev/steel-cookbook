@@ -43,7 +43,7 @@ async function main() {
       // useProxy: true, // Use Steel's proxy network (residential IPs)
       // proxyUrl: 'http://...',         // Use your own proxy (format: protocol://username:password@host:port)
       // solveCaptcha: true,             // Enable automatic CAPTCHA solving
-      // sessionTimeout: 1800000,        // Session timeout in ms (default: 5 mins)
+      // timeout: 900000,                // Session timeout in ms (default: 5 mins)
       // === Browser Configuration ===
       // userAgent: 'custom-ua-string',  // Set a custom User-Agent
     });
@@ -66,6 +66,7 @@ async function main() {
     // Upload CSV file to the Steel session.
     const uploadedFile = await client.sessions.files.upload(session.id, {
       file,
+      path: "stock.csv",
     });
 
     console.log(
@@ -75,7 +76,7 @@ async function main() {
 
     // Connect Playwright to the Steel session
     browser = await chromium.connectOverCDP(
-      `${session.websocketUrl}&apiKey=${STEEL_API_KEY}`
+      session.websocketUrl
     );
 
     console.log("Connected to browser via Playwright");

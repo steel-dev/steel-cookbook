@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-steel-rs = "0.21"
+steel-rs = "0.23"
 chromiumoxide = { version = "0.7", default-features = false, features = ["tokio-runtime"] }
 async-tungstenite = { version = "0.27", features = ["tokio-native-tls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

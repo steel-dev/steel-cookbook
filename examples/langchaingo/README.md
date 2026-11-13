@@ -1,6 +1,6 @@
 # Steel + LangChainGo agent (Go)
 
-[LangChainGo](https://github.com/tmc/langchaingo) is the Go port of LangChain: LLM wrappers, chains, and agents that loop over tools until they reach an answer. This recipe gives a LangChainGo agent one tool backed by Steel's `scrape` endpoint, so the model reads pages as clean Markdown and never touches a browser library or CDP. The agent runs on Anthropic (`claude-sonnet-4-6`) through a zero-shot ReAct (MRKL) executor.
+[LangChainGo](https://github.com/tmc/langchaingo) is the Go port of LangChain: LLM wrappers, chains, and agents that loop over tools until they reach an answer. This recipe gives a LangChainGo agent one tool backed by Steel's `scrape` endpoint, so the model reads pages as clean Markdown and never touches a browser library or CDP. The agent runs on Anthropic (`claude-sonnet-4-6`) through a zero-shot ReAct (MRKL) executor. It stays on Sonnet 4.6 because Claude 5 models think by default, and LangChainGo returns a thinking block as its own empty choice, which the ReAct parser can't read.
 
 LangChainGo's `tools.Tool` interface is deliberately small. A tool is a name, a description, and a `Call` that takes a string and returns a string:
 
@@ -61,7 +61,7 @@ Each scrape call spins up a short-lived Steel browser server-side, so a run cost
 
 - **Swap the task.** Change `task` in `main.go`. The tool stays the same; the agent re-plans against the new goal.
 - **Add a tool.** Any struct with `Name`, `Description`, and `Call` slots into the `[]tools.Tool` list. A second tool backed by `client.Screenshot`, or one of LangChainGo's built-ins like the calculator, drops straight in and the MRKL agent picks per step.
-- **Change the model.** Pass a different id to `anthropic.WithModel`, or swap `anthropic.New` for `openai.New` (LangChainGo ships both). The tool is unaffected.
+- **Change the model.** Pass a different id to `anthropic.WithModel` (one that doesn't think by default), or swap `anthropic.New` for `openai.New` (LangChainGo ships both). The tool is unaffected.
 - **Use native tool-calling.** `agents.NewOpenAIFunctionsAgent` replaces ReAct text parsing with structured function calls on models that support them.
 
 ## Related

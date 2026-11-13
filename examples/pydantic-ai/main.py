@@ -135,7 +135,7 @@ async def extract(
 
 def build_agent() -> Agent[BrowserDeps, FinalReport]:
     return Agent(
-        "openai:gpt-5-mini",
+        "openai:gpt-6.1-terra",
         deps_type=BrowserDeps,
         output_type=FinalReport,
         tools=[navigate, snapshot, extract],
@@ -170,7 +170,7 @@ async def main() -> None:
     browser: Optional[Browser] = None
     try:
         browser = await playwright.chromium.connect_over_cdp(
-            f"{session.websocket_url}&apiKey={STEEL_API_KEY}"
+            session.websocket_url
         )
         ctx = browser.contexts[0]
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()

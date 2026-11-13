@@ -21,7 +21,7 @@ load_dotenv()
 
 STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
-OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-5.5"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-6.1-sol"
 DEFAULT_QUESTION = (
     os.getenv("RESEARCH_QUESTION")
     or "Summarize the main stories on this page and cite the source URL."
