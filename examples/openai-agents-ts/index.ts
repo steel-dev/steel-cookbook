@@ -198,7 +198,7 @@ const agent = new Agent({
     "(5) return the final FinalReport.",
     "Prefer snapshot's links list over guessing selectors. Do not invent data.",
   ].join(" "),
-  model: "gpt-5-mini",
+  model: "gpt-6.1-terra",
   tools: [openSession, navigate, snapshot, extract],
   outputType: FinalReport,
 });

@@ -102,7 +102,7 @@ async def main():
 
         print("Initializing Stagehand...")
         stagehand_session = await stagehand.sessions.start(
-            model_name="openai/gpt-5",
+            model_name="openai/gpt-6.1-sol",
             browser={
                 "type": "local",
                 "launchOptions": {

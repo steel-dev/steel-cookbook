@@ -168,7 +168,7 @@ agent = Agent(
         "(5) return the final FinalReport. "
         "Prefer snapshot's links list over guessing selectors. Do not invent data."
     ),
-    model="gpt-5-mini",
+    model="gpt-6.1-terra",
     tools=[open_session, navigate, snapshot, extract],
     output_type=FinalReport,
 )

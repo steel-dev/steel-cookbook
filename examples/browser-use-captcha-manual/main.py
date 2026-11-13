@@ -284,8 +284,9 @@ async def main() -> None:
         cdp_url = session.websocket_url
 
         model = ChatOpenAI(
-            model="gpt-5",
+            model="gpt-6.1-sol",
             api_key=OPENAI_API_KEY,
+            reasoning_models=["gpt-6"],
         )
 
         agent = Agent(

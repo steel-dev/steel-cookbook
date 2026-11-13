@@ -8,7 +8,7 @@ This starter wires a Steel browser into Pydantic AI's dependency-injection patte
 from pydantic_ai import Agent, RunContext
 
 agent = Agent(
-    "openai:gpt-5-mini",
+    "openai:gpt-6.1-terra",
     deps_type=BrowserDeps,
     output_type=FinalReport,
     tools=[navigate, snapshot, extract],

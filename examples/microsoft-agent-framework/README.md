@@ -9,7 +9,7 @@ from agent_framework import Agent, tool
 from agent_framework.openai import OpenAIChatClient
 
 agent = Agent(
-    client=OpenAIChatClient(model="gpt-5-mini"),
+    client=OpenAIChatClient(model="gpt-6.1-terra"),
     name="SteelBrowserAgent",
     instructions="You operate a Steel cloud browser via tools. ...",
     tools=build_tools(page),  # navigate, snapshot, extract
@@ -73,7 +73,7 @@ A run takes ~20 to 40 seconds and 5 to 10 agent turns on GitHub Trending. Cost i
 
 ## Make it yours
 
-- **Swap the model.** Change the `OpenAIChatClient(model=...)` argument. `'gpt-5'`, `'gpt-4o'`, and the chat-completion variants all work. For Anthropic or Azure OpenAI, swap the client: `from agent_framework.anthropic import AnthropicChatClient` or `from agent_framework.azure import AzureOpenAIChatClient`.
+- **Swap the model.** Change the `OpenAIChatClient(model=...)` argument. The client calls the Responses API, so `'gpt-6.1-sol'` and other Responses models work. For Anthropic or Azure OpenAI, swap the client: `from agent_framework.anthropic import AnthropicChatClient` or `from agent_framework.azure import AzureOpenAIChatClient`.
 - **Swap the task.** Change `PROMPT` and the `INSTRUCTIONS` system text. Tools stay the same; the agent re-plans against the new shape.
 - **Structured output.** Pass a Pydantic model via `response_format` in `default_options` (or the per-run `options`). The agent's final message will be validated against the schema.
 - **Stream the answer.** Use `async for update in agent.run(prompt, stream=True):` to stream tokens as they arrive. Tool calls happen behind the scenes; `update.text` carries the partial answer.

@@ -8,7 +8,7 @@ import Steel from "steel-sdk";
 import { z } from "zod";
 import dotenv from "dotenv";
 
-// gpt-5 is a reasoning model and doesn't accept `temperature`; silence the
+// gpt-6.1-sol is a reasoning model and doesn't accept `temperature`; silence the
 // AI SDK warning that Stagehand triggers by passing a default temperature.
 (globalThis as any).AI_SDK_LOG_WARNINGS = false;
 
@@ -71,7 +71,7 @@ async function main() {
         cdpUrl: session.websocketUrl,
       },
       model: {
-        modelName: "openai/gpt-5",
+        modelName: "openai/gpt-6.1-sol",
         apiKey: OPENAI_API_KEY,
       },
     });

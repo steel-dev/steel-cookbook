@@ -180,7 +180,11 @@ async def main():
     )
 
     try:
-        model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
+        model = ChatOpenAI(
+            model="gpt-6.1-sol",
+            api_key=OPENAI_API_KEY,
+            reasoning_models=["gpt-6"],
+        )
 
         agent = Agent(
             task=TASK,

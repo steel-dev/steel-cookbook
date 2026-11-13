@@ -13,7 +13,7 @@ stagehand = new Stagehand({
   localBrowserLaunchOptions: {
     cdpUrl: session.websocketUrl,
   },
-  model: { modelName: "openai/gpt-5", apiKey: OPENAI_API_KEY },
+  model: { modelName: "openai/gpt-6.1-sol", apiKey: OPENAI_API_KEY },
 });
 
 await stagehand.init();
@@ -82,7 +82,7 @@ A full run takes ~30 seconds and costs a few cents of Steel session time plus Op
 
 - **Swap the schema and prompt.** `extract()` works on any data shape: forms, invoices, product grids, tables. Change the `stagehand.extract` call in `index.ts` to whatever you need to read off a page.
 - **Chain acts and extracts.** Break a task into natural-language steps: "sign in with these creds, then extract invoices from the past month." Each step is one `act()` or `extract()`.
-- **Try another model.** `gpt-5` works well with the default settings. Claude and Gemini also work. Swap `modelName` and `apiKey` in the `Stagehand` config.
+- **Try another model.** `gpt-6.1-sol` works well with the default settings. Claude and Gemini also work. Swap `modelName` and `apiKey` in the `Stagehand` config.
 
 ## Related
 

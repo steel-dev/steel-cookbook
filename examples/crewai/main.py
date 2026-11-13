@@ -9,7 +9,7 @@ from datetime import datetime
 from textwrap import dedent
 from typing import List, Optional, Type
 
-from crewai import Agent, Process, Task
+from crewai import LLM, Agent, Process, Task
 from crewai import Crew as CrewAI
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
@@ -88,7 +88,7 @@ class Crew():
             goal="Understand and execute: {task}. Find, verify, and extract the most relevant information using the web.",
             backstory="You specialize in decomposing and executing complex instructions like '{task}', using web research, verification, and synthesis to produce precise, actionable findings.",
             tools=[SteelScrapeWebsiteTool()],
-            llm="gpt-5-nano",
+            llm=LLM(model="gpt-6-luna", api="responses"),
             verbose=True
         )
 
@@ -99,7 +99,7 @@ class Crew():
             goal="Transform research outputs into a clear, complete report that fulfills: {task}",
             backstory="You convert research into exhaustive, well-structured reports that directly address the original instruction '{task}', ensuring completeness and clarity.",
             tools=[SteelScrapeWebsiteTool()],
-            llm="gpt-5-nano",
+            llm=LLM(model="gpt-6-luna", api="responses"),
             verbose=True
         )
 

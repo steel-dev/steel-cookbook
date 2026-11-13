@@ -173,7 +173,7 @@ async def main() -> None:
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
 
         agent = Agent(
-            client=OpenAIChatClient(model="gpt-5-mini"),
+            client=OpenAIChatClient(model="gpt-6.1-terra"),
             name="SteelBrowserAgent",
             instructions=INSTRUCTIONS,
             tools=build_tools(page),

@@ -15,7 +15,7 @@ stagehand = AsyncStagehand(
 )
 
 stagehand_session = await stagehand.sessions.start(
-    model_name="openai/gpt-5",
+    model_name="openai/gpt-6.1-sol",
     browser={
         "type": "local",
         "launchOptions": {
@@ -127,7 +127,7 @@ A full run takes ~30 seconds. The `finally` block in `main()` calls `stagehand.s
 
 - **Swap the schema and prompt.** `STORY_SCHEMA` and the `sessions.extract` instruction in `main.py` are the only parts tied to the Hacker News demo.
 - **Chain acts and extracts.** Break a task into natural-language steps, one `await _stream_to_result(...)` per step.
-- **Try another model.** `openai/gpt-5` is a reasonable default; Claude and Gemini also work. Change `model_name` on `sessions.start` and point `model_api_key` at the matching provider.
+- **Try another model.** `openai/gpt-6.1-sol` is a reasonable default; Claude and Gemini also work. Change `model_name` on `sessions.start` and point `model_api_key` at the matching provider.
 - **Turn on Steel stealth.** Uncomment `use_proxy`, `solve_captcha`, or `api_timeout` in the `client.sessions.create()` call for sites with anti-bot.
 
 ## Related

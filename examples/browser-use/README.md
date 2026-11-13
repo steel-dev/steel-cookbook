@@ -6,7 +6,7 @@ Browser Use is an agent framework: you give it an LLM, a browser, and a natural-
 session = client.sessions.create()
 cdp_url = session.websocket_url
 
-model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
+model = ChatOpenAI(model="gpt-6.1-sol", api_key=OPENAI_API_KEY)
 agent = Agent(
     task=TASK,
     llm=model,
@@ -61,7 +61,7 @@ A run costs a few cents of Steel session time plus OpenAI tokens for each step t
 
 - **Change the task.** Set `TASK` in `.env` or edit the default in `main.py`. Any sentence works: "sign in to example.com and download the latest invoice PDF", "compare prices for the top 3 vacuum cleaners on Amazon", "fill out the contact form at acme.com with these fields". Long tasks are fine; the agent breaks them into steps on its own.
 - **Turn on stealth.** Add `use_proxy=True`, `solve_captcha=True`, or `api_timeout=900000` to the `sessions.create()` call for sites with anti-bot. Tasks that navigate logged-in areas usually need longer timeouts than the 5-minute default.
-- **Swap the model.** `ChatOpenAI(model="gpt-5", ...)` is the default; Browser Use also ships `ChatAnthropic`, `ChatGoogle`, and others. Change the import and the `model` arg passed to `Agent`.
+- **Swap the model.** `ChatOpenAI(model="gpt-6.1-sol", ...)` is the default; Browser Use also ships `ChatAnthropic`, `ChatGoogle`, and others. Change the import and the `model` arg passed to `Agent`.
 - **Persist login.** Reuse cookies and local storage across runs via [credentials](../credentials-ts) so the agent does not have to sign in every time.
 
 ## Related

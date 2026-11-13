@@ -135,7 +135,7 @@ async def extract(
 
 def build_agent() -> Agent[BrowserDeps, FinalReport]:
     return Agent(
-        "openai:gpt-5-mini",
+        "openai:gpt-6.1-terra",
         deps_type=BrowserDeps,
         output_type=FinalReport,
         tools=[navigate, snapshot, extract],

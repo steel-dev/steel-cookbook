@@ -53,7 +53,7 @@ async def main():
     )
 
     try:
-        model = ChatOpenAI(model="gpt-5", api_key=OPENAI_API_KEY)
+        model = ChatOpenAI(model="gpt-6.1-sol", api_key=OPENAI_API_KEY)
         agent = Agent(task=TASK, llm=model, browser=Browser(cdp_url=session.websocket_url))
 
         start_time = time.time()
