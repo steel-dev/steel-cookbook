@@ -33,6 +33,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "your-gemini-api-key-here"
 TASK = os.getenv("TASK") or "Go to Steel.dev and find the latest news"
 
 MAX_COORDINATE = 1000
+UNSUPPORTED_ACTIONS = ["triple_click", "mouse_down", "mouse_up", "key_down", "key_up"]
 
 
 def format_today() -> str:
@@ -71,7 +72,7 @@ class Agent:
     def __init__(self):
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
-        self.model = "gemini-3-flash-preview"
+        self.model = "gemini-3.8-flash"
         self.session = None
         self.contents: List[Content] = []
         self.current_url = "about:blank"
@@ -83,6 +84,7 @@ class Agent:
             Tool(
                 computer_use=types.ComputerUse(
                     environment=types.Environment.ENVIRONMENT_BROWSER,
+                    excluded_predefined_functions=UNSUPPORTED_ACTIONS,
                 )
             )
         ]
@@ -173,262 +175,105 @@ class Agent:
             raise RuntimeError("No screenshot returned from Steel")
         return img
 
+    def point(self, args: Dict[str, Any]) -> List[int]:
+        cx, cy = self.center()
+        x, y = args.get("x"), args.get("y")
+        return [
+            self.denormalize_x(x) if x is not None else cx,
+            self.denormalize_y(y) if y is not None else cy,
+        ]
+
+    def computer(self, **params: Any) -> str:
+        resp = self.steel.sessions.computer(self.session.id, screenshot=True, **params)
+        return getattr(resp, "base64_image", None) or self.take_screenshot()
+
     def execute_computer_action(
         self, function_call: FunctionCall
     ) -> Tuple[str, Optional[str]]:
-        """Execute a computer action and return (screenshot_base64, url)."""
+        """Execute a computer action and return (screenshot_base64, error)."""
         name = function_call.name or ""
         args: Dict[str, Any] = function_call.args or {}
 
-        if name == "open_web_browser":
-            screenshot = self.take_screenshot()
-            return screenshot, self.current_url
+        if name in ("click", "double_click", "right_click", "middle_click"):
+            button = {"right_click": "right", "middle_click": "middle"}.get(name, "left")
+            params: Dict[str, Any] = {"button": button, "coordinates": self.point(args)}
+            if name == "double_click":
+                params["num_clicks"] = 2
+            return self.computer(action="click_mouse", **params), None
 
-        elif name == "click_at":
-            x = self.denormalize_x(args.get("x", 0))
-            y = self.denormalize_y(args.get("y", 0))
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="click_mouse",
-                button="left",
-                coordinates=[x, y],
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
+        if name == "move":
+            return self.computer(action="move_mouse", coordinates=self.point(args)), None
 
-        elif name == "hover_at":
-            x = self.denormalize_x(args.get("x", 0))
-            y = self.denormalize_y(args.get("y", 0))
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="move_mouse",
-                coordinates=[x, y],
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
+        if name == "drag_and_drop":
+            path = [
+                [
+                    self.denormalize_x(args.get("start_x", 0)),
+                    self.denormalize_y(args.get("start_y", 0)),
+                ],
+                [
+                    self.denormalize_x(args.get("end_x", 0)),
+                    self.denormalize_y(args.get("end_y", 0)),
+                ],
+            ]
+            return self.computer(action="drag_mouse", path=path), None
 
-        elif name == "type_text_at":
-            x = self.denormalize_x(args.get("x", 0))
-            y = self.denormalize_y(args.get("y", 0))
-            text = args.get("text", "")
-            press_enter = args.get("press_enter", True)
-            clear_before_typing = args.get("clear_before_typing", True)
-
+        if name == "type":
             self.steel.sessions.computer(
-                self.session.id,
-                action="click_mouse",
-                button="left",
-                coordinates=[x, y],
+                self.session.id, action="type_text", text=args.get("text", "")
             )
-
-            if clear_before_typing:
+            if args.get("press_enter"):
                 self.steel.sessions.computer(
-                    self.session.id,
-                    action="press_key",
-                    keys=["Control", "a"],
+                    self.session.id, action="press_key", keys=["Enter"]
                 )
-                self.steel.sessions.computer(
-                    self.session.id,
-                    action="press_key",
-                    keys=["Backspace"],
-                )
+            return self.computer(action="wait", duration=1), None
 
-            self.steel.sessions.computer(
-                self.session.id,
-                action="type_text",
-                text=text,
-            )
-
-            if press_enter:
-                self.steel.sessions.computer(
-                    self.session.id,
-                    action="press_key",
-                    keys=["Enter"],
-                )
-
-            self.steel.sessions.computer(
-                self.session.id,
-                action="wait",
-                duration=1,
-            )
-
-            screenshot = self.take_screenshot()
-            return screenshot, self.current_url
-
-        elif name == "scroll_document":
+        if name == "scroll":
+            magnitude = args.get("magnitude_in_pixels", 300)
             direction = args.get("direction", "down")
-            if direction == "down":
-                keys = ["PageDown"]
-            elif direction == "up":
-                keys = ["PageUp"]
-            elif direction in ("left", "right"):
-                cx, cy = self.center()
-                delta = -400 if direction == "left" else 400
-                resp = self.steel.sessions.computer(
-                    self.session.id,
+            return (
+                self.computer(
                     action="scroll",
-                    coordinates=[cx, cy],
-                    delta_x=delta,
-                    delta_y=0,
-                    screenshot=True,
-                )
-                img = getattr(resp, "base64_image", None)
-                return img or self.take_screenshot(), self.current_url
-            else:
-                keys = ["PageDown"]
-
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=keys,
-                screenshot=True,
+                    coordinates=self.point(args),
+                    delta_x={"left": -magnitude, "right": magnitude}.get(direction, 0),
+                    delta_y={"up": -magnitude, "down": magnitude}.get(direction, 0),
+                ),
+                None,
             )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
 
-        elif name == "scroll_at":
-            x = self.denormalize_x(args.get("x", 0))
-            y = self.denormalize_y(args.get("y", 0))
-            direction = args.get("direction", "down")
-            magnitude = self.denormalize_y(args.get("magnitude", 800))
+        if name in ("press_key", "hotkey"):
+            keys = args.get("keys") if name == "hotkey" else args.get("key")
+            if isinstance(keys, str):
+                keys = self.split_keys(keys)
+            return (
+                self.computer(action="press_key", keys=self.normalize_keys(keys or [])),
+                None,
+            )
 
-            delta_x, delta_y = 0, 0
-            if direction == "down":
-                delta_y = magnitude
-            elif direction == "up":
-                delta_y = -magnitude
-            elif direction == "right":
-                delta_x = magnitude
-            elif direction == "left":
-                delta_x = -magnitude
+        if name == "wait":
+            return self.computer(action="wait", duration=args.get("seconds", 1)), None
 
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="scroll",
-                coordinates=[x, y],
-                delta_x=delta_x,
-                delta_y=delta_y,
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
-
-        elif name == "wait_5_seconds":
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="wait",
-                duration=5,
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
-
-        elif name == "go_back":
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Alt", "ArrowLeft"],
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
-
-        elif name == "go_forward":
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Alt", "ArrowRight"],
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
-
-        elif name == "search":
-            self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Control", "l"],
-            )
-            self.steel.sessions.computer(
-                self.session.id,
-                action="type_text",
-                text="https://www.google.com",
-            )
-            self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Enter"],
-            )
-            self.steel.sessions.computer(
-                self.session.id,
-                action="wait",
-                duration=2,
-            )
-            self.current_url = "https://www.google.com"
-            screenshot = self.take_screenshot()
-            return screenshot, self.current_url
-
-        elif name == "navigate":
+        if name == "navigate":
             url = args.get("url", "")
             if not url.startswith(("http://", "https://")):
                 url = "https://" + url
-
             self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Control", "l"],
+                self.session.id, action="press_key", keys=["Control", "l"]
             )
+            self.steel.sessions.computer(self.session.id, action="type_text", text=url)
             self.steel.sessions.computer(
-                self.session.id,
-                action="type_text",
-                text=url,
-            )
-            self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=["Enter"],
-            )
-            self.steel.sessions.computer(
-                self.session.id,
-                action="wait",
-                duration=2,
+                self.session.id, action="press_key", keys=["Enter"]
             )
             self.current_url = url
-            screenshot = self.take_screenshot()
-            return screenshot, self.current_url
+            return self.computer(action="wait", duration=2), None
 
-        elif name == "key_combination":
-            keys_str = args.get("keys", "")
-            normalized_keys = self.normalize_keys(self.split_keys(keys_str))
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="press_key",
-                keys=normalized_keys,
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
+        if name in ("go_back", "go_forward"):
+            arrow = "ArrowLeft" if name == "go_back" else "ArrowRight"
+            return self.computer(action="press_key", keys=["Alt", arrow]), None
 
-        elif name == "drag_and_drop":
-            start_x = self.denormalize_x(args.get("x", 0))
-            start_y = self.denormalize_y(args.get("y", 0))
-            end_x = self.denormalize_x(args.get("destination_x", 0))
-            end_y = self.denormalize_y(args.get("destination_y", 0))
-            resp = self.steel.sessions.computer(
-                self.session.id,
-                action="drag_mouse",
-                path=[[start_x, start_y], [end_x, end_y]],
-                screenshot=True,
-            )
-            img = getattr(resp, "base64_image", None)
-            return img or self.take_screenshot(), self.current_url
+        if name == "take_screenshot":
+            return self.take_screenshot(), None
 
-        else:
-            print(f"Unknown action: {name}, taking screenshot")
-            screenshot = self.take_screenshot()
-            return screenshot, self.current_url
+        return self.take_screenshot(), f"Unsupported action: {name}"
 
     def extract_function_calls(self, candidate: Candidate) -> List[FunctionCall]:
         function_calls: List[FunctionCall] = []
@@ -458,11 +303,14 @@ class Agent:
         parts: List[Part] = []
 
         for i, fc in enumerate(function_calls):
-            screenshot_base64, url = results[i]
+            screenshot_base64, error = results[i]
+            response: Dict[str, Any] = {"url": self.current_url}
+            if error:
+                response["error"] = error
 
             function_response = FunctionResponse(
                 name=fc.name or "",
-                response={"url": url or self.current_url},
+                response=response,
             )
             parts.append(Part(function_response=function_response))
 

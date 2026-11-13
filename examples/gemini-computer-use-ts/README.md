@@ -1,8 +1,8 @@
 # Gemini Computer Use (TypeScript)
 
-Gemini exposes computer use as a built-in tool type, not a hand-written schema. You set `config.tools = [{ computerUse: { environment: Environment.ENVIRONMENT_BROWSER } }]` on a `generateContent` call and the model plans against a fixed action vocabulary (`click_at`, `type_text_at`, `navigate`, `scroll_document`, `search`, `drag_and_drop`, `key_combination`, ...) with coordinates in a normalized 0-1000 grid.
+Gemini exposes computer use as a built-in tool type, not a hand-written schema. You set `config.tools = [{ computerUse: { environment: Environment.ENVIRONMENT_BROWSER } }]` on a `generateContent` call and the model plans against a fixed action vocabulary (`click`, `type`, `navigate`, `scroll`, `press_key`, `hotkey`, `drag_and_drop`, `take_screenshot`, ...) with coordinates in a normalized 0-1000 grid. Every call carries an `intent` string that says why the model chose it. `excludedPredefinedFunctions: UNSUPPORTED_ACTIONS` removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform.
 
-The model defaults to `gemini-3-flash-preview`. Conversation state lives entirely on your side, appended to `this.contents` turn by turn.
+The model defaults to `gemini-3.8-flash`. Conversation state lives entirely on your side, appended to `this.contents` turn by turn.
 
 ## Coordinates and action mapping
 
@@ -14,18 +14,21 @@ private denormalizeX(x: number): number {
 }
 ```
 
-Several of Gemini's actions are compound; the starter expands them. `type_text_at` fans into click, Ctrl+A, Backspace, type_text, Enter, wait, screenshot. `navigate` and `search` skip the URL bar hunt by doing the Chrome `Ctrl+L` trick: focus the address bar, type, press Enter, wait. `key_combination` arrives as a `+`-joined string like `"Control+Enter"`; `splitKeys` and `normalizeKey` break it apart and rewrite synonyms (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
+Some of Gemini's actions are compound; the starter expands them. `type` sends `type_text`, then Enter if `press_enter` is true, then waits a second. `navigate` skips the URL bar hunt by doing the Chrome `Ctrl+L` trick: focus the address bar, type, press Enter, wait. `hotkey` arrives as a list like `["Control", "Enter"]`; `normalizeKey` rewrites synonyms (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
 
 Every mapped action sets `screenshot: true` on the Steel call. The PNG comes back in the same response.
 
 ## Sending frames back
 
-Each completed call produces two parts in a single user-role turn: a `functionResponse` that names the call and echoes the current URL, then an `inlineData` part carrying the screenshot as raw base64.
+Each completed call produces two parts in a single user-role turn: a `functionResponse` that names the call and echoes the current URL, then an `inlineData` part carrying the screenshot as raw base64. An action the starter cannot run adds an `error` field, so the model can pick another action.
 
 ```typescript
 const functionResponse: FunctionResponse = {
   name: fc.name ?? "",
-  response: { url: result.url ?? this.currentUrl },
+  response: {
+    url: result.url ?? this.currentUrl,
+    ...(result.error ? { error: result.error } : {}),
+  },
 };
 parts.push({ functionResponse });
 
@@ -43,7 +46,7 @@ Four exits, in rough order of frequency:
 
 - **Text, no function calls.** The model wrote a final message.
 - **Empty turn.** No calls, no text. `consecutiveNoActions` increments. Three in a row stops the loop.
-- **`MALFORMED_FUNCTION_CALL` with nothing else.** A known quirk of the preview model; the loop continues to the next iteration.
+- **`MALFORMED_FUNCTION_CALL` with nothing else.** The model produced a call it could not format; the loop continues to the next iteration.
 - **Iteration cap.** 50 turns by default.
 
 The `finally` in `main` calls `agent.cleanup()`, which releases the Steel session.
@@ -71,10 +74,9 @@ View live session at: https://app.steel.dev/sessions/ab12cd34...
 
 Executing task: Go to Steel.dev and find the latest news
 ============================================================
-I'll navigate to steel.dev and scan the landing page for news.
-navigate({"url":"https://steel.dev"})
-scroll_document({"direction":"down"})
-click_at({"x":520,"y":410})
+navigate({"intent":"Go to steel.dev","url":"https://steel.dev"})
+click({"intent":"Click on Resources or Docs to find latest news or blog","x":321,"y":181})
+click({"x":70,"intent":"Click on Blog","y":332})
 Steel's latest release adds ...
 
 ============================================================
@@ -88,11 +90,11 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task.
 ## Make it yours
 
 - **Resize the viewport.** `viewportWidth` / `viewportHeight` in the `Agent` constructor feed both the Steel session `dimensions` and the `denormalizeX` / `denormalizeY` math.
-- **Swap the model.** `this.model = "gemini-3-flash-preview"` is the only version string.
+- **Swap the model.** `this.model = "gemini-3.8-flash"` is the only version string. `gemini-3.5-flash-lite` is faster and cheaper. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this starter does not handle.
 - **Tune the system prompt.** `BROWSER_SYSTEM_PROMPT` carries the browsing conventions: today's date via `formatToday()`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledgement branch with a human approval before the next `executeComputerAction` fires.
 - **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials-ts) or [auth contexts](../auth-context-ts) to start the session already signed in.
 
 ## Related
 
-[Computer use docs](https://ai.google.dev/gemini-api/docs/computer-use) · [Python version](../gemini-computer-use-py) · [Anthropic equivalent](../claude-computer-use-ts) · [OpenAI equivalent](../openai-computer-use-ts)
+[Computer use docs](https://aistudio.google.com/docs/computer-use) · [Python version](../gemini-computer-use-py) · [Anthropic equivalent](../claude-computer-use-ts) · [OpenAI equivalent](../openai-computer-use-ts)

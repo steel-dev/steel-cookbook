@@ -28,6 +28,13 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "your-gemini-api-key-here";
 const TASK = process.env.TASK || "Go to Steel.dev and find the latest news";
 
 const MAX_COORDINATE = 1000;
+const UNSUPPORTED_ACTIONS = [
+  "triple_click",
+  "mouse_down",
+  "mouse_up",
+  "key_down",
+  "key_up",
+];
 
 function formatToday(): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -132,6 +139,7 @@ interface SteelComputerResponse {
 interface ActionResult {
   screenshotBase64: string;
   url?: string;
+  error?: string;
 }
 
 class Agent {
@@ -149,7 +157,7 @@ class Agent {
   constructor() {
     this.client = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "gemini-3-flash-preview";
+    this.model = "gemini-3.8-flash";
     this.contents = [];
     this.currentUrl = "about:blank";
 
@@ -160,6 +168,7 @@ class Agent {
       {
         computerUse: {
           environment: Environment.ENVIRONMENT_BROWSER,
+          excludedPredefinedFunctions: UNSUPPORTED_ACTIONS,
         },
       },
     ];
@@ -181,6 +190,14 @@ class Agent {
     return [
       Math.floor(this.viewportWidth / 2),
       Math.floor(this.viewportHeight / 2),
+    ];
+  }
+
+  private point(args: Record<string, unknown>): Coordinates {
+    const [cx, cy] = this.center();
+    return [
+      typeof args.x === "number" ? this.denormalizeX(args.x) : cx,
+      typeof args.y === "number" ? this.denormalizeY(args.y) : cy,
     ];
   }
 
@@ -280,183 +297,111 @@ class Agent {
     let body: ComputerActionRequest | null = null;
 
     switch (name) {
-      case "open_web_browser": {
-        const screenshot = await this.takeScreenshot();
-        return { screenshotBase64: screenshot, url: this.currentUrl };
-      }
-
-      case "click_at": {
-        const x = this.denormalizeX(args.x as number);
-        const y = this.denormalizeY(args.y as number);
+      case "click":
+      case "double_click":
+      case "right_click":
+      case "middle_click": {
         body = {
           action: "click_mouse",
-          button: "left",
-          coordinates: [x, y],
+          button:
+            name === "right_click"
+              ? "right"
+              : name === "middle_click"
+                ? "middle"
+                : "left",
+          coordinates: this.point(args),
+          num_clicks: name === "double_click" ? 2 : undefined,
           screenshot: true,
         };
         break;
       }
 
-      case "hover_at": {
-        const x = this.denormalizeX(args.x as number);
-        const y = this.denormalizeY(args.y as number);
+      case "move": {
         body = {
           action: "move_mouse",
-          coordinates: [x, y],
+          coordinates: this.point(args),
           screenshot: true,
         };
         break;
       }
 
-      case "type_text_at": {
-        const x = this.denormalizeX(args.x as number);
-        const y = this.denormalizeY(args.y as number);
-        const text = args.text as string;
-        const pressEnter = args.press_enter !== false;
-        const clearBeforeTyping = args.clear_before_typing !== false;
+      case "drag_and_drop": {
+        body = {
+          action: "drag_mouse",
+          path: [
+            [
+              this.denormalizeX(args.start_x as number),
+              this.denormalizeY(args.start_y as number),
+            ],
+            [
+              this.denormalizeX(args.end_x as number),
+              this.denormalizeY(args.end_y as number),
+            ],
+          ],
+          screenshot: true,
+        };
+        break;
+      }
 
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "click_mouse",
-          button: "left",
-          coordinates: [x, y],
-        });
-
-        if (clearBeforeTyping) {
-          await this.steel.sessions.computer(this.session!.id, {
-            action: "press_key",
-            keys: ["Control", "a"],
-          });
-          await this.steel.sessions.computer(this.session!.id, {
-            action: "press_key",
-            keys: ["Backspace"],
-          });
-        }
-
+      case "type": {
         await this.steel.sessions.computer(this.session!.id, {
           action: "type_text",
-          text: text,
+          text: (args.text as string) ?? "",
         });
-
-        if (pressEnter) {
+        if (args.press_enter === true) {
           await this.steel.sessions.computer(this.session!.id, {
             action: "press_key",
             keys: ["Enter"],
           });
         }
-
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "wait",
-          duration: 1,
-        });
-
-        const screenshot = await this.takeScreenshot();
-        return { screenshotBase64: screenshot, url: this.currentUrl };
-      }
-
-      case "scroll_document": {
-        const direction = args.direction as string;
-        let keys: string[];
-        if (direction === "down") {
-          keys = ["PageDown"];
-        } else if (direction === "up") {
-          keys = ["PageUp"];
-        } else if (direction === "left" || direction === "right") {
-          const [cx, cy] = this.center();
-          const delta = direction === "left" ? -400 : 400;
-          body = {
-            action: "scroll",
-            coordinates: [cx, cy],
-            delta_x: delta,
-            delta_y: 0,
-            screenshot: true,
-          };
-          break;
-        } else {
-          keys = ["PageDown"];
-        }
-        body = {
-          action: "press_key",
-          keys: keys,
-          screenshot: true,
-        };
+        body = { action: "wait", duration: 1, screenshot: true };
         break;
       }
 
-      case "scroll_at": {
-        const x = this.denormalizeX(args.x as number);
-        const y = this.denormalizeY(args.y as number);
+      case "scroll": {
+        const magnitude = (args.magnitude_in_pixels as number) ?? 300;
         const direction = args.direction as string;
-        const magnitude = this.denormalizeY((args.magnitude as number) ?? 800);
-
-        let deltaX = 0;
-        let deltaY = 0;
-        if (direction === "down") {
-          deltaY = magnitude;
-        } else if (direction === "up") {
-          deltaY = -magnitude;
-        } else if (direction === "right") {
-          deltaX = magnitude;
-        } else if (direction === "left") {
-          deltaX = -magnitude;
-        }
-
         body = {
           action: "scroll",
-          coordinates: [x, y],
-          delta_x: deltaX,
-          delta_y: deltaY,
+          coordinates: this.point(args),
+          delta_x:
+            direction === "left"
+              ? -magnitude
+              : direction === "right"
+                ? magnitude
+                : 0,
+          delta_y:
+            direction === "up"
+              ? -magnitude
+              : direction === "down"
+                ? magnitude
+                : 0,
           screenshot: true,
         };
         break;
       }
 
-      case "wait_5_seconds": {
+      case "press_key":
+      case "hotkey": {
+        const raw = name === "hotkey" ? args.keys : args.key;
+        const keys = Array.isArray(raw)
+          ? (raw as string[])
+          : this.splitKeys(raw as string | undefined);
+        body = {
+          action: "press_key",
+          keys: this.normalizeKeys(keys),
+          screenshot: true,
+        };
+        break;
+      }
+
+      case "wait": {
         body = {
           action: "wait",
-          duration: 5,
+          duration: (args.seconds as number) ?? 1,
           screenshot: true,
         };
         break;
-      }
-
-      case "go_back": {
-        body = {
-          action: "press_key",
-          keys: ["Alt", "ArrowLeft"],
-          screenshot: true,
-        };
-        break;
-      }
-
-      case "go_forward": {
-        body = {
-          action: "press_key",
-          keys: ["Alt", "ArrowRight"],
-          screenshot: true,
-        };
-        break;
-      }
-
-      case "search": {
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "press_key",
-          keys: ["Control", "l"],
-        });
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "type_text",
-          text: "https://www.google.com",
-        });
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "press_key",
-          keys: ["Enter"],
-        });
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "wait",
-          duration: 2,
-        });
-        this.currentUrl = "https://www.google.com";
-        const screenshot = await this.takeScreenshot();
-        return { screenshotBase64: screenshot, url: this.currentUrl };
       }
 
       case "navigate": {
@@ -476,46 +421,32 @@ class Agent {
           action: "press_key",
           keys: ["Enter"],
         });
-        await this.steel.sessions.computer(this.session!.id, {
-          action: "wait",
-          duration: 2,
-        });
         this.currentUrl = url;
-        const screenshot = await this.takeScreenshot();
-        return { screenshotBase64: screenshot, url: this.currentUrl };
+        body = { action: "wait", duration: 2, screenshot: true };
+        break;
       }
 
-      case "key_combination": {
-        const keysStr = args.keys as string;
-        const normalizedKeys = this.normalizeKeys(this.splitKeys(keysStr));
+      case "go_back":
+      case "go_forward": {
         body = {
           action: "press_key",
-          keys: normalizedKeys,
+          keys: ["Alt", name === "go_back" ? "ArrowLeft" : "ArrowRight"],
           screenshot: true,
         };
         break;
       }
 
-      case "drag_and_drop": {
-        const startX = this.denormalizeX(args.x as number);
-        const startY = this.denormalizeY(args.y as number);
-        const endX = this.denormalizeX(args.destination_x as number);
-        const endY = this.denormalizeY(args.destination_y as number);
-        body = {
-          action: "drag_mouse",
-          path: [
-            [startX, startY],
-            [endX, endY],
-          ],
-          screenshot: true,
-        };
+      case "take_screenshot": {
         break;
       }
 
       default: {
-        console.log(`Unknown action: ${name}, taking screenshot`);
         const screenshot = await this.takeScreenshot();
-        return { screenshotBase64: screenshot, url: this.currentUrl };
+        return {
+          screenshotBase64: screenshot,
+          url: this.currentUrl,
+          error: `Unsupported action: ${name}`,
+        };
       }
     }
 
@@ -571,7 +502,10 @@ class Agent {
 
       const functionResponse: FunctionResponse = {
         name: fc.name ?? "",
-        response: { url: result.url ?? this.currentUrl },
+        response: {
+          url: result.url ?? this.currentUrl,
+          ...(result.error ? { error: result.error } : {}),
+        },
       };
       parts.push({ functionResponse });
 

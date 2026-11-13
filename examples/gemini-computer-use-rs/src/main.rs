@@ -15,12 +15,19 @@ use steel_rs::{
 };
 
 const GEMINI_URL: &str =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent";
 
 const VIEWPORT_WIDTH: i64 = 1440;
 const VIEWPORT_HEIGHT: i64 = 900;
 const MAX_COORDINATE: f64 = 1000.0;
 const MAX_ITERATIONS: usize = 50;
+const UNSUPPORTED_ACTIONS: [&str; 5] = [
+    "triple_click",
+    "mouse_down",
+    "mouse_up",
+    "key_down",
+    "key_up",
+];
 
 #[derive(Debug, Deserialize)]
 struct GenerateContentResponse {
@@ -178,6 +185,16 @@ impl Agent {
         ((VIEWPORT_WIDTH / 2) as f64, (VIEWPORT_HEIGHT / 2) as f64)
     }
 
+    fn point(args: &Value) -> (f64, f64) {
+        let (cx, cy) = Self::center();
+        let x = args.get("x").and_then(|v| v.as_f64());
+        let y = args.get("y").and_then(|v| v.as_f64());
+        (
+            x.map(Self::denormalize_x).unwrap_or(cx),
+            y.map(Self::denormalize_y).unwrap_or(cy),
+        )
+    }
+
     async fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
         let session = self
             .steel
@@ -246,17 +263,6 @@ impl Agent {
             .ok_or_else(|| "No screenshot returned from Steel".into())
     }
 
-    fn click_params(x: f64, y: f64, screenshot: bool) -> SessionComputerParams {
-        SessionComputerParams::ClickMouse(SessionComputerParamsClickMouse {
-            button: Some(SessionComputerParamsClickMouseButton::Left),
-            click_type: None,
-            coordinates: Some(vec![x, y]),
-            hold_keys: None,
-            num_clicks: None,
-            screenshot: Some(screenshot),
-        })
-    }
-
     fn press_keys_params(keys: Vec<String>, screenshot: bool) -> SessionComputerParams {
         SessionComputerParams::PressKey(SessionComputerParamsPressKey {
             duration: None,
@@ -294,19 +300,30 @@ impl Agent {
         &mut self,
         name: &str,
         args: &Value,
-    ) -> Result<String, Box<dyn Error>> {
-        match name {
-            "open_web_browser" => self.take_screenshot().await,
-
-            "click_at" => {
-                let x = Self::denormalize_x(arg_f64(args, "x", 0.0));
-                let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
-                self.run_action(Self::click_params(x, y, true)).await
+    ) -> Result<(String, Option<String>), Box<dyn Error>> {
+        let shot = match name {
+            "click" | "double_click" | "right_click" | "middle_click" => {
+                let (x, y) = Self::point(args);
+                let button = match name {
+                    "right_click" => SessionComputerParamsClickMouseButton::Right,
+                    "middle_click" => SessionComputerParamsClickMouseButton::Middle,
+                    _ => SessionComputerParamsClickMouseButton::Left,
+                };
+                self.run_action(SessionComputerParams::ClickMouse(
+                    SessionComputerParamsClickMouse {
+                        button: Some(button),
+                        click_type: None,
+                        coordinates: Some(vec![x, y]),
+                        hold_keys: None,
+                        num_clicks: (name == "double_click").then_some(2.0),
+                        screenshot: Some(true),
+                    },
+                ))
+                .await?
             }
 
-            "hover_at" => {
-                let x = Self::denormalize_x(arg_f64(args, "x", 0.0));
-                let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
+            "move" => {
+                let (x, y) = Self::point(args);
                 self.run_action(SessionComputerParams::MoveMouse(
                     SessionComputerParamsMoveMouse {
                         coordinates: vec![x, y],
@@ -314,125 +331,72 @@ impl Agent {
                         screenshot: Some(true),
                     },
                 ))
-                .await
+                .await?
             }
 
-            "type_text_at" => {
-                let x = Self::denormalize_x(arg_f64(args, "x", 0.0));
-                let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
+            "drag_and_drop" => {
+                let start_x = Self::denormalize_x(arg_f64(args, "start_x", 0.0));
+                let start_y = Self::denormalize_y(arg_f64(args, "start_y", 0.0));
+                let end_x = Self::denormalize_x(arg_f64(args, "end_x", 0.0));
+                let end_y = Self::denormalize_y(arg_f64(args, "end_y", 0.0));
+                self.run_action(SessionComputerParams::DragMouse(
+                    SessionComputerParamsDragMouse {
+                        hold_keys: None,
+                        path: vec![vec![start_x, start_y], vec![end_x, end_y]],
+                        screenshot: Some(true),
+                    },
+                ))
+                .await?
+            }
+
+            "type" => {
                 let text = arg_str(args, "text", "").to_string();
-                let press_enter = arg_bool(args, "press_enter", true);
-                let clear_before_typing = arg_bool(args, "clear_before_typing", true);
-
-                self.run_action_no_shot(Self::click_params(x, y, false))
+                self.run_action_no_shot(Self::type_text_params(text))
                     .await?;
-
-                if clear_before_typing {
-                    self.run_action_no_shot(Self::press_keys_params(
-                        vec!["Control".to_string(), "a".to_string()],
-                        false,
-                    ))
-                    .await?;
-                    self.run_action_no_shot(Self::press_keys_params(
-                        vec!["Backspace".to_string()],
-                        false,
-                    ))
-                    .await?;
-                }
-
-                self.run_action_no_shot(Self::type_text_params(text)).await?;
-
-                if press_enter {
+                if arg_bool(args, "press_enter", false) {
                     self.run_action_no_shot(Self::press_keys_params(
                         vec!["Enter".to_string()],
                         false,
                     ))
                     .await?;
                 }
-
-                self.run_action_no_shot(Self::wait_params(1.0, false))
-                    .await?;
-
-                self.take_screenshot().await
+                self.run_action(Self::wait_params(1.0, true)).await?
             }
 
-            "scroll_document" => {
-                let direction = arg_str(args, "direction", "down");
-                match direction {
-                    "left" | "right" => {
-                        let (cx, cy) = Self::center();
-                        let delta = if direction == "left" { -400.0 } else { 400.0 };
-                        self.run_action(Self::scroll_params(cx, cy, delta, 0.0)).await
-                    }
-                    "up" => {
-                        self.run_action(Self::press_keys_params(
-                            vec!["PageUp".to_string()],
-                            true,
-                        ))
-                        .await
-                    }
-                    _ => {
-                        self.run_action(Self::press_keys_params(
-                            vec!["PageDown".to_string()],
-                            true,
-                        ))
-                        .await
-                    }
-                }
-            }
-
-            "scroll_at" => {
-                let x = Self::denormalize_x(arg_f64(args, "x", 0.0));
-                let y = Self::denormalize_y(arg_f64(args, "y", 0.0));
-                let direction = arg_str(args, "direction", "down");
-                let magnitude = Self::denormalize_y(arg_f64(args, "magnitude", 800.0));
-
-                let (dx, dy) = match direction {
+            "scroll" => {
+                let (x, y) = Self::point(args);
+                let magnitude = arg_f64(args, "magnitude_in_pixels", 300.0);
+                let (dx, dy) = match arg_str(args, "direction", "down") {
                     "up" => (0.0, -magnitude),
                     "right" => (magnitude, 0.0),
                     "left" => (-magnitude, 0.0),
                     _ => (0.0, magnitude),
                 };
-                self.run_action(Self::scroll_params(x, y, dx, dy)).await
+                self.run_action(Self::scroll_params(x, y, dx, dy)).await?
             }
 
-            "wait_5_seconds" => self.run_action(Self::wait_params(5.0, true)).await,
-
-            "go_back" => {
-                self.run_action(Self::press_keys_params(
-                    vec!["Alt".to_string(), "ArrowLeft".to_string()],
-                    true,
-                ))
-                .await
+            "press_key" | "hotkey" => {
+                let raw = if name == "hotkey" {
+                    args.get("keys")
+                } else {
+                    args.get("key")
+                };
+                let keys = match raw {
+                    Some(Value::Array(items)) => items
+                        .iter()
+                        .filter_map(|v| v.as_str())
+                        .map(String::from)
+                        .collect(),
+                    Some(Value::String(s)) => split_keys(s),
+                    _ => Vec::new(),
+                };
+                self.run_action(Self::press_keys_params(normalize_keys(keys), true))
+                    .await?
             }
 
-            "go_forward" => {
-                self.run_action(Self::press_keys_params(
-                    vec!["Alt".to_string(), "ArrowRight".to_string()],
-                    true,
-                ))
-                .await
-            }
-
-            "search" => {
-                self.run_action_no_shot(Self::press_keys_params(
-                    vec!["Control".to_string(), "l".to_string()],
-                    false,
-                ))
-                .await?;
-                self.run_action_no_shot(Self::type_text_params(
-                    "https://www.google.com".to_string(),
-                ))
-                .await?;
-                self.run_action_no_shot(Self::press_keys_params(
-                    vec!["Enter".to_string()],
-                    false,
-                ))
-                .await?;
-                self.run_action_no_shot(Self::wait_params(2.0, false))
-                    .await?;
-                self.current_url = "https://www.google.com".to_string();
-                self.take_screenshot().await
+            "wait" => {
+                self.run_action(Self::wait_params(arg_f64(args, "seconds", 1.0), true))
+                    .await?
             }
 
             "navigate" => {
@@ -447,49 +411,44 @@ impl Agent {
                 .await?;
                 self.run_action_no_shot(Self::type_text_params(url.clone()))
                     .await?;
-                self.run_action_no_shot(Self::press_keys_params(
-                    vec!["Enter".to_string()],
-                    false,
-                ))
-                .await?;
-                self.run_action_no_shot(Self::wait_params(2.0, false))
+                self.run_action_no_shot(Self::press_keys_params(vec!["Enter".to_string()], false))
                     .await?;
                 self.current_url = url;
-                self.take_screenshot().await
+                self.run_action(Self::wait_params(2.0, true)).await?
             }
 
-            "key_combination" => {
-                let keys_str = arg_str(args, "keys", "");
-                let keys = normalize_keys(split_keys(keys_str));
-                self.run_action(Self::press_keys_params(keys, true)).await
-            }
-
-            "drag_and_drop" => {
-                let start_x = Self::denormalize_x(arg_f64(args, "x", 0.0));
-                let start_y = Self::denormalize_y(arg_f64(args, "y", 0.0));
-                let end_x = Self::denormalize_x(arg_f64(args, "destination_x", 0.0));
-                let end_y = Self::denormalize_y(arg_f64(args, "destination_y", 0.0));
-                self.run_action(SessionComputerParams::DragMouse(
-                    SessionComputerParamsDragMouse {
-                        hold_keys: None,
-                        path: vec![vec![start_x, start_y], vec![end_x, end_y]],
-                        screenshot: Some(true),
-                    },
+            "go_back" | "go_forward" => {
+                let arrow = if name == "go_back" {
+                    "ArrowLeft"
+                } else {
+                    "ArrowRight"
+                };
+                self.run_action(Self::press_keys_params(
+                    vec!["Alt".to_string(), arrow.to_string()],
+                    true,
                 ))
-                .await
+                .await?
             }
+
+            "take_screenshot" => self.take_screenshot().await?,
 
             other => {
-                println!("Unknown action: {}, taking screenshot", other);
-                self.take_screenshot().await
+                let shot = self.take_screenshot().await?;
+                return Ok((shot, Some(format!("Unsupported action: {}", other))));
             }
-        }
+        };
+        Ok((shot, None))
     }
 
     async fn call_gemini(&self) -> Result<GenerateContentResponse, Box<dyn Error>> {
         let body = json!({
             "contents": self.contents,
-            "tools": [{ "computerUse": { "environment": "ENVIRONMENT_BROWSER" } }],
+            "tools": [{
+                "computerUse": {
+                    "environment": "ENVIRONMENT_BROWSER",
+                    "excludedPredefinedFunctions": UNSUPPORTED_ACTIONS,
+                }
+            }],
         });
 
         let resp = self
@@ -607,12 +566,16 @@ impl Agent {
                     }
                 }
 
-                let screenshot = self.execute_computer_action(name, &args).await?;
+                let (screenshot, action_error) = self.execute_computer_action(name, &args).await?;
+                let mut response = json!({ "url": self.current_url });
+                if let Some(error) = action_error {
+                    response["error"] = json!(error);
+                }
 
                 response_parts.push(json!({
                     "functionResponse": {
                         "name": name,
-                        "response": { "url": self.current_url },
+                        "response": response,
                     }
                 }));
                 response_parts.push(json!({

@@ -1,6 +1,6 @@
 # Gemini Computer Use (Go)
 
-`google.golang.org/genai` exposes computer use as a typed tool on the request config: set `config.Tools = []*genai.Tool{{ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser}}}` and `client.Models.GenerateContent(ctx, "gemini-3-flash-preview", contents, config)` starts planning against a fixed browser vocabulary (`click_at`, `type_text_at`, `navigate`, `scroll_document`, `search`, `drag_and_drop`, `key_combination`, `hover_at`, `go_back`, `go_forward`, `open_web_browser`, `wait_5_seconds`). Coordinates arrive in a normalized 0-1000 grid.
+`google.golang.org/genai` exposes computer use as a typed tool on the request config: set `config.Tools = []*genai.Tool{{ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser}}}` and `client.Models.GenerateContent(ctx, "gemini-3.8-flash", contents, config)` starts planning against a fixed browser vocabulary (`click`, `double_click`, `right_click`, `middle_click`, `move`, `drag_and_drop`, `type`, `scroll`, `press_key`, `hotkey`, `wait`, `navigate`, `go_back`, `go_forward`, `take_screenshot`). Coordinates arrive in a normalized 0-1000 grid, and every call carries an `intent` string that says why the model chose it. `ExcludedPredefinedFunctions: unsupportedActions` removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform.
 
 Steel runs the screen. A session is a headful Chromium in a VM, and `client.Sessions.Computer(ctx, sessionID, body)` takes the action as its body and returns a `*SessionComputerResponse` whose `Base64Image` carries the resulting PNG.
 
@@ -17,15 +17,15 @@ parts = append(parts, &genai.Part{
 })
 ```
 
-Several Gemini actions are compound and get expanded locally. `type_text_at` fans into click, Ctrl+A, Backspace, type, optional Enter, a one-second wait, then a screenshot. `navigate` and `search` skip hunting for the URL bar by doing the Ctrl+L focus trick in `openURL`. `key_combination` arrives as a `+`-joined string; `splitKeys` and `normalizeKey` break it apart and rewrite synonyms (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
+Some Gemini actions are compound and get expanded locally. `type` sends the text, then Enter if `press_enter` is true, then waits a second before the screenshot. `navigate` skips hunting for the URL bar by doing the Ctrl+L focus trick in `openURL`. `hotkey` arrives as a list of key names; `argStrings` and `normalizeKey` turn it into Steel's names (`CTRL` to `Control`, `CMD` to `Meta`, `ARROWUP` to `ArrowUp`).
 
 ## The loop
 
-`executeTask` seeds two user `Part`s (the system prompt and the task) into `contents`, then loops on `GenerateContent`. genai keeps no server-side state, so the full `contents` slice, every prior screenshot included, is resent each turn. Each turn appends the model's `Content`, then a user `Content` pairing one `FunctionResponse` (name plus current URL) with one `InlineData` screenshot per call. Four exits:
+`executeTask` seeds two user `Part`s (the system prompt and the task) into `contents`, then loops on `GenerateContent`. genai keeps no server-side state, so the full `contents` slice, every prior screenshot included, is resent each turn. Each turn appends the model's `Content`, then a user `Content` pairing one `FunctionResponse` (name plus current URL) with one `InlineData` screenshot per call. An action the agent cannot run adds an `error` field to its `FunctionResponse`, so the model can pick another action. Four exits:
 
 - Text and no function calls: the model wrote its final answer.
 - Three consecutive empty turns (no text, no calls): stop.
-- `FinishReasonMalformedFunctionCall` with nothing else: a preview-model quirk, skip to the next iteration.
+- `FinishReasonMalformedFunctionCall` with nothing else: the model produced a call it could not format, so skip to the next iteration.
 - The 50-iteration cap.
 
 `run` defers `agent.cleanup`, which releases the Steel session, and returns an error instead of calling `os.Exit` so that the deferred cleanup always runs.
@@ -57,10 +57,9 @@ View live session at: https://app.steel.dev/sessions/ab12cd34...
 Executing task: Go to Steel.dev and find the latest news
 ============================================================
 
-I'll open steel.dev and scan the page for recent news.
-navigate({"url":"https://steel.dev"})
-scroll_document({"direction":"down"})
-click_at({"x":512,"y":340})
+navigate({"intent":"Go to steel.dev","url":"https://steel.dev"})
+click({"intent":"Click on Resources dropdown to find news or blog","x":321,"y":179})
+click({"intent":"Click on Blog","x":68,"y":332})
 Task complete - model provided final response
 Releasing Steel session...
 Session completed. View replay at https://app.steel.dev/sessions/ab12cd34...
@@ -80,7 +79,7 @@ A run usually takes 60-180 seconds across 10-30 iterations.
 ## Make it yours
 
 - Change the task. Edit `TASK` in `.env` or pass it inline.
-- Swap the model. The `model` constant is the only version string.
+- Swap the model. The `model` constant is the only version string. `gemini-3.5-flash-lite` is faster and cheaper. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
 - Resize the viewport. `viewportWidth` / `viewportHeight` feed both the Steel `Dimensions` and the denormalize math.
 - Gate safety decisions. Replace the auto-acknowledge branch in `executeTask` with a human approval before the action fires.
 - Hand off auth. Pass `SessionContext` to `Sessions.New` to resume with cookies and local storage. See [credentials](../credentials-ts).
