@@ -124,6 +124,7 @@ class Crew():
             """),
             expected_output="A comprehensive markdown report that satisfies the instruction: {task}. Formatted as markdown without '```'",
             agent=self.reporting_analyst(),
+            output_file="report.md",
         )
 
     @crew
