@@ -63,7 +63,7 @@ const run = await hnNetwork.run(
 );
 ```
 
-The router sends each turn to `hn_curator` until it answers without calling a tool. Agent Kit's default routing agent would pick by `description`, but in Agent Kit 0.13.2 its `select_agent` tool has an optional field that OpenAI's strict mode rejects. Agent Kit's OpenAI adapter calls Chat Completions, where GPT-6 models call tools only with `reasoning_effort: "none"`. Agent Kit's parameter type doesn't list `reasoning_effort` yet, hence the cast.
+The router sends each turn to `hn_curator` until it answers without calling a tool. Agent Kit's default routing agent would pick by `description`, but in Agent Kit 0.13.2 its `select_agent` tool has an optional field that OpenAI's strict mode rejects. Agent Kit's OpenAI adapter calls Chat Completions, where GPT-6 models call tools only with `reasoning_effort: "none"`. Agent Kit's parameter type does not list `reasoning_effort` yet, hence the cast.
 
 ## Run it
 
@@ -139,7 +139,7 @@ A run takes about 10 seconds.
 
 - **Add tools.** Drop another `createTool` (a form filler, a screenshot-and-describe, a per-site scraper) into `hnAgent.tools`.
 - **Add agents.** Split the work: one agent browses, another summarizes, a third writes to a database. Put them in the same network and return the next one from `router`.
-- **Swap the model.** `gpt-6-luna` is cheap and fast. `gpt-6.1-terra` and `gpt-6-sol` are stronger and also accept `reasoning_effort: "none"`. `gpt-6.1-sol` and `gpt-6-astra` don't, so they can't call tools through this adapter. Agent Kit also ships Anthropic and Gemini adapters.
+- **Swap the model.** `gpt-6-luna` is cheap and fast. `gpt-6.1-terra` and `gpt-6-sol` are stronger and also accept `reasoning_effort: "none"`. `gpt-6.1-sol` and `gpt-6-astra` do not, so they cannot call tools through this adapter. Agent Kit also ships Anthropic and Gemini adapters.
 - **Reuse sessions.** The current handler creates and releases per call. For a chain of tool calls hitting the same site, hoist session creation out of the handler and pass the session ID through the network's shared state.
 
 ## Related
