@@ -74,13 +74,13 @@ Steel's latest release notes mention ...
 ============================================================
 ```
 
-A run usually takes 60-180 seconds across 10-30 iterations.
+A run usually takes 40-80 seconds across 4-7 iterations.
 
 ## Make it yours
 
 - Change the task. Edit `TASK` in `.env` or pass it inline.
 - Swap the model. The `model` constant is the only version string. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
-- Raise the thinking level. `NewAgent` sets `ThinkingLevel: genai.ThinkingLevelLow`, which keeps a turn to ~10 seconds. `genai.ThinkingLevelMedium` and `genai.ThinkingLevelHigh` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40-90 seconds.
+- Raise the thinking level. `NewAgent` sets `ThinkingLevel: genai.ThinkingLevelLow`, which keeps a turn to ~10 seconds. `genai.ThinkingLevelMedium` and `genai.ThinkingLevelHigh` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40 seconds to 2 minutes.
 - Resize the viewport. `viewportWidth` / `viewportHeight` feed both the Steel `Dimensions` and the denormalize math.
 - Gate safety decisions. Replace the auto-acknowledge branch in `executeTask` with a human approval before the action fires.
 - Hand off auth. Pass `SessionContext` to `Sessions.New` to resume with cookies and local storage. See [credentials](../credentials-ts).

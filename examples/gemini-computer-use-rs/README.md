@@ -60,13 +60,13 @@ Releasing Steel session...
 Session completed. View replay at https://app.steel.dev/sessions/ab12cd34...
 ```
 
-Expect roughly 60 to 120 seconds and 15 to 40 turns for a simple browsing task.
+Expect roughly 40 to 80 seconds and 4 to 7 turns for a simple browsing task.
 
 ## Make it yours
 
 - **Resize the viewport.** `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` feed both the Steel session `dimensions` and the `denormalize_x` / `denormalize_y` math, so they stay in sync.
 - **Swap the model.** `GEMINI_URL` is the only place the version string `gemini-4-hydrogen` appears. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
-- **Raise the thinking level.** `call_gemini` sends `"thinkingLevel": "LOW"`, which keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40-90 seconds.
+- **Raise the thinking level.** `call_gemini` sends `"thinkingLevel": "LOW"`, which keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40 seconds to 2 minutes.
 - **Tune the system prompt.** `browser_system_prompt` carries the browsing conventions: today's date via `format_today`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledge branch with a human approval before the next `execute_computer_action` fires.
 - **Cap the run.** `MAX_ITERATIONS` bounds the loop; lower it for cheaper experiments.

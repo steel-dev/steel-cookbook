@@ -104,13 +104,13 @@ Duration: 78.4 seconds
 Result: Steel's latest release notes mention ...
 ```
 
-A run typically takes 60-180 seconds and 10-30 iterations. Because `generate_content` has no server-side state, every new turn resends the full `self.contents` list including every prior `Blob`. The `finally` block in `main()` calls `sessions.release()`.
+A run typically takes 40-80 seconds and 4-7 iterations. Because `generate_content` has no server-side state, every new turn resends the full `self.contents` list including every prior `Blob`. The `finally` block in `main()` calls `sessions.release()`.
 
 ## Make it yours
 
 - Change the task. Edit `TASK` in `.env` or pass it inline.
 - Swap the model. `self.model = "gemini-4-hydrogen"` in `Agent.__init__`. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this recipe does not handle.
-- Raise the thinking level. `thinking_level=types.ThinkingLevel.LOW` in `Agent.__init__` keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40-90 seconds.
+- Raise the thinking level. `thinking_level=types.ThinkingLevel.LOW` in `Agent.__init__` keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40 seconds to 2 minutes.
 - Tune the viewport. `viewport_width` and `viewport_height` in `Agent.__init__` flow into `sessions.create(dimensions=...)`.
 - Gate safety confirmations. Replace the auto-acknowledge branch in `execute_task` with a human prompt.
 - Persist a login. Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials-ts).
