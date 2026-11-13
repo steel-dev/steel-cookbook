@@ -8,6 +8,7 @@ This recipe wires that tool layer to a Steel cloud browser. Three `FunctionTool`
 const agent = new LlmAgent({
   name: "steel_research",
   model: new Gemini({ model: "gemini-4-hydrogen", apiKey: GOOGLE_API_KEY }),
+  generateContentConfig: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
   instruction: "You operate a Steel cloud browser via tools. Workflow: navigate, snapshot, extract. ...",
   tools: [navigate, snapshot, extract],
 });
@@ -87,6 +88,7 @@ This agent has no `outputSchema`. ADK disables tool calls when an output schema 
 ## Make it yours
 
 - **Swap the model.** Change the `model` string passed to `Gemini`. `"gemini-4-carbon"`, `"gemini-flash-latest"`, and other Gemini IDs all work with the same `GOOGLE_API_KEY`.
+- **Raise the thinking level.** `generateContentConfig` sets `ThinkingLevel.LOW` so each model turn stays short. `MEDIUM` and `HIGH` plan more carefully but take longer per turn.
 - **Swap the task.** Edit `TASK` and the JSON shape named in the agent's `instruction`. The three tools are task-agnostic; they describe a generic navigate-then-scrape flow.
 - **Add a tool.** A `click` tool wrapping `page.click`, or a `screenshot` tool returning a base64 PNG. Build it with `new FunctionTool({ name, description, parameters, execute })` and add it to the agent's `tools` array.
 - **Persist sessions.** Swap `InMemoryRunner` for a `Runner` with a `DatabaseSessionService` to keep conversation state across runs; the session ID is the thread key.

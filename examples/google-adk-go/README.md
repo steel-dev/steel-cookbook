@@ -98,6 +98,7 @@ ADK Go can pin an agent's reply to a `genai.Schema` through `OutputSchema` on th
 ## Make it yours
 
 - **Swap the model.** Change `modelName`. Any Gemini model your key can reach works without code changes, for example `gemini-4-carbon`. `gemini.NewModel` takes the name and a `genai.ClientConfig`.
+- **Raise the thinking level.** The agent's `GenerateContentConfig` sets `genai.ThinkingLevelLow` so each model turn stays short. `genai.ThinkingLevelMedium` and `genai.ThinkingLevelHigh` plan more carefully but take longer per turn.
 - **Swap the task.** Change the `task` content and the JSON shape named in the agent instruction. The tools stay the same; the agent re-plans against the new request.
 - **Add a tool.** Write a `func(agent.ToolContext, In) (Out, error)`, wrap it with `functiontool.New`, and add it to the agent's `Tools`. A useful fourth is `click(selector string)` that runs `chromedp.Click` and waits for navigation.
 - **Inspect the loop.** Range over more than text. Every event exposes `event.Content.Parts`, where `FunctionCall` and `FunctionResponse` parts let you log exactly which tool the agent reached for and what came back.
