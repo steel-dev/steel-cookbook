@@ -10,6 +10,7 @@ import {
   FunctionResponse,
   Environment,
   FinishReason,
+  ThinkingLevel,
 } from "@google/genai";
 import type {
   Content,
@@ -175,6 +176,7 @@ class Agent {
 
     this.config = {
       tools: this.tools,
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
     };
   }
 

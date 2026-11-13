@@ -2,7 +2,7 @@
 
 Gemini exposes computer use as a built-in tool type, not a hand-written schema. You set `config.tools = [{ computerUse: { environment: Environment.ENVIRONMENT_BROWSER } }]` on a `generateContent` call and the model plans against a fixed action vocabulary (`click`, `type`, `navigate`, `scroll`, `press_key`, `hotkey`, `drag_and_drop`, `take_screenshot`, ...) with coordinates in a normalized 0-1000 grid. Every call carries an `intent` string that says why the model chose it. `excludedPredefinedFunctions: UNSUPPORTED_ACTIONS` removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform.
 
-The model defaults to `gemini-4-hydrogen`. Conversation state lives entirely on your side, appended to `this.contents` turn by turn.
+The model defaults to `gemini-4-hydrogen` at the `LOW` thinking level. Conversation state lives entirely on your side, appended to `this.contents` turn by turn.
 
 ## Coordinates and action mapping
 
@@ -91,6 +91,7 @@ Expect roughly 60-120 seconds and 15-40 turns for a simple browsing task.
 
 - **Resize the viewport.** `viewportWidth` / `viewportHeight` in the `Agent` constructor feed both the Steel session `dimensions` and the `denormalizeX` / `denormalizeY` math.
 - **Swap the model.** `this.model = "gemini-4-hydrogen"` is the only version string. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this starter does not handle.
+- **Raise the thinking level.** `thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }` in the `Agent` constructor keeps a turn to ~10 seconds. `MEDIUM` and `HIGH` plan each step more carefully, but at `HIGH`, the model's default, a turn takes 40-90 seconds.
 - **Tune the system prompt.** `BROWSER_SYSTEM_PROMPT` carries the browsing conventions: today's date via `formatToday()`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledgement branch with a human approval before the next `executeComputerAction` fires.
 - **Hand off auth.** Pair this recipe with Steel's [credentials](../credentials-ts) or [auth contexts](../auth-context-ts) to start the session already signed in.

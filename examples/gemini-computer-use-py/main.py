@@ -89,7 +89,12 @@ class Agent:
             )
         ]
 
-        self.config = GenerateContentConfig(tools=self.tools)
+        self.config = GenerateContentConfig(
+            tools=self.tools,
+            thinking_config=types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            ),
+        )
 
     def denormalize_x(self, x: int) -> int:
         return int(x / MAX_COORDINATE * self.viewport_width)

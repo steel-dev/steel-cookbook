@@ -449,6 +449,9 @@ impl Agent {
                     "excludedPredefinedFunctions": UNSUPPORTED_ACTIONS,
                 }
             }],
+            "generationConfig": {
+                "thinkingConfig": { "thinkingLevel": "LOW" },
+            },
         });
 
         let resp = self

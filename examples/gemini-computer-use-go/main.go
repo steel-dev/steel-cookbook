@@ -184,6 +184,7 @@ func NewAgent(ctx context.Context, steelKey, geminiKey string) (*Agent, error) {
 					ExcludedPredefinedFunctions: unsupportedActions,
 				},
 			}},
+			ThinkingConfig: &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelLow},
 		},
 		currentURL: "about:blank",
 	}, nil
