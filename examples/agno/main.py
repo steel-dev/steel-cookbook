@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 from agno.tools import Toolkit
 from agno.utils.log import log_debug, logger
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.openai import OpenAIResponses
 from agno.run.base import RunStatus
 from playwright.sync_api import sync_playwright
 from steel import Steel
@@ -25,7 +25,7 @@ STEEL_API_KEY = os.getenv("STEEL_API_KEY") or "your-steel-api-key-here"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "your-openai-api-key-here"
 
 # Replace with your own task
-TASK = os.getenv("TASK") or "Go to https://quotes.toscrape.com and: 1. Get the first 3 quotes with authors 2. Navigate to page 2 3. Get 2 more quotes from page 2"
+TASK = os.getenv("TASK") or "Go to https://quotes.toscrape.com and: 1. Get the first 3 quotes with authors 2. Navigate to page 2 3. Get 2 more quotes from page 2. Quote at most the first sentence of each."
 
 class SteelTools(Toolkit):
     def __init__(
@@ -212,7 +212,7 @@ def main():
     tools = SteelTools(api_key=STEEL_API_KEY)
     agent = Agent(
         name="Web Scraper",
-        model=OpenAIChat(id="gpt-5-nano", api_key=OPENAI_API_KEY),
+        model=OpenAIResponses(id="gpt-6-luna", api_key=OPENAI_API_KEY),
         tools=[tools],
         instructions=[
             "Extract content clearly and format nicely",

@@ -8,7 +8,7 @@ This recipe wraps a Steel browser in a `SteelTools` toolkit, hands it to an Agen
 tools = SteelTools(api_key=STEEL_API_KEY)
 agent = Agent(
     name="Web Scraper",
-    model=OpenAIChat(id="gpt-5-nano", api_key=OPENAI_API_KEY),
+    model=OpenAIResponses(id="gpt-6-luna", api_key=OPENAI_API_KEY),
     tools=[tools],
     instructions=[
         "Extract content clearly and format nicely",
@@ -40,15 +40,14 @@ Steel + Agno Starter
 
 Results:
 
-**Page 1:**
-1. "The world as we have created it is a process of our thinking..." - Albert Einstein
-2. "It is our choices, Harry, that show what we truly are..." - J.K. Rowling
-3. "There are only two ways to live your life..." - Albert Einstein
+### Page 1
+1. “The world as we have created it is a process of our thinking.” — Albert Einstein
+2. “It is our choices, Harry, that show what we truly are, far more than our abilities.” — J.K. Rowling
+3. “There are only two ways to live your life.” — Albert Einstein
 
-**Page 2:**
-4. "This life is what you make it..." - Marilyn Monroe
-5. "It takes courage to grow up and become who you really are." - E.E. Cummings
-
+### Page 2
+4. “This life is what you make it.” — Marilyn Monroe
+5. “It takes a great deal of bravery to stand up to our enemies, but just as much to stand up to our friends.” — J.K. Rowling
 Done!
 ```
 
@@ -59,7 +58,7 @@ The `finally` block in `main()` calls `tools.close_session()`, which releases th
 - **Change the task.** Set `TASK` in `.env` or edit the default in `main.py`.
 - **Add tools.** Append any method to the `tools` list in `SteelTools.__init__`: `click_selector(selector)`, `fill_form(field, value)`, `wait_for_text(text)`. Typed signature plus docstring, Agno handles the rest.
 - **Turn on stealth.** Pass flags to `self.client.sessions.create()` inside `_ensure_session`: `use_proxy=True`, `solve_captcha=True`, `api_timeout=600000`.
-- **Swap the model.** `OpenAIChat(id="gpt-5-nano", ...)` is cheap and fast. Agno also ships `agno.models.anthropic.Claude` and others; the toolkit stays the same.
+- **Swap the model.** `OpenAIResponses(id="gpt-6-luna", ...)` is cheap and fast. It calls the Responses API, because GPT-6 models on Chat Completions call tools only with reasoning turned off. Agno also ships `agno.models.anthropic.Claude` and others; the toolkit stays the same.
 
 ## Related
 
