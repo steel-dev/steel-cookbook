@@ -15,7 +15,7 @@ use steel_rs::{
 };
 
 const GEMINI_URL: &str =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent";
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:generateContent";
 
 const VIEWPORT_WIDTH: i64 = 1440;
 const VIEWPORT_HEIGHT: i64 = 900;

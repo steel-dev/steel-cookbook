@@ -157,7 +157,7 @@ class Agent {
   constructor() {
     this.client = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     this.steel = new Steel({ steelAPIKey: STEEL_API_KEY });
-    this.model = "gemini-3.8-flash";
+    this.model = "gemini-4-hydrogen";
     this.contents = [];
     this.currentUrl = "about:blank";
 

@@ -1,6 +1,6 @@
 # Gemini Computer Use (Go)
 
-`google.golang.org/genai` exposes computer use as a typed tool on the request config: set `config.Tools = []*genai.Tool{{ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser}}}` and `client.Models.GenerateContent(ctx, "gemini-3.8-flash", contents, config)` starts planning against a fixed browser vocabulary (`click`, `double_click`, `right_click`, `middle_click`, `move`, `drag_and_drop`, `type`, `scroll`, `press_key`, `hotkey`, `wait`, `navigate`, `go_back`, `go_forward`, `take_screenshot`). Coordinates arrive in a normalized 0-1000 grid, and every call carries an `intent` string that says why the model chose it. `ExcludedPredefinedFunctions: unsupportedActions` removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform.
+`google.golang.org/genai` exposes computer use as a typed tool on the request config: set `config.Tools = []*genai.Tool{{ComputerUse: &genai.ComputerUse{Environment: genai.EnvironmentBrowser}}}` and `client.Models.GenerateContent(ctx, "gemini-4-hydrogen", contents, config)` starts planning against a fixed browser vocabulary (`click`, `double_click`, `right_click`, `middle_click`, `move`, `drag_and_drop`, `type`, `scroll`, `press_key`, `hotkey`, `wait`, `navigate`, `go_back`, `go_forward`, `take_screenshot`). Coordinates arrive in a normalized 0-1000 grid, and every call carries an `intent` string that says why the model chose it. `ExcludedPredefinedFunctions: unsupportedActions` removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform.
 
 Steel runs the screen. A session is a headful Chromium in a VM, and `client.Sessions.Computer(ctx, sessionID, body)` takes the action as its body and returns a `*SessionComputerResponse` whose `Base64Image` carries the resulting PNG.
 
@@ -79,7 +79,7 @@ A run usually takes 60-180 seconds across 10-30 iterations.
 ## Make it yours
 
 - Change the task. Edit `TASK` in `.env` or pass it inline.
-- Swap the model. The `model` constant is the only version string. `gemini-3.5-flash-lite` is faster and cheaper. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
+- Swap the model. The `model` constant is the only version string. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
 - Resize the viewport. `viewportWidth` / `viewportHeight` feed both the Steel `Dimensions` and the denormalize math.
 - Gate safety decisions. Replace the auto-acknowledge branch in `executeTask` with a human approval before the action fires.
 - Hand off auth. Pass `SessionContext` to `Sessions.New` to resume with cookies and local storage. See [credentials](../credentials-ts).

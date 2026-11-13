@@ -2,7 +2,7 @@
 
 There is no official Gemini Rust SDK, so this port talks to the `generateContent` REST endpoint directly over `reqwest`. The request body is a hand-built `serde_json::Value`: `contents` accumulates the conversation turn by turn, and `tools` carries a single `computerUse` entry with `"environment": "ENVIRONMENT_BROWSER"` that switches Gemini into its built-in computer-use vocabulary. Its `excludedPredefinedFunctions` list removes `triple_click`, `mouse_down`, `mouse_up`, `key_down` and `key_up`, which Steel's Input API cannot perform. The browser itself is a Steel cloud session driven through the `steel-rs` crate, the same `sessions().computer(...)` surface the Anthropic and OpenAI Rust recipes use.
 
-The model is `gemini-3.8-flash`, the viewport is 1440x900, and the agent caps out at 50 iterations.
+The model is `gemini-4-hydrogen`, the viewport is 1440x900, and the agent caps out at 50 iterations.
 
 ## REST plumbing and coordinates
 
@@ -65,7 +65,7 @@ Expect roughly 60 to 120 seconds and 15 to 40 turns for a simple browsing task.
 ## Make it yours
 
 - **Resize the viewport.** `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` feed both the Steel session `dimensions` and the `denormalize_x` / `denormalize_y` math, so they stay in sync.
-- **Swap the model.** `GEMINI_URL` is the only place the version string `gemini-3.8-flash` appears. `gemini-3.5-flash-lite` is faster and cheaper. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
+- **Swap the model.** `GEMINI_URL` is the only place the version string `gemini-4-hydrogen` appears. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this agent does not handle.
 - **Tune the system prompt.** `browser_system_prompt` carries the browsing conventions: today's date via `format_today`, clear-before-typing, batch-actions-when-possible, black-screen recovery.
 - **Gate safety decisions.** Replace the auto-acknowledge branch with a human approval before the next `execute_computer_action` fires.
 - **Cap the run.** `MAX_ITERATIONS` bounds the loop; lower it for cheaper experiments.

@@ -72,7 +72,7 @@ class Agent:
     def __init__(self):
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         self.steel = Steel(steel_api_key=STEEL_API_KEY)
-        self.model = "gemini-3.8-flash"
+        self.model = "gemini-4-hydrogen"
         self.session = None
         self.contents: List[Content] = []
         self.current_url = "about:blank"

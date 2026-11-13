@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	model          = "gemini-3.8-flash"
+	model          = "gemini-4-hydrogen"
 	maxIterations  = 50
 	maxCoordinate  = 1000
 	viewportWidth  = 1440

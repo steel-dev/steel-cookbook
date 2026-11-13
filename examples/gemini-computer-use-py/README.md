@@ -109,7 +109,7 @@ A run typically takes 60-180 seconds and 10-30 iterations. Because `generate_con
 ## Make it yours
 
 - Change the task. Edit `TASK` in `.env` or pass it inline.
-- Swap the model. `self.model = "gemini-3.8-flash"` in `Agent.__init__`. `gemini-3.5-flash-lite` is faster and cheaper. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this recipe does not handle.
+- Swap the model. `self.model = "gemini-4-hydrogen"` in `Agent.__init__`. `gemini-3.8-flash` and `gemini-3.5-flash-lite` use the same action set, and Flash-Lite is the fastest and cheapest of the three. `gemini-3-flash-preview` uses an older action vocabulary (`click_at`, `type_text_at`) that this recipe does not handle.
 - Tune the viewport. `viewport_width` and `viewport_height` in `Agent.__init__` flow into `sessions.create(dimensions=...)`.
 - Gate safety confirmations. Replace the auto-acknowledge branch in `execute_task` with a human prompt.
 - Persist a login. Pass `session_context` to `sessions.create` to resume with cookies and local storage. See [credentials](../credentials-ts).
