@@ -158,7 +158,7 @@
   language: TypeScript
   topics: [Computer use]
   created: "2025-11-25"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Drive a browser with Gemini Computer Use
   slug: gemini-computer-use
@@ -168,7 +168,7 @@
   language: Python
   topics: [Computer use]
   created: "2025-11-25"
-  updated: "2026-04-24"
+  updated: "2026-11-13"
 
 - title: Build a browser agent with the Claude Agent SDK
   slug: claude-agent-sdk
@@ -468,7 +468,7 @@
   language: TypeScript
   topics: [Agents, Convex]
   created: "2026-05-04"
-  updated: "2026-05-04"
+  updated: "2026-11-13"
 
 - title: Watch Claude pricing for divergent A/B variants
   slug: convex-price-watch
@@ -688,7 +688,7 @@
   language: Rust
   topics: [Computer use]
   created: "2026-06-24"
-  updated: "2026-06-24"
+  updated: "2026-11-13"
 
 - title: Reuse authenticated sessions across browsers
   slug: auth-context
