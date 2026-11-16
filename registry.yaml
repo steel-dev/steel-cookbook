@@ -949,3 +949,13 @@
   topics: [Agents, Restate]
   created: "2026-06-29"
   updated: "2026-06-29"
+
+- title: Clear an email verification gate with DevInbox
+  slug: devinbox-email-verification
+  path: examples/devinbox-email-verification-ts
+  description: Mint a DevInbox inbox for a Steel browser run, long-poll for the verification mail, and pull the reset link out of it with a deterministic template instead of a model.
+  authors: [ado-webco]
+  language: TypeScript
+  topics: [Browser automation, Authentication]
+  created: "2026-08-27"
+  updated: "2026-08-27"
