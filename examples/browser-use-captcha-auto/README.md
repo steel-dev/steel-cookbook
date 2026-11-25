@@ -79,7 +79,7 @@ A run usually finishes in under a minute: a few cents of Steel session time plus
 - **Point at a real target.** Replace the `TASK` string with the actual flow: "sign up at example.com with these details". Keep the instruction to call `wait_for_captcha_solution` when a CAPTCHA appears; everything else, the agent figures out.
 - **Tune the poll loop.** `wait_for_captcha_solution` uses `timeout_ms=60000` and `poll_interval_ms=1000`. Image grids and audio fallbacks sometimes need 90-120 seconds. A 2-3 second poll cuts API calls without noticeable delay.
 - **Fail loud on solver failure.** The current summary counts `failed` tasks but the tool does not short-circuit on them. Check `summary["failed_tasks"] > 0` inside the loop and return an error string so the agent can retry or abort.
-- **Combine with stealth.** `sessions.create()` accepts `use_proxy=True` and `session_timeout=1800000` alongside `solve_captcha=True`. Sites that CAPTCHA you aggressively usually want all three.
+- **Combine with stealth.** `sessions.create()` accepts `use_proxy=True` and `api_timeout=1800000` (the Python SDK's name for the session duration, since `timeout` is the HTTP request timeout) alongside `solve_captcha=True`. Sites that CAPTCHA you aggressively usually want all three.
 
 ## Related
 

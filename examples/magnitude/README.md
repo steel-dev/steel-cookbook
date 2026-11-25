@@ -102,7 +102,7 @@ A full run takes ~45 seconds. The `finally` block stops the agent first, then re
 - **Swap the schema and prompt.** `extract()` is schema-driven: forms, tables, invoices, search results.
 - **Chain `act` calls for multi-step flows.** Login, filter, paginate, export. Each step is one natural-language instruction.
 - **Switch models.** `llm.provider` accepts `"anthropic"` (used here) among others. Point `model` and `apiKey` at a different provider in `startBrowserAgent()`.
-- **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `sessionTimeout` in `client.sessions.create()` for sites with anti-bot.
+- **Turn on stealth.** Uncomment `useProxy`, `solveCaptcha`, or `timeout` in `client.sessions.create()` for sites with anti-bot.
 
 ## Related
 
