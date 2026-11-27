@@ -1,42 +1,29 @@
-# Credentials API
+# Credentials API (TypeScript)
 
-Steel's credentials vault stores usernames and passwords against an origin. When a session opts in, Steel watches for login forms on that origin and fills them for you. No login code in your automation, no plaintext passwords in env vars, no custom storage for cookies.
+A Steel credential is a username and password stored against a website's origin. When a session opts in, Steel watches each page for a sign-in form on that origin, fills it, and submits it. Your script holds no login code, and the API never returns the stored password.
 
-Two API calls wire it up. First, save the credential once:
+Two calls wire it up. First, store the credential:
 
 ```typescript
-await client.credentials.create({
-  origin: "https://demo.testfire.net",
-  value: { username: "admin", password: "admin" },
+await client.credentials.create({ origin, value, namespace, projectId });
+```
+
+`origin` is the sign-in page's scheme and host (`https://steel.dev` here), and `value` is `{ username, password }`. The `namespace` is a label that keeps one set of logins apart from another. `index.ts` makes a new one on every run so it never collides with a credential you already have. Leave it out and Steel uses `default`.
+
+Then opt the session in, with the same namespace:
+
+```typescript
+await withSession({ namespace, credentials: {} }, async session => {
+  const browser = await chromium.connectOverCDP(session.websocketUrl);
+  // ...
+  await page.goto(`${origin}/practice/login`);
+  await page.waitForURL(`${origin}/practice/secure`, { timeout: 30_000 });
 });
 ```
 
-Then opt the session in:
+The empty `credentials` object is the opt-in. Without it, the session ignores every stored credential. The script only opens Steel's practice sign-in page and waits for the page behind the login. Nothing in between types a username or clicks a button.
 
-```typescript
-session = await client.sessions.create({
-  credentials: {},
-});
-```
-
-That empty object is the opt-in. Without it, the vault exists but the session ignores it. With it, Steel matches the page's origin against stored credentials and types them in when a login form appears.
-
-After that, drive the browser with Playwright as usual. The demo navigates to the Altoro Mutual test site, clicks `#AccountLink` to open the login form, and checks the heading to confirm the fill worked:
-
-```typescript
-await page.goto("https://demo.testfire.net", { waitUntil: "networkidle" });
-await page.click("#AccountLink");
-await setTimeout(2000);
-
-const headingText = await page.textContent("h1");
-if (headingText?.trim() === "Hello Admin User") {
-  console.log("Success, you are logged in");
-}
-```
-
-The `setTimeout(2000)` gives Steel room to fill and submit the form. In a real script you would swap that for `page.waitForURL` or a selector wait tied to a post-login element.
-
-Credentials are per-origin. Create one per site you automate. Re-calling `credentials.create` for an origin that already has a credential throws `Credential already exists`, which the demo swallows so the script is idempotent.
+`withSession` in `common.ts` creates the session, prints its viewer URL, and releases it when your code finishes, even if it throws.
 
 ## Run it
 
@@ -47,40 +34,57 @@ npm install
 npm start
 ```
 
-Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). The script prints a session viewer URL as it starts. Open it in another tab to watch the auto-fill happen.
+Get a key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys). `STEEL_PROJECT_ID` is only for organization-scoped keys. Leave it empty otherwise.
 
-Your output varies. Structure looks like this:
+Open the session viewer URL in another tab to watch the form fill. Your output varies. Structure looks like this:
 
 ```text
-Creating credential...
-Creating Steel session...
-Steel Session created!
-View session at https://app.steel.dev/sessions/ab12cd34...
-
-Connected to browser via Playwright
-Success, you are logged in
-Releasing session...
-Session released
-Done!
+Storing the credential...
+Session viewer: https://app.steel.dev/sessions/ab12cd34...
+Signed in. Now at https://steel.dev/practice/secure
+Session released.
+Credential deleted.
 ```
 
-On a second run the credential already exists, so you see `Credential already exists, moving on.` before the session starts. The behavior is otherwise identical.
+The run costs a few cents of browser time. If `waitForURL` times out, the form stayed empty. The usual causes are a session namespace that differs from the credential's, or an origin that does not match the page exactly. A subdomain is a different origin.
+
+## Two more scripts
+
+`npm run crud` walks the rest of the API in `credentials.ts`: create, update, list, delete. One detail is easy to miss. `additionalOrigins` lets a credential fill on a second origin, such as a separate `login.` host, and the list you send replaces the stored one.
+
+`npm run fill` shows how to decide for yourself when a form is filled. `fill-form.ts` turns automatic fill off, asks Steel which sign-in forms it sees, and fills one of them on request:
+
+```typescript
+const { frames } = await steel.detect({ origin, checkCredentials: true });
+const frame = frames.find(f => f.origin === origin && f.groups.length > 0);
+
+const result = await steel.fill({
+  origin,
+  frameId: frame.frameId,
+  documentId: frame.documentId,
+  groupId: frame.groups[0].groupId,
+  submit: false,
+});
+```
+
+`steel` comes from `wrapCDPSession` in the SDK, which adds typed Steel commands to a Playwright CDP session. This script and `crud` use a made-up login on a made-up `.example.test` origin. `openLoginForm` in `browser.ts` has Playwright serve the sign-in page from inside the session, so that login never reaches a real website.
 
 ## Make it yours
 
-- **Swap the target site.** Change the `origin` and `value` in `credentials.create`, then update `page.goto` and the login-trigger click in `index.ts`. Steel handles the form detection as long as the page exposes a standard username/password input pair.
-- **Manage credentials out of band.** `client.credentials.list()`, `client.credentials.retrieve(id)`, and `client.credentials.delete(id)` let you rotate or audit stored creds without touching automation code. Create credentials from a setup script and keep `index.ts` focused on the workflow.
-- **Combine with stealth.** Pass `useProxy`, `solveCaptcha`, or `sessionTimeout` alongside `credentials: {}` in `sessions.create()`. The vault works with every other session option.
+- **Swap the site.** Change `origin` and `value` in `index.ts`, then the two URLs. Steel finds the form as long as the page has a standard username and password field.
+- **Store once, use many times.** `index.ts` deletes its credential so the recipe leaves nothing behind. In an app, create the credential in a setup script and keep only the session code in your automation.
+- **Keep the click.** Pass `credentials: { autoSubmit: false }` when you want Steel to fill the form and your own code to submit it.
+- **Limit where it fills.** `credentials: { origins: [...] }` stops a free-roaming agent from filling logins on any other site.
 
 ## When to use this vs. auth-context
 
-Both recipes persist login across runs. They solve it differently:
+Both recipes get a session past a login. They do it differently:
 
-- **Credentials (this recipe)** stores username and password. Steel re-authenticates each session by filling the login form. Works for any site with a standard form; the login UI runs every time.
-- **[auth-context](../auth-context-ts)** captures cookies and localStorage from an already-authenticated session and replays them into the next one. Skips the login form entirely, but the context expires when the site's session does and needs to be recaptured.
+- **Credentials (this recipe)** stores a username and password. Steel signs in again in each session by filling the form. It works for any site with a standard form, and the login page runs every time.
+- **[auth-context](../auth-context-ts)** captures cookies and local storage from a session that is already signed in and replays them into the next one. It skips the form, but stops working when the site's own session expires.
 
-Reach for credentials when you want a stable, long-lived setup tied to an account. Reach for auth-context when the site uses flows the vault cannot drive (SSO, MFA prompts, magic links) and you only need the resulting cookies.
+Use credentials for a stable, long-lived setup tied to an account. Use auth-context when the site signs in with something a form fill cannot drive (SSO, passkeys, magic links) and you only need the resulting cookies.
 
 ## Related
 
-[auth-context](../auth-context-ts) (cookie and localStorage replay) · [Playwright docs](https://playwright.dev)
+[Vaults](../credential-vaults-ts) (group credentials and bind them to a session) · [One Vault per user](../credential-multi-user-ts) · [Profiles with credentials](../credential-profiles-ts) · [Python version](../credentials-py) · [Playwright docs](https://playwright.dev)

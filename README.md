@@ -140,6 +140,10 @@ Steel platform features that enhance your browser automation workflows with pers
 - [Auth Context](examples/auth-context-ts) - Reuse authentication across sessions
 - [Profiles](examples/profiles-ts) - Persistent browser profiles
 - [Credentials](examples/credentials-ts) - Credential management and injection
+- [Credential Vaults](examples/credential-vaults-ts) - Group logins in a Vault and bind it to a session
+- [Multi-user credentials](examples/credential-multi-user-ts) - Select a Vault per user
+- [Credentials with profiles](examples/credential-profiles-ts) - Resume per-user logins and fill again when needed
+- [Secret Connections](examples/secret-connections-ts) - Connect 1Password or HashiCorp Vault and test the connection
 - [Extensions](examples/extensions-ts) - Browser extension support
 - [Files API](examples/files-ts) - File upload and download handling
 

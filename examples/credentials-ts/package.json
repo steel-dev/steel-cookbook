@@ -1,23 +1,21 @@
 {
   "name": "credentials-ts",
-  "version": "1.0.0",
-  "description": "A starter project with Steel credentials on Node.js & TypeScript",
-  "main": "index.ts",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node index.ts"
+    "start": "tsx index.ts",
+    "crud": "tsx credentials.ts",
+    "fill": "tsx fill-form.ts",
+    "check": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
-    "playwright": "^1.48.2",
-    "steel-sdk": "^0.21.0",
-    "typescript": "^5.6.3"
+    "playwright": "^1.65.1",
+    "steel-sdk": "^0.24.0"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
-    "ts-node": "^10.9.2"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
   }
 }

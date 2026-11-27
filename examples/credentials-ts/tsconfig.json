@@ -1,16 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020", "dom"],
-    "declaration": true,
-    "outDir": "./dist",
+    "target": "es2022",
+    "module": "nodenext",
+    "allowImportingTsExtensions": true,
     "strict": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "noEmit": true
   },
-  "include": ["*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["*.ts"]
 }
