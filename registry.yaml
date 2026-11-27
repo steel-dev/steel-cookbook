@@ -388,7 +388,47 @@
   language: TypeScript
   topics: [Steel APIs, Authentication]
   created: "2024-11-19"
-  updated: "2026-04-24"
+  updated: "2026-11-27"
+
+- title: Bind and fill a Vault credential
+  slug: credential-vaults
+  path: examples/credential-vaults-ts
+  description: Bind a Vault to a session and fill a synthetic login by item reference.
+  authors: [danew]
+  language: TypeScript
+  topics: [Steel APIs, Authentication]
+  created: "2026-11-27"
+  updated: "2026-11-27"
+
+- title: Route sessions to a Vault per user
+  slug: credential-multi-user
+  path: examples/credential-multi-user-ts
+  description: Select the correct Vault for each account when different users sign in to the same origin.
+  authors: [danew]
+  language: TypeScript
+  topics: [Steel APIs, Authentication]
+  created: "2026-11-27"
+  updated: "2026-11-27"
+
+- title: Reuse a signed-in profile per user
+  slug: credential-profiles
+  path: examples/credential-profiles-ts
+  description: Resume each user's saved profile and optionally sign in again using their bound Vault.
+  authors: [danew]
+  language: TypeScript
+  topics: [Steel APIs, Authentication]
+  created: "2026-11-27"
+  updated: "2026-11-27"
+
+- title: Test a disposable Secret Connection
+  slug: secret-connections
+  path: examples/secret-connections-ts
+  description: Verify provider authentication with the TypeScript SDK and inspect credential resources with the CLI.
+  authors: [danew]
+  language: TypeScript
+  topics: [Steel APIs, Authentication]
+  created: "2026-11-27"
+  updated: "2026-11-27"
 
 - title: Persist authenticated sessions with Profiles
   slug: profiles
