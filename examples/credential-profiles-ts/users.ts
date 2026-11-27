@@ -9,7 +9,7 @@ export type User = {
   value: { username: string; password: string };
 };
 
-// Creates two users who have different logins for the same site, one Vault each.
+// Two users with different logins for the same site, one Vault each.
 export async function createUsers() {
   const { origin } = demoLogin();
   const users: User[] = [];
@@ -22,8 +22,7 @@ export async function createUsers() {
       const user: User = { id, vaultId: vault.id, value };
       users.push(user);
 
-      // The SDK has no typed method for putting a credential in a Vault yet,
-      // so this calls the endpoint through the SDK's own HTTP client.
+      // The SDK has no method for adding a credential to a Vault yet, so call the endpoint.
       const item = await client.post<unknown, { id: string }>('/v1/secrets', {
         body: { projectId, kind: 'credential', vaultId: vault.id, name: 'login', namespace, origin, value },
       });
@@ -44,7 +43,6 @@ export async function deleteUsers(users: User[]) {
   }
 }
 
-// The session options that give a session one user's Vault and nothing else.
 export function credentialsFor(user: User, origin: string) {
   return { bindings: [`steel://vaults/${user.vaultId}`], origins: [origin], autoSubmit: false };
 }

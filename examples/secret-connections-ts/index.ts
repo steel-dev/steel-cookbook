@@ -20,11 +20,9 @@ if (provider !== '1password' && provider !== 'hashicorp_vault') {
 }
 
 const client = new Steel({ steelAPIKey: required('STEEL_API_KEY') });
-// Only an organization-scoped API key needs a project ID. Leave it unset otherwise.
+// Only needed with an organization-scoped API key.
 const projectId = process.env.STEEL_PROJECT_ID || undefined;
 
-// Each provider signs in differently: 1Password with a service account token,
-// HashiCorp Vault with its address and a token.
 const settings: Omit<SecretConnectionCreateParams, 'name'> = provider === '1password'
   ? { provider, auth: { serviceAccountToken: required('OP_SERVICE_ACCOUNT_TOKEN') } }
   : {
@@ -41,11 +39,10 @@ const connection = await client.secretConnections.create({
 console.log(`Created connection ${connection.id}`);
 
 try {
-  // The test checks that Steel can sign in to the provider. It throws if it cannot.
+  // Throws if Steel cannot sign in to the provider.
   await client.secretConnections.test(connection.id, { projectId });
   console.log('Test passed: Steel can sign in to the provider.');
 
-  // The API returns the connection's settings, never the token you sent.
   const saved = await client.secretConnections.retrieve(connection.id, { projectId });
   console.log('Saved connection:', { name: saved.name, provider: saved.provider, enabled: saved.enabled });
 } finally {

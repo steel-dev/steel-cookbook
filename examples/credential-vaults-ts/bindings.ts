@@ -10,8 +10,7 @@ try {
   }
   const [first, second] = vaults.map(vault => `steel://vaults/${vault.id}`);
 
-  // The session must be created with `credentials`, even an empty one,
-  // or its bindings cannot be changed later.
+  // Bindings can only change on a session created with `credentials`.
   await withSession({ credentials: {} }, async session => {
     const bindings = client.sessions.credentials;
     const show = async (step: string) => {
@@ -25,11 +24,11 @@ try {
     await bindings.attach(session.id, { bindings: [first] });
     await show('After attach');
 
-    // Replace swaps every binding for the ones you send.
+    // Replace swaps all bindings for the ones you send.
     await bindings.replace(session.id, { bindings: [second] });
     await show('After replace');
 
-    // Removing the last binding does not switch the session back to implicit.
+    // The session stays explicit after its last binding is removed.
     await bindings.detachBinding(session.id, { reference: second });
     await show('After detach');
   });

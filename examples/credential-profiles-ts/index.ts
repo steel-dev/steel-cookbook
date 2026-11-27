@@ -10,9 +10,7 @@ import { createUsers, credentialsFor, deleteUsers, type User } from './users.ts'
 const withFallback = process.argv.includes('--with-vault-fallback');
 const { origin, users } = await createUsers();
 
-// Connects Playwright to a session and serves the demo website in it.
 async function visit(session: Session, run: (page: Page, browser: Browser) => Promise<void>) {
-  // websocketUrl already holds a token for this session, so it needs no API key.
   const browser = await chromium.connectOverCDP(session.websocketUrl);
   try {
     const context = browser.contexts()[0];
@@ -23,7 +21,7 @@ async function visit(session: Session, run: (page: Page, browser: Browser) => Pr
   }
 }
 
-// Steel fills the form from the user's Vault, then the script clicks the button.
+// Steel fills the form from the user's Vault.
 async function signInWithVault(page: Page, browser: Browser) {
   const { steel } = wrapCDPSession(await browser.newBrowserCDPSession());
   await steel.setControls({ autofill: false, autoSubmit: false });
@@ -33,7 +31,7 @@ async function signInWithVault(page: Page, browser: Browser) {
   await clickSignIn(page);
 }
 
-// The script types the login itself. No Steel credentials are involved.
+// Types the login with plain Playwright.
 async function signInByTyping(page: Page, user: User) {
   await page.goto(`${origin}/login`);
   await page.locator('#user').fill(user.value.username);
@@ -41,7 +39,7 @@ async function signInByTyping(page: Page, user: User) {
   await clickSignIn(page);
 }
 
-// A profile uploads after its session is released. Wait until it is ready to use.
+// A profile uploads after its session is released.
 async function waitForProfile(profileId: string) {
   for (let attempt = 0; attempt < 30; attempt++) {
     const profile = await client.profiles.get(profileId, { projectId });
@@ -55,8 +53,8 @@ async function waitForProfile(profileId: string) {
 try {
   // Step 1: sign each user in once, and save the browser profile.
   for (const user of users) {
-    // A profile saved by a session that uses credentials cannot fill credentials
-    // later. So when the Vault must work afterwards, save the profile without it.
+    // A profile saved by a session with credentials cannot fill them later,
+    // so the fallback mode saves the profile without them.
     const credentials = withFallback ? undefined : credentialsFor(user, origin);
     await withSession({ persistProfile: true, credentials }, async session => {
       if (!session.profileId) throw new Error('The session returned no profile ID.');
@@ -68,11 +66,10 @@ try {
     console.log(`Saved a signed-in profile for ${user.id}.`);
   }
 
-  // Step 2: start new sessions from the saved profiles. Nobody signs in again.
+  // Step 2: start new sessions from the saved profiles.
   for (const id of ['alice', 'bob', 'alice']) {
     const user = users.find(u => u.id === id)!;
     const credentials = withFallback ? credentialsFor(user, origin) : undefined;
-    // No `persistProfile` here, so this session does not change the saved profile.
     await withSession({ profileId: user.profileId, credentials }, session =>
       visit(session, async (page, browser) => {
         console.log(`Opened ${id}'s profile. Signed in as: ${await accountOwner(page, origin)}`);

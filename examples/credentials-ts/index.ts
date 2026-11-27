@@ -14,16 +14,15 @@ console.log('Storing the credential...');
 await client.credentials.create({ origin, value, namespace, projectId });
 
 try {
-  // `credentials: {}` opts the session in. It uses the credentials in its own namespace.
+  // `credentials: {}` turns on credentials for the session.
   await withSession({ namespace, credentials: {} }, async session => {
-    // websocketUrl already holds a token for this session, so it needs no API key.
     const browser = await chromium.connectOverCDP(session.websocketUrl);
     try {
       const context = browser.contexts()[0];
       const page = context.pages()[0] ?? await context.newPage();
 
       await page.goto(`${origin}/practice/login`);
-      // No typing and no click here: Steel fills the form and submits it.
+      // Steel fills the form and submits it.
       await page.waitForURL(`${origin}/practice/secure`, { timeout: 30_000 });
       console.log(`Signed in. Now at ${page.url()}`);
     } finally {

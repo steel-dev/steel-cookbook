@@ -11,11 +11,10 @@ if (!process.env.STEEL_API_KEY) {
 
 export const client = new Steel({ steelAPIKey: process.env.STEEL_API_KEY });
 
-// Only an organization-scoped API key needs a project ID. Leave it unset otherwise.
+// Only needed with an organization-scoped API key.
 export const projectId = process.env.STEEL_PROJECT_ID || undefined;
 
-// A made-up login for a made-up site. The unique name keeps each run separate
-// from earlier runs and from anything else stored in your project.
+// A made-up login for a made-up site, with a unique name for each run.
 export function demoLogin() {
   const namespace = `cookbook-${randomUUID()}`;
   return {
@@ -25,7 +24,7 @@ export function demoLogin() {
   };
 }
 
-// Creates a session, runs your code, and always releases the session afterwards.
+// Releases the session even if `run` throws.
 export async function withSession<T>(params: SessionCreateParams, run: (session: Session) => Promise<T>) {
   const session = await client.sessions.create({ timeout: 120_000, ...params, projectId });
   console.log(`Session viewer: ${session.sessionViewerUrl}`);

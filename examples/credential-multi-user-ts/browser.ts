@@ -11,15 +11,12 @@ const loginPage = `<!doctype html>
   <button>Sign in</button>
 </form>`;
 
-// Opens a sign-in form that exists only inside this browser session. Playwright
-// answers the page request itself, so no login is ever sent to a real website.
+// Serves a sign-in page from inside the session, so no login reaches a real website.
 export async function openLoginForm(session: Session, origin: string) {
-  // websocketUrl already holds a token for this session, so it needs no API key.
   const browser = await chromium.connectOverCDP(session.websocketUrl);
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? await context.newPage();
 
-  // wrapCDPSession adds Steel's typed credential commands (detect, fill, setControls).
   const { steel } = wrapCDPSession(await browser.newBrowserCDPSession());
   // Turn off automatic fill, so the form stays empty until the script calls fill.
   await steel.setControls({ autofill: false, autoSubmit: false });
@@ -29,7 +26,7 @@ export async function openLoginForm(session: Session, origin: string) {
     if (request.method() !== 'GET' || request.url() !== `${origin}/login`) return route.abort();
     return route.fulfill({
       contentType: 'text/html',
-      // The policy stops the form from being submitted anywhere.
+      // This policy stops the form from being submitted.
       headers: { 'Content-Security-Policy': "default-src 'none'; form-action 'none'" },
       body: loginPage,
     });

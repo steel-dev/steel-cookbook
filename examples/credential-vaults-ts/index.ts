@@ -9,8 +9,7 @@ console.log(`Created Vault ${vault.name}`);
 let itemId: string | undefined;
 
 try {
-  // The SDK has no typed method for putting a credential in a Vault yet,
-  // so this calls the endpoint through the SDK's own HTTP client.
+  // The SDK has no method for adding a credential to a Vault yet, so call the endpoint.
   const item = await client.post<unknown, { id: string }>('/v1/secrets', {
     body: { projectId, kind: 'credential', vaultId: vault.id, name: 'demo-login', namespace, origin, value },
   });
@@ -25,7 +24,7 @@ try {
 
     const { browser, page, steel } = await openLoginForm(session, origin);
     try {
-      // `reference` names the one item to fill: the Vault binding plus the item's ID.
+      // `reference` picks the item to fill.
       const result = await steel.fill({ origin, reference: `${binding}/${item.id}`, submit: false });
       console.log(`Filled: ${result.filled.join(', ')}. Submitted: ${result.submitted}`);
       console.log(`The email field now holds: ${await page.locator('#user').inputValue()}`);

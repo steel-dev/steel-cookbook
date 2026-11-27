@@ -2,11 +2,10 @@
 # https://github.com/steel-dev/steel-cookbook/tree/main/examples/secret-connections-ts
 set -euo pipefail
 
-# Read-only commands: each one lists what you have and changes nothing.
+# Each command lists what you have and changes nothing.
 # The CLI reads STEEL_API_KEY from your shell, not from .env.
 : "${STEEL_API_KEY:?Run: export STEEL_API_KEY=your-key}"
 
-# Only an organization-scoped API key needs STEEL_PROJECT_ID.
 case "${1:-help}" in
   credentials)
     steel --json credentials list --namespace "${EXAMPLE_NAMESPACE:-default}"

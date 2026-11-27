@@ -9,12 +9,12 @@ await client.credentials.create({ ...key, value, label: 'Demo login' });
 console.log(`Created a credential for ${origin}`);
 
 try {
-  // The list you send replaces the stored list. It does not add to it.
+  // This replaces the stored list of additional origins.
   const loginOrigin = `https://login.${new URL(origin).hostname}`;
   await client.credentials.update({ ...key, additionalOrigins: [loginOrigin] });
   console.log(`Updated it to also fill on ${loginOrigin}`);
 
-  // The API never returns the stored username or password.
+  // The response has no username or password.
   const { credentials } = await client.credentials.list(key);
   for (const credential of credentials) {
     console.log('Listed:', { label: credential.label, origin: credential.origin, namespace: credential.namespace });

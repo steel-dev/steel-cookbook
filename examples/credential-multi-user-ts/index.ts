@@ -7,16 +7,14 @@ const { origin, users } = await createUsers();
 console.log(`Created a Vault for each of: ${users.map(user => user.id).join(', ')}`);
 
 try {
-  // Alice, then Bob, then Alice again: each visit is a new session.
   for (const id of ['alice', 'bob', 'alice']) {
-    // In your app, take this ID from your own signed-in user, never from a request body.
+    // In your app, look this up from your own signed-in user.
     const user = users.find(u => u.id === id)!;
 
-    // Bind exactly one user's Vault. The session cannot reach the other user's login.
+    // Bind only this user's Vault.
     await withSession({ credentials: credentialsFor(user, origin) }, async session => {
       const { browser, page, steel } = await openLoginForm(session, origin);
       try {
-        // No reference is needed: only one bound credential matches this site.
         await steel.fill({ origin, submit: false });
         console.log(`Session for ${id} filled: ${await page.locator('#user').inputValue()}`);
       } finally {

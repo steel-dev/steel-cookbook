@@ -6,17 +6,17 @@ const { namespace, origin, value } = demoLogin();
 await client.credentials.create({ projectId, namespace, origin, value });
 
 try {
-  // `origins` limits this session to filling one site. `autoSubmit: false` leaves the click to you.
+  // Fill on this site only, and leave the submit to the script.
   await withSession({ namespace, credentials: { autoSubmit: false, origins: [origin] } }, async session => {
     const { browser, page, steel } = await openLoginForm(session, origin);
     try {
-      // Ask Steel which sign-in forms it sees, and whether a stored credential matches.
+      // Find the sign-in form and check that a stored credential matches it.
       const { frames } = await steel.detect({ origin, checkCredentials: true });
       const frame = frames.find(f => f.origin === origin && f.groups.length > 0);
       if (!frame?.credentialAvailable) throw new Error('Steel found no sign-in form with a matching credential.');
       console.log(`Detected a sign-in form with fields: ${frame.groups[0].roles.join(', ')}`);
 
-      // Fill that exact form, not whichever form happens to be on the page later.
+      // Fill the form that detect found.
       const result = await steel.fill({
         origin,
         frameId: frame.frameId,

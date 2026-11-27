@@ -11,9 +11,8 @@ const loginPage = `<!doctype html>
   <button>Sign in</button>
 </form>`;
 
-// A tiny website that exists only inside the browser session. Playwright answers
-// every request itself: it checks the login, sets a cookie, and shows an account
-// page to whoever holds that cookie. Nothing is sent to a real website.
+// A small website served by Playwright inside the session. It checks the login,
+// sets a cookie, and shows an account page to whoever holds that cookie.
 export async function mockWebsite(context: BrowserContext, origin: string, users: User[]) {
   const headers = { 'Content-Security-Policy': "default-src 'none'; form-action 'self'" };
 
@@ -49,7 +48,7 @@ export async function mockWebsite(context: BrowserContext, origin: string, users
   });
 }
 
-// Opens the account page and returns whose account it is. Fails if nobody is signed in.
+// Returns whose account page is showing.
 export async function accountOwner(page: Page, origin: string) {
   await page.goto(`${origin}/account`);
   return page.locator('#account').textContent({ timeout: 15_000 });
@@ -60,7 +59,7 @@ export async function clickSignIn(page: Page) {
   await page.locator('#signed-in').waitFor({ timeout: 15_000 });
 }
 
-// What a site does when its own session expires: the cookie is gone.
+// Acts out an expired login by deleting the site's cookie.
 export async function signOut(page: Page) {
   await page.context().clearCookies({ name: cookieName });
 }
