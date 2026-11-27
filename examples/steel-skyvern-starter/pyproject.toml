@@ -1,0 +1,11 @@
+[project]
+name = "steel-skyvern-starter"
+version = "0.1.0"
+description = "Example demonstrating Steel integration with Skyvern for AI-powered browser automation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "steel-sdk>=0.4.0",
+    "skyvern>=0.1.0",
+    "python-dotenv>=1.0.0",
+]
