@@ -1,47 +1,41 @@
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/credential-vaults-ts
-import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { wrapCDPSession } from 'steel-sdk/cdp';
 import type { Session } from 'steel-sdk/resources/sessions';
 
-const cdpHosts = new Set(['api.steel.dev', 'api.steel-edge.net', 'connect.steel.dev', 'connect.steel-edge.net', 'steel-api.fly.dev']);
+const loginPage = `<!doctype html>
+<form method="post" action="/not-sent">
+  <h1>Sign in</h1>
+  <label>Email <input id="user" name="username" autocomplete="username"></label>
+  <label>Password <input id="pass" name="password" type="password" autocomplete="current-password"></label>
+  <button>Sign in</button>
+</form>`;
 
-export async function connectBrowser(session: Session, key: string) {
-  const url = new URL(session.websocketUrl);
-  // Validate the destination before attaching the API key to the CDP URL.
-  assert(url.protocol === 'wss:' && cdpHosts.has(url.hostname) && !url.port && !url.username && !url.password,
-    'Unexpected Steel CDP destination');
-  url.searchParams.set('apiKey', key);
-  url.searchParams.set('sessionId', session.id);
-  return chromium.connectOverCDP(url.toString(), { timeout: 20_000 });
-}
+// Opens a sign-in form that exists only inside this browser session. Playwright
+// answers the page request itself, so no login is ever sent to a real website.
+export async function openLoginForm(session: Session, origin: string) {
+  // websocketUrl already holds a token for this session, so it needs no API key.
+  const browser = await chromium.connectOverCDP(session.websocketUrl);
+  const context = browser.contexts()[0];
+  const page = context.pages()[0] ?? await context.newPage();
 
-export async function syntheticForm(session: Session, key: string, origin: string) {
-  assert.match(origin, /^https:\/\/example-[a-f0-9-]+\.example\.test$/);
-  const browser = await connectBrowser(session, key);
-  try {
-    const context = browser.contexts()[0];
-    const page = context.pages()[0] ?? await context.newPage();
-    const cdp = wrapCDPSession(await browser.newBrowserCDPSession());
-    // These examples call fill explicitly; navigation alone should do nothing.
-    await cdp.steel.setControls({ autofill: false, autoSubmit: false });
-    // Serve the fixture in Playwright and abort every other page request.
-    await context.route('**/*', route => {
-      const req = route.request();
-      if (req.method() !== 'GET' || req.url() !== `${origin}/login`) return route.abort();
-      return route.fulfill({
-        contentType: 'text/html', headers: { 'Content-Security-Policy': "default-src 'none'; form-action 'none'" },
-        body: `<!doctype html><form method="post" action="/not-sent"><h1>Sign in</h1>
-          <label>Email <input id="user" name="username" autocomplete="username"></label>
-          <label>Password <input id="pass" name="password" type="password" autocomplete="current-password"></label>
-          <button>Sign in</button></form>`,
-      });
+  // wrapCDPSession adds Steel's typed credential commands (detect, fill, setControls).
+  const { steel } = wrapCDPSession(await browser.newBrowserCDPSession());
+  // Turn off automatic fill, so the form stays empty until the script calls fill.
+  await steel.setControls({ autofill: false, autoSubmit: false });
+
+  await context.route('**/*', route => {
+    const request = route.request();
+    if (request.method() !== 'GET' || request.url() !== `${origin}/login`) return route.abort();
+    return route.fulfill({
+      contentType: 'text/html',
+      // The policy stops the form from being submitted anywhere.
+      headers: { 'Content-Security-Policy': "default-src 'none'; form-action 'none'" },
+      body: loginPage,
     });
-    await page.goto(`${origin}/login`, { timeout: 12_000 });
-    await page.bringToFront();
-    return { browser, page, cdp };
-  } catch (error) {
-    await browser.close().catch(() => {});
-    throw error;
-  }
+  });
+
+  await page.goto(`${origin}/login`);
+  await page.bringToFront();
+  return { browser, page, steel };
 }

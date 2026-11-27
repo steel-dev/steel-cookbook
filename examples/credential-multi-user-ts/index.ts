@@ -1,31 +1,30 @@
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/credential-multi-user-ts
-import assert from 'node:assert/strict';
-import { connect, main, withSession } from './common.ts';
-import { syntheticForm } from './browser.ts';
-import { credentialsFor, visitOrder, withUsers } from './users.ts';
+import { withSession } from './common.ts';
+import { openLoginForm } from './browser.ts';
+import { createUsers, credentialsFor, deleteUsers } from './users.ts';
 
-await main(async () => {
-  const scope = await connect();
-  await withUsers(scope, async (origin, users) => {
-    // In an app, derive this ID from your authenticated user, not a request body.
-    for (const userId of visitOrder) {
-      const user = users.get(userId);
-      assert(user, 'Missing user fixture');
-      // Create a fresh browser session with exactly one user's Vault bound.
-      await withSession(scope, { credentials: credentialsFor(user, origin) }, async session => {
-        const access = await scope.client.sessions.credentials.list(session.id);
-        assert.deepEqual(access.bindings, [`steel://vaults/${user.vaultId}`]);
-        const { browser, page, cdp } = await syntheticForm(session, scope.key, origin);
-        try {
-          const result = await cdp.steel.fill({ origin, submit: false });
-          assert.equal(result.submitted, false);
-          assert.equal(await page.locator('#user').inputValue(), user.value.username);
-          assert.equal(await page.locator('#pass').inputValue(), user.value.password);
-          console.log(`Filled the synthetic form for ${userId}.`);
-        } finally {
-          await browser.close();
-        }
-      });
-    }
-  });
-});
+const { origin, users } = await createUsers();
+console.log(`Created a Vault for each of: ${users.map(user => user.id).join(', ')}`);
+
+try {
+  // Alice, then Bob, then Alice again: each visit is a new session.
+  for (const id of ['alice', 'bob', 'alice']) {
+    // In your app, take this ID from your own signed-in user, never from a request body.
+    const user = users.find(u => u.id === id)!;
+
+    // Bind exactly one user's Vault. The session cannot reach the other user's login.
+    await withSession({ credentials: credentialsFor(user, origin) }, async session => {
+      const { browser, page, steel } = await openLoginForm(session, origin);
+      try {
+        // No reference is needed: only one bound credential matches this site.
+        await steel.fill({ origin, submit: false });
+        console.log(`Session for ${id} filled: ${await page.locator('#user').inputValue()}`);
+      } finally {
+        await browser.close();
+      }
+    });
+  }
+} finally {
+  await deleteUsers(users);
+  console.log('Vaults deleted.');
+}

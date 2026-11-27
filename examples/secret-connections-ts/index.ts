@@ -1,32 +1,54 @@
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/secret-connections-ts
-import assert from 'node:assert/strict';
+import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
+import Steel from 'steel-sdk';
 import type { SecretConnectionCreateParams } from 'steel-sdk/resources/secret-connections';
-import { connect, fixture, main, required } from './common.ts';
 
-await main(async () => {
-  const provider = process.argv[2];
-  if (!process.argv.includes('--disposable') || (provider !== '1password' && provider !== 'hashicorp_vault')) {
-    console.log('Usage: npm start -- <1password|hashicorp_vault> --disposable');
-    process.exitCode = 1;
-    return;
+function required(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    console.error(`Set ${name} in .env before running this example.`);
+    process.exit(1);
   }
-  const { client, projectId } = await connect();
-  const input: Omit<SecretConnectionCreateParams, 'name'> = provider === '1password'
-    ? { provider, auth: { serviceAccountToken: required('OP_SERVICE_ACCOUNT_TOKEN') } }
-    : {
-        provider,
-        config: { address: required('VAULT_ADDR'), namespace: process.env.VAULT_NAMESPACE || undefined },
-        auth: { type: 'token', token: required('VAULT_TOKEN') },
-      };
-  // Always create a new fixture; never test or update a connection by user-supplied ID.
-  const connection = await client.secretConnections.create({ ...input, projectId, name: fixture().namespace });
-  try {
-    // Test verifies provider authentication, not the ability to fill a form.
-    await client.secretConnections.test(connection.id, { projectId });
-    const metadata = await client.secretConnections.retrieve(connection.id, { projectId });
-    assert.equal(metadata.enabled, true);
-    console.log({ provider: metadata.provider, authenticated: true, browserFillTested: false });
-  } finally {
-    await client.secretConnections.delete(connection.id, { projectId });
-  }
+  return value;
+}
+
+const provider = process.argv[2];
+if (provider !== '1password' && provider !== 'hashicorp_vault') {
+  console.error('Usage: npm start -- <1password|hashicorp_vault>');
+  process.exit(1);
+}
+
+const client = new Steel({ steelAPIKey: required('STEEL_API_KEY') });
+// Only an organization-scoped API key needs a project ID. Leave it unset otherwise.
+const projectId = process.env.STEEL_PROJECT_ID || undefined;
+
+// Each provider signs in differently: 1Password with a service account token,
+// HashiCorp Vault with its address and a token.
+const settings: Omit<SecretConnectionCreateParams, 'name'> = provider === '1password'
+  ? { provider, auth: { serviceAccountToken: required('OP_SERVICE_ACCOUNT_TOKEN') } }
+  : {
+      provider,
+      config: { address: required('VAULT_ADDR'), namespace: process.env.VAULT_NAMESPACE || undefined },
+      auth: { type: 'token', token: required('VAULT_TOKEN') },
+    };
+
+const connection = await client.secretConnections.create({
+  ...settings,
+  projectId,
+  name: `cookbook-${randomUUID()}`,
 });
+console.log(`Created connection ${connection.id}`);
+
+try {
+  // The test checks that Steel can sign in to the provider. It throws if it cannot.
+  await client.secretConnections.test(connection.id, { projectId });
+  console.log('Test passed: Steel can sign in to the provider.');
+
+  // The API returns the connection's settings, never the token you sent.
+  const saved = await client.secretConnections.retrieve(connection.id, { projectId });
+  console.log('Saved connection:', { name: saved.name, provider: saved.provider, enabled: saved.enabled });
+} finally {
+  await client.secretConnections.delete(connection.id, { projectId });
+  console.log('Connection deleted.');
+}

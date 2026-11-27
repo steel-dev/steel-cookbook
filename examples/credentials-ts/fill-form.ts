@@ -1,38 +1,36 @@
 // https://github.com/steel-dev/steel-cookbook/tree/main/examples/credentials-ts
-import assert from 'node:assert/strict';
-import { connect, fixture, main, withSession } from './common.ts';
-import { syntheticForm } from './browser.ts';
+import { client, demoLogin, projectId, withSession } from './common.ts';
+import { openLoginForm } from './browser.ts';
 
-await main(async () => {
-  const scope = await connect();
-  const { client, projectId, key } = scope;
-  const { namespace, origin, value } = fixture();
-  await client.credentials.create({ projectId, namespace, origin, value });
-  try {
-    // No explicit binding: the session looks up the credential in its namespace.
-    await withSession(scope, { namespace, credentials: { autoSubmit: false, origins: [origin] } }, async session => {
-      const { browser, page, cdp } = await syntheticForm(session, key, origin);
-      try {
-        const { frames } = await cdp.steel.detect({ origin, checkCredentials: true });
-        const frame = frames.find(f => f.origin === origin && f.groups.length);
-        assert(frame && frame.credentialAvailable, 'No matching credential or sign-in form');
-        // Target the detected document and form, rather than whichever form is active later.
-        const { filled, submitted } = await cdp.steel.fill({
-          origin,
-          frameId: frame.frameId,
-          documentId: frame.documentId,
-          groupId: frame.groups[0].groupId,
-          submit: false,
-        });
-        assert.equal(await page.locator('#user').inputValue(), value.username);
-        assert.equal(await page.locator('#pass').inputValue(), value.password);
-        assert.equal(submitted, false);
-        console.log({ filled, submitted });
-      } finally {
-        await browser.close();
-      }
-    });
-  } finally {
-    if (scope.sessionReleased) await client.credentials.delete({ projectId, namespace, origin });
-  }
-});
+const { namespace, origin, value } = demoLogin();
+await client.credentials.create({ projectId, namespace, origin, value });
+
+try {
+  // `origins` limits this session to filling one site. `autoSubmit: false` leaves the click to you.
+  await withSession({ namespace, credentials: { autoSubmit: false, origins: [origin] } }, async session => {
+    const { browser, page, steel } = await openLoginForm(session, origin);
+    try {
+      // Ask Steel which sign-in forms it sees, and whether a stored credential matches.
+      const { frames } = await steel.detect({ origin, checkCredentials: true });
+      const frame = frames.find(f => f.origin === origin && f.groups.length > 0);
+      if (!frame?.credentialAvailable) throw new Error('Steel found no sign-in form with a matching credential.');
+      console.log(`Detected a sign-in form with fields: ${frame.groups[0].roles.join(', ')}`);
+
+      // Fill that exact form, not whichever form happens to be on the page later.
+      const result = await steel.fill({
+        origin,
+        frameId: frame.frameId,
+        documentId: frame.documentId,
+        groupId: frame.groups[0].groupId,
+        submit: false,
+      });
+      console.log(`Filled: ${result.filled.join(', ')}. Submitted: ${result.submitted}`);
+      console.log(`The email field now holds: ${await page.locator('#user').inputValue()}`);
+    } finally {
+      await browser.close();
+    }
+  });
+} finally {
+  await client.credentials.delete({ projectId, namespace, origin });
+  console.log('Credential deleted.');
+}

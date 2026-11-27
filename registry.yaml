@@ -393,7 +393,7 @@
 - title: Bind and fill a Vault credential
   slug: credential-vaults
   path: examples/credential-vaults-ts
-  description: Bind a Vault to a session and fill a synthetic login by item reference.
+  description: Bind a Vault to a session and fill a sign-in form with one item from it.
   authors: [danew]
   language: TypeScript
   topics: [Steel APIs, Authentication]
@@ -420,10 +420,10 @@
   created: "2026-11-27"
   updated: "2026-11-27"
 
-- title: Test a disposable Secret Connection
+- title: Test a Secret Connection
   slug: secret-connections
   path: examples/secret-connections-ts
-  description: Verify provider authentication with the TypeScript SDK and inspect credential resources with the CLI.
+  description: Check that Steel can sign in to 1Password or HashiCorp Vault, and inspect credential resources with the CLI.
   authors: [danew]
   language: TypeScript
   topics: [Steel APIs, Authentication]
